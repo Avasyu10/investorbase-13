@@ -175,52 +175,52 @@ Return your analysis in EXACTLY this JSON format:
     {
       "type": "PROBLEM",
       "title": "Problem Statement",
-      "description": "<brief description of what was found in this section>"
+      "description": "<brief description of what was found in this section with 3-4 detailed points with market data and numbers>"
     },
     {
       "type": "MARKET",
       "title": "Market Opportunity",
-      "description": "<brief description of what was found in this section>"
+      "description": "<brief description of what was found in this section with 3-4 detailed points with market data and numbers>"
     },
     {
       "type": "SOLUTION",
       "title": "Solution (Product)",
-      "description": "<brief description of what was found in this section>"
+      "description": "<brief description of what was found in this section with 3-4 detailed points with market data and numbers>"
     },
     {
       "type": "COMPETITIVE_LANDSCAPE",
       "title": "Competitive Landscape",
-      "description": "<brief description of what was found in this section>"
+      "description": "<brief description of what was found in this section with 3-4 detailed points with market data and numbers>"
     },
     {
       "type": "TRACTION",
       "title": "Traction & Milestones",
-      "description": "<brief description of what was found in this section>"
+      "description": "<brief description of what was found in this section with 3-4 detailed points with market data and numbers>"
     },
     {
       "type": "BUSINESS_MODEL",
       "title": "Business Model",
-      "description": "<brief description of what was found in this section>"
+      "description": "<brief description of what was found in this section with 3-4 detailed points with market data and numbers>"
     },
     {
       "type": "GTM_STRATEGY",
       "title": "Go-to-Market Strategy",
-      "description": "<brief description of what was found in this section>"
+      "description": "<brief description of what was found in this section with 3-4 detailed points with market data and numbers>"
     },
     {
       "type": "TEAM",
       "title": "Founder & Team Background",
-      "description": "<brief description of what was found in this section>"
+      "description": "<brief description of what was found in this section with 3-4 detailed points with market data and numbers>"
     },
     {
       "type": "FINANCIALS",
       "title": "Financial Overview & Projections",
-      "description": "<brief description of what was found in this section>"
+      "description": "<brief description of what was found in this section with 3-4 detailed points with market data and numbers>"
     },
     {
       "type": "ASK",
       "title": "The Ask & Next Steps",
-      "description": "<brief description of what was found in this section>"
+      "description": "<brief description of what was found in this section with 3-4 detailed points with market data and numbers>"
     }
   ],
   "slideBySlideNotes": [
