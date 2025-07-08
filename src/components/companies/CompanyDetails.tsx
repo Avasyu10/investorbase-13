@@ -17,6 +17,7 @@ import { CompanyDetailed } from "@/lib/api/apiContract";
 import FormResponsesDialog from "./FormResponsesDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
+import { InvestmentMemo } from "./InvestmentMemo";
 
 const CompanyDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -357,6 +358,10 @@ const CompanyDetails = () => {
                     </Button>
                   )}
                   {id && <FormResponsesDialog companyId={id} />}
+                  {/* Investment Memo button for non-IIT Bombay users */}
+                  {!isIITBombayUser && company && (
+                    <InvestmentMemo company={company} />
+                  )}
                   {/* Only show chatbot button for non-IIT Bombay users */}
                   {!isIITBombayUser && (
                     <Button
