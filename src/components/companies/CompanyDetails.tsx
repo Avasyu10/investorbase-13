@@ -1,4 +1,3 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "./SectionCard";
@@ -359,7 +358,7 @@ const CompanyDetails = () => {
                     </Button>
                   )}
                   {id && <FormResponsesDialog companyId={id} />}
-                  {/* Investment Memo button - show for all users who are NOT IIT Bombay users */}
+                  {/* Investment Memo button for non-IIT Bombay users */}
                   {!isIITBombayUser && company && (
                     <InvestmentMemo company={company} />
                   )}
