@@ -78,7 +78,7 @@ export function ViewOnlyCompaniesTable({
 
     try {
       // Use the report ID to construct the proper report viewer URL
-      window.open(`/report/${company.report_id}`, '_blank');
+      window.open(`/report/${report.pdf_url}`, '_blank');
     } catch (error) {
       console.error('Error opening deck:', error);
     }
