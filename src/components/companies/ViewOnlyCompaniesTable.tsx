@@ -77,10 +77,12 @@ export function ViewOnlyCompaniesTable({
     }
 
     try {
-      // Fetch the report to get the pdf_url - use maybeSingle to handle cases where no report is found
+      console.log('Fetching report for ID:', company.report_id);
+      
+      // Fetch the report to get the pdf_url and user_id
       const { data: report, error: reportError } = await supabase
         .from('reports')
-        .select('pdf_url')
+        .select('pdf_url, user_id, is_public_submission')
         .eq('id', company.report_id)
         .maybeSingle();
         
@@ -99,15 +101,79 @@ export function ViewOnlyCompaniesTable({
         return;
       }
       
-      console.log('Getting PDF from storage:', report.pdf_url);
+      console.log('Report found:', {
+        pdf_url: report.pdf_url,
+        user_id: report.user_id,
+        is_public_submission: report.is_public_submission
+      });
       
-      // Get the PDF file from storage using the bucket name 'report-pdfs'
-      const { data: pdfData, error: downloadError } = await supabase.storage
-        .from('report-pdfs')
-        .download(report.pdf_url);
+      // Try different path patterns based on the edge function logic
+      const bucketName = 'report-pdfs';
+      let pdfData = null;
+      let downloadPath = report.pdf_url;
+      
+      console.log('Attempting to download PDF from storage:', downloadPath);
+      
+      // First try: direct path
+      try {
+        const { data, error } = await supabase.storage
+          .from(bucketName)
+          .download(downloadPath);
+          
+        if (!error && data) {
+          pdfData = data;
+          console.log('Successfully downloaded PDF with direct path, size:', data.size);
+        } else {
+          console.log('Direct path failed:', error?.message);
+        }
+      } catch (err) {
+        console.log('Direct path exception:', err);
+      }
+      
+      // Second try: with user ID prefix (if we have user_id and it's not a public submission)
+      if (!pdfData && report.user_id && !report.is_public_submission) {
+        const userSpecificPath = `${report.user_id}/${report.pdf_url}`;
+        console.log('Trying user-specific path:', userSpecificPath);
         
-      if (downloadError || !pdfData) {
-        console.error('Error downloading PDF:', downloadError);
+        try {
+          const { data, error } = await supabase.storage
+            .from(bucketName)
+            .download(userSpecificPath);
+            
+          if (!error && data) {
+            pdfData = data;
+            console.log('Successfully downloaded PDF with user-specific path, size:', data.size);
+          } else {
+            console.log('User-specific path failed:', error?.message);
+          }
+        } catch (err) {
+          console.log('User-specific path exception:', err);
+        }
+      }
+      
+      // Third try: just the filename (fallback)
+      if (!pdfData) {
+        const filename = report.pdf_url.split('/').pop() || report.pdf_url;
+        console.log('Trying filename only:', filename);
+        
+        try {
+          const { data, error } = await supabase.storage
+            .from(bucketName)
+            .download(filename);
+            
+          if (!error && data) {
+            pdfData = data;
+            console.log('Successfully downloaded PDF with filename only, size:', data.size);
+          } else {
+            console.log('Filename only failed:', error?.message);
+          }
+        } catch (err) {
+          console.log('Filename only exception:', err);
+        }
+      }
+      
+      if (!pdfData) {
+        console.error('Failed to download PDF from any path pattern');
         return;
       }
       
