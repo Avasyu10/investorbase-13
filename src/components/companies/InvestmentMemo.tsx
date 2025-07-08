@@ -95,7 +95,8 @@ export const InvestmentMemo: React.FC<InvestmentMemoProps> = ({ company }) => {
       return text.map(item => `• ${item}`);
     }
     // Attempt to split text by common list delimiters if it's a string
-    const lines = text.split(/[\r\n]+|(?<=\.)\s*(?=[A-Z])/g).filter(line => line.trim() !== ''); // Splits by new line or sentence ending followed by a capital letter
+    // This regex splits by new line or a period/exclamation/question mark followed by space and a capital letter
+    const lines = text.split(/[\r\n]+|(?<=[.!?])\s*(?=[A-Z])/g).filter(line => line.trim() !== '');
     if (lines.length > 1) {
       return lines.map(line => `• ${line.trim()}`);
     }
@@ -281,6 +282,9 @@ export const InvestmentMemo: React.FC<InvestmentMemoProps> = ({ company }) => {
     const pageWidth = doc.internal.pageSize.width;
     const maxWidth = pageWidth - 2 * margin;
 
+    // Set default text color to black for the PDF
+    doc.setTextColor(0, 0, 0); // RGB for black
+
     // Helper function to add text with wrapping and handling bullet points
     const addContentToPDF = (title: string, contentLines: string[], titleFontSize: number = 14, contentFontSize: number = 10) => {
       // Add Title
@@ -291,11 +295,12 @@ export const InvestmentMemo: React.FC<InvestmentMemoProps> = ({ company }) => {
         if (yPosition > 270) {
           doc.addPage();
           yPosition = 20;
+          doc.setTextColor(0, 0, 0); // Ensure black on new page
         }
         doc.text(line, margin, yPosition);
         yPosition += lineHeight;
       }
-      yPosition += 3; // Space after title
+      yPosition += 8; // Increased space after title
 
       // Add Content (bullet points)
       doc.setFontSize(contentFontSize);
@@ -306,12 +311,13 @@ export const InvestmentMemo: React.FC<InvestmentMemoProps> = ({ company }) => {
           if (yPosition > 270) {
             doc.addPage();
             yPosition = 20;
+            doc.setTextColor(0, 0, 0); // Ensure black on new page
           }
           doc.text(textLine, margin, yPosition);
           yPosition += lineHeight;
         }
       });
-      yPosition += 8; // Extra spacing after each section
+      yPosition += 15; // Increased extra spacing after each section content
     };
 
     // Title Page (optional, but good for memos)
@@ -327,6 +333,7 @@ export const InvestmentMemo: React.FC<InvestmentMemoProps> = ({ company }) => {
     doc.text(`Prepared on: ${new Date().toLocaleDateString()}`, pageWidth / 2, yPosition + 40, { align: 'center' });
     doc.addPage();
     yPosition = 20; // Reset y for next page
+    doc.setTextColor(0, 0, 0); // Ensure black on new page
 
     // Executive Summary
     const executiveSummaryContent = formatAsBulletPoints(
@@ -362,6 +369,13 @@ export const InvestmentMemo: React.FC<InvestmentMemoProps> = ({ company }) => {
     // Investment Rationale
     addContentToPDF('INVESTMENT RATIONALE', getInvestmentRationale());
 
+    // Footer
+    yPosition += 10;
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'italic');
+    doc.text(`Generated on ${new Date().toLocaleDateString()}`, margin, yPosition);
+
+
     // Save the PDF
     doc.save(`${company.name}_Investment_Memo.pdf`);
   };
@@ -369,16 +383,18 @@ export const InvestmentMemo: React.FC<InvestmentMemoProps> = ({ company }) => {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="flex items-center gap-2">
+        {/* Changed button variant/class for neutral color */}
+        <Button variant="outline" className="flex items-center gap-2 border-gray-300 text-gray-800 hover:bg-gray-100">
           <FileText className="h-4 w-4" />
           Investment Memo
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
+          <DialogTitle className="flex items-center justify-between text-black">
             <span>Investment Memo - {company.name}</span>
-            <Button onClick={downloadAsPDF} variant="outline" size="sm" className="flex items-center gap-2">
+            {/* Changed button variant/class for neutral color */}
+            <Button onClick={downloadAsPDF} variant="outline" size="sm" className="flex items-center gap-2 border-gray-300 text-gray-800 hover:bg-gray-100">
               <Download className="h-4 w-4" />
               Download PDF
             </Button>
@@ -387,33 +403,36 @@ export const InvestmentMemo: React.FC<InvestmentMemoProps> = ({ company }) => {
 
         {loading ? (
           <div className="flex justify-center items-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin" />
+            <Loader2 className="h-6 w-6 animate-spin text-gray-600" /> {/* Neutral loader color */}
           </div>
         ) : (
-          <div className="space-y-6 p-4 bg-white text-black">
+          // Increased space-y for overall section spacing
+          <div className="space-y-8 p-4 bg-white text-black">
             {/* Header for display in dialog */}
             <div className="text-center border-b pb-4">
               <h1 className="text-2xl font-bold mb-2">INVESTMENT MEMO</h1>
-              <h2 className="text-xl font-semibold text-blue-600">{company.name}</h2>
+              {/* Changed text color to black/gray */}
+              <h2 className="text-xl font-semibold text-gray-800">{company.name}</h2>
               <p className="text-sm text-gray-600 mt-2">Prepared on {new Date().toLocaleDateString()}</p>
             </div>
 
-            {/* Executive Summary */}
-            <section>
-              <h3 className="text-lg font-bold mb-3 text-blue-800">EXECUTIVE SUMMARY</h3>
-              <ul className="list-disc list-inside space-y-1 text-sm leading-relaxed">
+            {/* Executive Summary - Increased mb for section spacing */}
+            <section className="mb-6">
+              {/* Changed text color to black/gray */}
+              <h3 className="text-lg font-bold mb-3 text-gray-800">EXECUTIVE SUMMARY</h3>
+              <ul className="list-disc list-inside space-y-2 text-sm leading-relaxed text-gray-800"> {/* Added text-gray-800 */}
                 {formatAsBulletPoints(company.introduction ||
                   `${company.name} is an innovative company operating in the ${company.industry || 'EdTech, Metaverse, Virtual Learning'} sector, poised for significant growth. This memo outlines the investment opportunity, highlighting its unique value proposition and market potential.`
                 ).map((line, index) => (
-                  <li key={`exec-sum-${index}`}>{line.replace(/^•\s*/, '')}</li> // Remove bullet for display in ul
+                  <li key={`exec-sum-${index}`}>{line.replace(/^•\s*/, '')}</li>
                 ))}
               </ul>
             </section>
 
             {/* Investment Highlights */}
-            <section>
-              <h3 className="text-lg font-bold mb-3 text-blue-800">INVESTMENT HIGHLIGHTS</h3>
-              <ul className="list-disc list-inside space-y-1 text-sm">
+            <section className="mb-6">
+              <h3 className="text-lg font-bold mb-3 text-gray-800">INVESTMENT HIGHLIGHTS</h3>
+              <ul className="list-disc list-inside space-y-2 text-sm text-gray-800">
                 {generateInvestmentHighlights().map((highlight, index) => (
                   <li key={`highlight-${index}`}>{highlight.replace(/^•\s*/, '')}</li>
                 ))}
@@ -421,9 +440,9 @@ export const InvestmentMemo: React.FC<InvestmentMemoProps> = ({ company }) => {
             </section>
 
             {/* Team */}
-            <section>
-              <h3 className="text-lg font-bold mb-3 text-blue-800">TEAM</h3>
-              <ul className="list-disc list-inside space-y-1 text-sm leading-relaxed">
+            <section className="mb-6">
+              <h3 className="text-lg font-bold mb-3 text-gray-800">TEAM</h3>
+              <ul className="list-disc list-inside space-y-2 text-sm leading-relaxed text-gray-800">
                 {getTeamContent().map((line, index) => (
                   <li key={`team-${index}`}>{line.replace(/^•\s*/, '')}</li>
                 ))}
@@ -431,9 +450,9 @@ export const InvestmentMemo: React.FC<InvestmentMemoProps> = ({ company }) => {
             </section>
 
             {/* Problem */}
-            <section>
-              <h3 className="text-lg font-bold mb-3 text-blue-800">PROBLEM</h3>
-              <ul className="list-disc list-inside space-y-1 text-sm leading-relaxed">
+            <section className="mb-6">
+              <h3 className="text-lg font-bold mb-3 text-gray-800">PROBLEM</h3>
+              <ul className="list-disc list-inside space-y-2 text-sm leading-relaxed text-gray-800">
                 {getProblemContent().map((line, index) => (
                   <li key={`problem-${index}`}>{line.replace(/^•\s*/, '')}</li>
                 ))}
@@ -441,9 +460,9 @@ export const InvestmentMemo: React.FC<InvestmentMemoProps> = ({ company }) => {
             </section>
 
             {/* Solution */}
-            <section>
-              <h3 className="text-lg font-bold mb-3 text-blue-800">SOLUTION</h3>
-              <ul className="list-disc list-inside space-y-1 text-sm leading-relaxed">
+            <section className="mb-6">
+              <h3 className="text-lg font-bold mb-3 text-gray-800">SOLUTION</h3>
+              <ul className="list-disc list-inside space-y-2 text-sm leading-relaxed text-gray-800">
                 {getSolutionContent().map((line, index) => (
                   <li key={`solution-${index}`}>{line.replace(/^•\s*/, '')}</li>
                 ))}
@@ -451,9 +470,9 @@ export const InvestmentMemo: React.FC<InvestmentMemoProps> = ({ company }) => {
             </section>
 
             {/* Market Opportunity */}
-            <section>
-              <h3 className="text-lg font-bold mb-3 text-blue-800">MARKET OPPORTUNITY</h3>
-              <ul className="list-disc list-inside space-y-1 text-sm leading-relaxed">
+            <section className="mb-6">
+              <h3 className="text-lg font-bold mb-3 text-gray-800">MARKET OPPORTUNITY</h3>
+              <ul className="list-disc list-inside space-y-2 text-sm leading-relaxed text-gray-800">
                 {getMarketContent().map((line, index) => (
                   <li key={`market-${index}`}>{line.replace(/^•\s*/, '')}</li>
                 ))}
@@ -461,9 +480,9 @@ export const InvestmentMemo: React.FC<InvestmentMemoProps> = ({ company }) => {
             </section>
 
             {/* Business Model */}
-            <section>
-              <h3 className="text-lg font-bold mb-3 text-blue-800">BUSINESS MODEL</h3>
-              <ul className="list-disc list-inside space-y-1 text-sm leading-relaxed">
+            <section className="mb-6">
+              <h3 className="text-lg font-bold mb-3 text-gray-800">BUSINESS MODEL</h3>
+              <ul className="list-disc list-inside space-y-2 text-sm leading-relaxed text-gray-800">
                 {getBusinessModelContent().map((line, index) => (
                   <li key={`biz-model-${index}`}>{line.replace(/^•\s*/, '')}</li>
                 ))}
@@ -471,9 +490,9 @@ export const InvestmentMemo: React.FC<InvestmentMemoProps> = ({ company }) => {
             </section>
 
             {/* Competition */}
-            <section>
-              <h3 className="text-lg font-bold mb-3 text-blue-800">COMPETITIVE LANDSCAPE</h3>
-              <ul className="list-disc list-inside space-y-1 text-sm leading-relaxed">
+            <section className="mb-6">
+              <h3 className="text-lg font-bold mb-3 text-gray-800">COMPETITIVE LANDSCAPE</h3>
+              <ul className="list-disc list-inside space-y-2 text-sm leading-relaxed text-gray-800">
                 {getCompetitionContent().map((line, index) => (
                   <li key={`comp-${index}`}>{line.replace(/^•\s*/, '')}</li>
                 ))}
@@ -481,9 +500,9 @@ export const InvestmentMemo: React.FC<InvestmentMemoProps> = ({ company }) => {
             </section>
 
             {/* Risks and Concerns */}
-            <section>
-              <h3 className="text-lg font-bold mb-3 text-blue-800">RISKS AND CONCERNS</h3>
-              <ul className="list-disc list-inside space-y-1 text-sm leading-relaxed">
+            <section className="mb-6">
+              <h3 className="text-lg font-bold mb-3 text-gray-800">RISKS AND CONCERNS</h3>
+              <ul className="list-disc list-inside space-y-2 text-sm leading-relaxed text-gray-800">
                 {getRisksContent().map((line, index) => (
                   <li key={`risks-${index}`}>{line.replace(/^•\s*/, '')}</li>
                 ))}
@@ -491,9 +510,9 @@ export const InvestmentMemo: React.FC<InvestmentMemoProps> = ({ company }) => {
             </section>
 
             {/* Investment Rationale */}
-            <section>
-              <h3 className="text-lg font-bold mb-3 text-blue-800">INVESTMENT RATIONALE</h3>
-              <ul className="list-disc list-inside space-y-1 text-sm leading-relaxed">
+            <section className="mb-6">
+              <h3 className="text-lg font-bold mb-3 text-gray-800">INVESTMENT RATIONALE</h3>
+              <ul className="list-disc list-inside space-y-2 text-sm leading-relaxed text-gray-800">
                 {getInvestmentRationale().map((line, index) => (
                   <li key={`rationale-${index}`}>{line.replace(/^•\s*/, '')}</li>
                 ))}
