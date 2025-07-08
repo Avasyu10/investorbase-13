@@ -106,7 +106,7 @@ export function Navbar() {
                 </Button>
               )}
               
-              {!isViewOnly && !isIITBombay && !isVCAndBits && (
+              {isVC && (
                 <Button 
                   variant="ghost" 
                   size="sm" 
