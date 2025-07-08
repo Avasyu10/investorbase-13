@@ -197,23 +197,24 @@ Return your analysis in EXACTLY this JSON format:
       ]
     }
   ],
-  "improvementSuggestions": [
-    "<actionable improvement suggestion 1, focusing on UI/Design or Content, explaining why it's important and how to implement it. Example: 'Improve slide layout consistency and visual hierarchy by using uniform header styles and consistent spacing between elements, as this enhances readability and professionalism.'>",
-    "<actionable improvement suggestion 2, focusing on UI/Design or Content, explaining why it's important and how to implement it. Example: 'Enhance chart readability by adding proper legends, data labels, and using a consistent color scheme throughout all visualizations, which helps investors quickly grasp key data points.'>",
-    "<actionable improvement suggestion 3, focusing on UI/Design or Content, explaining why it's important and how to implement it. Example: 'Reduce visual clutter by increasing white space, improving text alignment, and using bullet points more effectively, which makes complex information easier to digest.'>",
-    "<actionable improvement suggestion 4, focusing on UI/Design or Content, explaining why it's important and how to implement it. Example: 'Standardize typography by using consistent font sizes, weights, and colors across all slides for better professional appearance and brand consistency.'>",
-    "<actionable improvement suggestion 5, focusing on UI/Design or Content, explaining why it's important and how to implement it. Example: 'Ensure all images and graphics are high-resolution and relevant to the content, avoiding pixelation or low-quality visuals, as this reflects poorly on the company’s attention to detail.'>",
-    "<actionable improvement suggestion 6, focusing on UI/Design or Content, explaining why it's important and how to implement it. Example: 'Incorporate compelling visuals (e.g., product screenshots, mockups, user interfaces) to clearly illustrate the solution, as visual aids are more impactful than pure text.'>",
-    "<actionable improvement suggestion 7, focusing on UI/Design or Content, explaining why it's important and how to implement it. Example: 'Refine the overall color palette to be professional and aligned with the company’s brand, ensuring it does not distract from the content but enhances engagement.'>",
-    "<actionable improvement suggestion 8, focusing on Content, explaining why it's important and how to implement it. **(Conditional: ONLY include if Market Sizing is absent or poor)** Add a dedicated Market Sizing slide using TAM/SAM/SOM format with specific market data, credible sources, and clear growth projections, as this provides investors with a clear understanding of the opportunity scale and the company's potential reach.'>",
-    "<actionable improvement suggestion 9, focusing on Content, explaining why it's important and how to implement it. **(Conditional: ONLY include if Competitive Analysis is absent or weak)** Include a competitive analysis matrix showing direct and indirect competitors, highlighting key differentiators and competitive advantages, as this demonstrates a clear understanding of the market landscape and unique selling propositions.'>",
-    "<actionable improvement suggestion 10, focusing on Content, explaining why it's important and how to implement it. **(Conditional: ONLY include if Traction/Social Proof is absent or weak)** Integrate compelling customer testimonials, success stories, or case studies to strengthen traction evidence and build credibility, showing real-world impact and validation.'>",
-    "<actionable improvement suggestion 11, focusing on Content, explaining why it's important and how to implement it. **(Conditional: ONLY include if Financials are absent or unclear)** Develop a clear financial model outlining key assumptions, unit economics, revenue projections for the next 3-5 years, and a realistic path to profitability, as this is crucial for investor evaluation of viability.'>",
-    "<actionable improvement suggestion 12, focusing on Content, explaining why it's important and how to implement it. **(Conditional: ONLY include if Team Background is absent, superficial, or irrelevant to product/industry)** If the team background exists but lacks depth, suggest: 'Strengthen the team section by detailing relevant entrepreneurial or industry-specific achievements, highlighting how their diverse expertise directly contributes to the company's success and addresses potential challenges.' Else, if completely missing, suggest: 'Add comprehensive team member profiles with relevant experience, roles, key achievements, and any notable advisors or board members, as investor confidence is heavily influenced by the strength of the founding team.'>",
-    "<actionable improvement suggestion 13, focusing on Content, explaining why it's important and how to implement it. **(Conditional: ONLY include if Product Roadmap is absent)** Incorporate a clear product roadmap illustrating future development milestones, key feature releases, and technological advancements, which helps investors visualize the product's evolution and strategic direction.'>",
-    "<actionable improvement suggestion 14, focusing on Content, explaining why it's important and how to implement it. 'Clearly define the "Ask" (funding amount) and how the funds will be specifically utilized to achieve key milestones, providing a clear breakdown of allocation and expected outcomes, as this demonstrates financial prudence and a strategic use of capital.'>",
-    "<actionable improvement suggestion 15, focusing on overall message/clarity, explaining why it's important and how to implement it. 'Refine the core narrative to be concise and impactful, ensuring a compelling story flows logically across all slides from problem to solution to market opportunity and financial projections, as a clear story is easier to remember and advocate for.'>"
-  ]
+   "improvementSuggestions": [
+
+ "<actionable improvement suggestion 1 with specific implementation guidance>",
+ "<actionable improvement suggestion 2 with specific implementation guidance>",
+ "<actionable improvement suggestion 3 with specific implementation guidance>",
+ "<actionable improvement suggestion 4 with specific implementation guidance>",
+"<actionable improvement suggestion 5 with specific implementation guidance>",
+"<actionable improvement suggestion 6 with specific implementation guidance>",
+"<actionable improvement suggestion 7 with specific implementation guidance>",
+"<actionable improvement suggestion 8 with specific implementation guidance>",
+"<actionable improvement suggestion 9 with specific implementation guidance>",
+"<actionable improvement suggestion 10 with specific implementation guidance>",
+"<actionable improvement suggestion 11 with specific implementation guidance>",
+"<actionable improvement suggestion 12 with specific implementation guidance>",
+"<actionable improvement suggestion 13 with specific implementation guidance>",
+"<actionable improvement suggestion 14 with specific implementation guidance>",
+"<actionable improvement suggestion 15 with specific implementation guidance>"
+]
 }
 
 IN SECTIONS, in the description of each section don't mention words pitch deck or deck as it is about the company and deck is just for extracting info about company.
@@ -239,29 +240,28 @@ SLIDE-BY-SLIDE ANALYSIS REQUIREMENTS:
 - Include market context and industry benchmarks where relevant
 
 IMPROVEMENT SUGGESTIONS REQUIREMENTS:
-- Provide EXACTLY 15 actionable improvement suggestions
-- Each suggestion must be specific and implementable
-- MUST include 3-4 UI/Design-specific suggestions such as:
-  * "Improve slide layout consistency and visual hierarchy by using uniform header styles and consistent spacing between elements"
-  * "Enhance chart readability by adding proper legends, data labels, and using a consistent color scheme throughout all visualizations"
-  * "Reduce visual clutter by increasing white space, improving text alignment, and using bullet points more effectively"
-  * "Standardize typography by using consistent font sizes, weights, and colors across all slides for better professional appearance"
-- Content improvement suggestions chould include:
-  * "Add a Market Sizing slide using TAM/SAM/SOM format with specific market data and growth projections"
-  * "Include a competitive analysis matrix showing direct and indirect competitors with feature comparisons"
-  * "Add customer testimonials or case studies to strengthen traction evidence and build credibility"
-  * "Create a detailed financial model showing unit economics, revenue projections, and path to profitability"
-  * "Include team member profiles with relevant experience, achievements, and advisory board information"
-  * "Add a product roadmap showing future development milestones and feature releases"
-- Each suggestion should include WHY it's important and HOW to implement it
-- Don't be very strict and if there is a slide of their team members or a slide of their market size and information then don't explicitly give those improvement suggestions.
-- Consider industry best practices and investor expectations
-- Balance content gaps and presentation improvements
--**Important:** In the team part of improvement suggestions make sure if a slide or page having details of founders or team members are mentioned then don't give suggestion that its not there instead you can see if team background is bad related to the company or product. Don't necessarily put this part if not needed. Same goes for market part and if market size and everything is mentioned don't give suggestion for it.
+- Provide EXACTLY 15 actionable improvement suggestions.
+- Each suggestion must be specific and implementable, clearly stating the 'WHY' (importance) and 'HOW' (implementation guidance).
+- MUST include at least 5 UI/Design-specific suggestions. Examples:
+    * "Improve slide layout consistency and visual hierarchy by using uniform header styles, consistent font sizing, and deliberate spacing between content elements (e.g., increased line height, margin-bottom on paragraphs) to enhance readability and professional appearance."
+    * "Enhance chart and graph readability by ensuring clear labels, proper legends, distinct data point markers, and a consistent, high-contrast color scheme throughout all visualizations, enabling rapid data interpretation for investors."
+    * "Reduce visual clutter and improve scannability by strategically increasing white space around text blocks and images, refining text alignment (e.g., left-aligned body text), and transforming dense paragraphs into concise, impactful bullet points where appropriate."
+    * "Standardize typography across the entire presentation by selecting a maximum of two complementary fonts, applying consistent font sizes for headings and body text, and maintaining a unified color palette to reinforce brand identity and visual coherence."
+    * "Optimize image and graphic quality by ensuring all visual assets are high-resolution, relevant to the content, and professionally integrated (e.g., proper cropping, consistent styling), avoiding pixelation or generic stock photos that detract from credibility."
+    * "Incorporate compelling product visuals, such as high-fidelity screenshots, intuitive mockups, or brief animated GIFs (if web-based), to visually demonstrate the solution's functionality and user experience more effectively than text descriptions alone."
+    * "Ensure a clean, uncluttered overall design aesthetic by minimizing excessive borders, unnecessary icons, or overly complex backgrounds, allowing the core content to stand out."
+- Content improvement suggestions should cover key business areas. Examples:
+    * **(Conditional: ONLY if Market Sizing is absent or lacks depth)** "Add a dedicated Market Sizing slide that clearly outlines the Total Addressable Market (TAM), Serviceable Available Market (SAM), and Serviceable Obtainable Market (SOM, or target market share), backed by recent data from credible industry reports, to provide investors with a precise understanding of the market scale and the company's growth potential."
+    * **(Conditional: ONLY if Competitive Analysis is absent or superficial)** "Include a comprehensive competitive analysis slide, ideally structured as a matrix or quadrant, that identifies both direct and indirect competitors, highlights key differentiators (e.g., features, pricing, unique technology), and clearly articulates the company's sustainable competitive advantages to demonstrate market awareness and strategic positioning."
+    * **(Conditional: ONLY if Traction/Social Proof is absent or weak)** "Integrate stronger evidence of traction by including customer testimonials, verifiable case studies showcasing user success and impact, or key logos of partners/clients, as these provide crucial social proof and validate market acceptance."
+    * **(Conditional: ONLY if Financials are absent or highly ambiguous)** "Develop a clear and defensible financial overview, including high-level revenue projections (e.g., 3-5 years), key unit economics (e.g., LTV, CAC), burn rate, runway, and a plausible path to profitability, which are essential for investors to assess financial viability and return potential."
+    * **(Conditional: ONLY if Team Background is missing, too brief, or irrelevant to product/industry)** "Strengthen the 'Team' section by providing concise yet impactful profiles for each key team member, emphasizing their relevant industry experience, previous successes, specific roles, and how their unique skills (e.g., technical, sales, operational) directly contribute to the company's ability to execute its vision. Also, highlight any notable advisors or board members."
+    * **(Conditional: ONLY if Product Roadmap is absent or vague)** "Present a forward-looking product roadmap that outlines key development milestones (e.g., MVP launch, next major features), future technological integrations, and strategic priorities for the next 12-24 months, allowing investors to understand the product's evolution and future growth drivers."
+    * **(Conditional: ALWAYS include)** "Clearly define 'The Ask' (specific funding amount) and provide a detailed allocation breakdown of how the capital will be utilized (e.g., % for product development, % for marketing, % for team expansion), linking fund usage directly to achieving specific, measurable milestones."
+    * **(Conditional: ALWAYS include)** "Refine the overall narrative flow of the presentation to tell a compelling and logical story, ensuring a seamless transition from problem to solution, market opportunity, business model, and financial projections, as a cohesive narrative significantly enhances investor understanding and recall."
+    * **(Conditional: Consider if deck has too much text)** "Condense verbose slides into concise, impactful statements and use clear headings with supporting bullet points to convey information efficiently, respecting investor time and improving memorability."
 
-Count all pages in the PDF and analyze EVERY SINGLE ONE. Include title slides, content slides, appendix slides, etc. The slideBySlideNotes array MUST contain an entry for every slide in the PDF.
-
-Only include sections in the checklist if they are actually present in the pitch deck. Provide a brief, factual description of what content was found for each section that exists.`;
+Count all pages in the PDF and analyze EVERY SINGLE ONE. Include title slides, content slides, appendix slides, etc. The slideBySlideNotes array MUST contain an entry for every slide in the PDF.`;
 }
 function getPublicAnalysisPrompt(scoringScale) {
   return `Analyze this PDF document and provide a comprehensive investment assessment. Please return your analysis in the following JSON format:
