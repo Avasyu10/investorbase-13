@@ -16,24 +16,36 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CompanyDetailed } from "@/lib/api/apiContract";
 import { supabase } from "@/integrations/supabase/client";
 import { MarketResearch } from "@/components/companies/MarketResearch";
-
 interface SlideNote {
   slideNumber: number;
   notes: string[];
 }
-
 interface AnalysisResult {
   slideBySlideNotes?: SlideNote[];
   improvementSuggestions?: string[];
   [key: string]: any;
 }
-
 function CompanyDetails() {
-  const { id } = useParams<{ id: string }>();
+  const {
+    id
+  } = useParams<{
+    id: string;
+  }>();
   const navigate = useNavigate();
-  const { isLoading: authLoading, user } = useAuth();
-  const { profile, isLoading: profileLoading, isVCAndBits, isBitsQuestion } = useProfile();
-  const { company, isLoading } = useCompanyDetails(id || "");
+  const {
+    isLoading: authLoading,
+    user
+  } = useAuth();
+  const {
+    profile,
+    isLoading: profileLoading,
+    isVCAndBits,
+    isBitsQuestion
+  } = useProfile();
+  const {
+    company,
+    isLoading
+  } = useCompanyDetails(id || "");
   const [error, setError] = useState<string | null>(null);
   const [slideNotes, setSlideNotes] = useState<SlideNote[]>([]);
   const [improvementSuggestions, setImprovementSuggestions] = useState<string[]>([]);
@@ -59,22 +71,18 @@ function CompanyDetails() {
   useEffect(() => {
     if (company?.report_id) {
       console.log('Fetching slide notes and improvement suggestions for report_id:', company.report_id);
-      
+
       // Get slide notes and improvement suggestions from the report analysis result
       const fetchAnalysisData = async () => {
         try {
-          const { data: report } = await supabase
-            .from('reports')
-            .select('analysis_result')
-            .eq('id', company.report_id)
-            .single();
-          
+          const {
+            data: report
+          } = await supabase.from('reports').select('analysis_result').eq('id', company.report_id).single();
           console.log('Report data fetched:', report);
-          
           if (report?.analysis_result) {
             const analysisResult = report.analysis_result as AnalysisResult;
             console.log('Full analysis result:', analysisResult);
-            
+
             // Set slide notes
             if (analysisResult.slideBySlideNotes && analysisResult.slideBySlideNotes.length > 0) {
               setSlideNotes(analysisResult.slideBySlideNotes);
@@ -83,10 +91,9 @@ function CompanyDetails() {
               console.log('No slideBySlideNotes in analysis result or empty array');
               setSlideNotes([]);
             }
-            
+
             // Set improvement suggestions - check multiple possible locations
             let suggestions: string[] = [];
-            
             if (analysisResult.improvementSuggestions && Array.isArray(analysisResult.improvementSuggestions)) {
               suggestions = analysisResult.improvementSuggestions;
               console.log('Found improvementSuggestions in root:', suggestions.length);
@@ -100,7 +107,6 @@ function CompanyDetails() {
               }
               console.log('Found suggestions in sections:', suggestions.length);
             }
-            
             setImprovementSuggestions(suggestions);
             console.log('Final improvement suggestions count:', suggestions.length);
             console.log('Improvement suggestions:', suggestions);
@@ -115,7 +121,6 @@ function CompanyDetails() {
           setImprovementSuggestions([]);
         }
       };
-      
       fetchAnalysisData();
     } else {
       console.log('No report_id found for company');
@@ -126,17 +131,14 @@ function CompanyDetails() {
 
   // Early return for loading state
   if (authLoading || isLoading || profileLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
+    return <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+      </div>;
   }
 
   // Early return for error state
   if (error || !company) {
-    return (
-      <div className="container mx-auto px-4 py-8">
+    return <div className="container mx-auto px-4 py-8">
         <div className="text-center py-12">
           <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">
             Company Not Found
@@ -146,60 +148,47 @@ function CompanyDetails() {
           </p>
           <Button onClick={() => navigate('/')}>Return to Dashboard</Button>
         </div>
-      </div>
-    );
+      </div>;
   }
 
   // For BITS question users, show only the Questions to Ask section with enhanced UI
   if (isBitsQuestion) {
-    return (
-      <div className="min-h-screen bg-background">
+    return <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8 max-w-4xl">
           {/* Enhanced Header */}
           <div className="mb-8">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate("/dashboard")}
-              className="mb-6 flex items-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-            >
+            <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")} className="mb-6 flex items-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
               <ChevronLeft className="mr-1 h-4 w-4" /> Back to Dashboard
             </Button>
           </div>
 
           {/* Enhanced Questions Section */}
           <div className="mb-8">
-            <QuestionsToAsk 
-              companyId={company.id}
-              companyName={company.name}
-            />
+            <QuestionsToAsk companyId={company.id} companyName={company.name} />
           </div>
         </div>
-      </div>
-    );
+      </div>;
   }
 
   // Filter sections based on user type - exclude slide notes and GTM strategy for display in section cards
-  const filteredSections = company?.sections ? 
-    company.sections.filter(section => 
-      section.type !== 'SLIDE_NOTES' && 
-      section.type !== 'GTM_STRATEGY'
-    ) : [];
+  const filteredSections = company?.sections ? company.sections.filter(section => section.type !== 'SLIDE_NOTES' && section.type !== 'GTM_STRATEGY') : [];
 
   // Custom sorting for VC users with specific order
   const getSortedSections = () => {
     if (!filteredSections.length) return [];
-    
+
     // Special order for VC & BITS users
     if (isVCAndBits) {
-      const vcAndBitsSectionOrder = [
-        'PROBLEM',      // Problem Clarity & Founder Insight
-        'TEAM',         // Founder Capability & Market Fit  
-        'MARKET',       // Market Opportunity & Entry Strategy
-        'TRACTION',     // Early Proof or Demand Signals
-        'COMPETITIVE_LANDSCAPE' // Differentiation & Competitive Edge
+      const vcAndBitsSectionOrder = ['PROBLEM',
+      // Problem Clarity & Founder Insight
+      'TEAM',
+      // Founder Capability & Market Fit  
+      'MARKET',
+      // Market Opportunity & Entry Strategy
+      'TRACTION',
+      // Early Proof or Demand Signals
+      'COMPETITIVE_LANDSCAPE' // Differentiation & Competitive Edge
       ];
-
       return [...filteredSections].sort((a, b) => {
         const indexA = vcAndBitsSectionOrder.indexOf(a.type);
         const indexB = vcAndBitsSectionOrder.indexOf(b.type);
@@ -219,18 +208,7 @@ function CompanyDetails() {
     }
 
     // Define the custom order for regular VC section display
-    const vcSectionOrder = [
-      'PROBLEM',
-      'MARKET', 
-      'SOLUTION',
-      'TRACTION',
-      'COMPETITIVE_LANDSCAPE',
-      'BUSINESS_MODEL',
-      'TEAM',
-      'FINANCIALS',
-      'ASK'
-    ];
-
+    const vcSectionOrder = ['PROBLEM', 'MARKET', 'SOLUTION', 'TRACTION', 'COMPETITIVE_LANDSCAPE', 'BUSINESS_MODEL', 'TEAM', 'FINANCIALS', 'ASK'];
     return [...filteredSections].sort((a, b) => {
       const indexA = vcSectionOrder.indexOf(a.type);
       const indexB = vcSectionOrder.indexOf(b.type);
@@ -248,27 +226,24 @@ function CompanyDetails() {
       return 0;
     });
   };
-
   const sortedSections = getSortedSections();
-
-  console.log('User types:', { isVCUser, isIITBombayUser, isRegularUser, isVCAndBits, isBitsQuestion });
+  console.log('User types:', {
+    isVCUser,
+    isIITBombayUser,
+    isRegularUser,
+    isVCAndBits,
+    isBitsQuestion
+  });
   console.log('Filtered sections (excluding SLIDE_NOTES and GTM_STRATEGY):', filteredSections);
   console.log('Should show slide viewer:', !!company.report_id);
 
   // Always use 100-point scale for display
   const displayScore = company.overall_score > 5 ? company.overall_score : company.overall_score * 20;
-
-  return (
-    <div className="min-h-screen">
+  return <div className="min-h-screen">
       <div className="w-full px-4 pt-0 pb-6 animate-fade-in">
         {/* Back Button */}
         <div className="container mx-auto mb-6">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate("/dashboard")}
-            className="flex items-center"
-          >
+          <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")} className="flex items-center">
             <ChevronLeft className="mr-1" /> Back
           </Button>
         </div>
@@ -278,13 +253,7 @@ function CompanyDetails() {
           <div className="container mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               <div className="lg:col-span-4">
-                <CompanyInfoCard
-                  website={websiteToShow}
-                  stage={stageToShow}
-                  industry={industryToShow}
-                  introduction={introductionToShow}
-                  companyName={company.name}
-                />
+                <CompanyInfoCard website={websiteToShow} stage={stageToShow} industry={industryToShow} introduction={introductionToShow} companyName={company.name} />
               </div>
             </div>
           </div>
@@ -292,44 +261,21 @@ function CompanyDetails() {
 
         <div className="container mx-auto">
           {/* For VC users, show Overall Assessment */}
-          {isVCUser && (
-            <OverallAssessment
-              score={displayScore}
-              assessmentPoints={company.assessment_points || []}
-              companyId={company.id}
-              companyName={company.name}
-            />
-          )}
+          {isVCUser && <OverallAssessment score={displayScore} assessmentPoints={company.assessment_points || []} companyId={company.id} companyName={company.name} />}
 
           {/* For VC users, show Real-time Market Analysis */}
-          {isVCUser && company.id && (
-            <MarketResearch 
-              companyId={company.id} 
-              assessmentPoints={company.assessment_points || []}
-            />
-          )}
+          {isVCUser && company.id && <MarketResearch companyId={company.id} assessmentPoints={company.assessment_points || []} />}
 
           {/* For VC users, show section metrics */}
-          {isVCUser && (
-            <>
+          {isVCUser && <>
               <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
                 <BarChart2 className="h-5 w-5 text-primary" />
                 Section Metrics
               </h2>
               
-              {sortedSections.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                  {sortedSections.map((section) => (
-                    <SectionCard 
-                      key={section.id} 
-                      section={section} 
-                      onClick={() => navigate(`/company/${company.id}/section/${section.id}`)} 
-                      isVCAndBits={isVCAndBits}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <Card className="mb-8">
+              {sortedSections.length > 0 ? <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                  {sortedSections.map(section => <SectionCard key={section.id} section={section} onClick={() => navigate(`/company/${company.id}/section/${section.id}`)} isVCAndBits={isVCAndBits} />)}
+                </div> : <Card className="mb-8">
                   <CardHeader>
                     <CardTitle>No Analysis Sections Available</CardTitle>
                   </CardHeader>
@@ -338,65 +284,43 @@ function CompanyDetails() {
                       There are no detailed analysis sections available for this company.
                     </p>
                   </CardContent>
-                </Card>
-              )}
-            </>
-          )}
+                </Card>}
+            </>}
 
           {/* For regular users (not VC and not IIT Bombay), show slide by slide notes */}
-          {isRegularUser && company.report_id && slideNotes.length > 0 && (
-            <>
-              <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
-                <FileText className="h-5 w-5 text-primary" />
-                Slide by Slide Notes
-              </h2>
+          {isRegularUser && company.report_id && slideNotes.length > 0 && <>
+              
               
               <div className="mb-8">
-                <SlideBySlideViewer 
-                  reportId={company.report_id}
-                  slideNotes={slideNotes}
-                  companyName={company.name}
-                />
+                <SlideBySlideViewer reportId={company.report_id} slideNotes={slideNotes} companyName={company.name} />
               </div>
-            </>
-          )}
+            </>}
 
           {/* Show section checklist for regular users */}
-          {isRegularUser && filteredSections.length > 0 && (
-            <>  
+          {isRegularUser && filteredSections.length > 0 && <>  
               <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
                 <ListChecks className="h-5 w-5 text-primary" />
                 Section Analysis Checklist
               </h2>
               
               <div className="mb-8">
-                <SectionChecklist 
-                  sections={filteredSections}
-                />
+                <SectionChecklist sections={filteredSections} />
               </div>
-            </>
-          )}
+            </>}
 
           {/* Show improvement suggestions for regular users */}
-          {isRegularUser && (
-            <>
+          {isRegularUser && <>
               <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
                 <Lightbulb className="h-5 w-5 text-primary" />
                 Improvement Suggestions
               </h2>
               
               <div className="mb-8">
-                <ImprovementSuggestions 
-                  suggestions={improvementSuggestions}
-                  companyName={company.name}
-                />
+                <ImprovementSuggestions suggestions={improvementSuggestions} companyName={company.name} />
               </div>
-            </>
-          )}
+            </>}
         </div>
       </div>
-    </div>
-  );
+    </div>;
 }
-
 export default CompanyDetails;
