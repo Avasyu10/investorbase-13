@@ -78,6 +78,7 @@ export function CompanyInfoCard({
   const { isBitsQuestion } = useProfile();
   const { isVC } = useProfile();
   const { isViewOnly } = useProfile();
+  const { isBits } = useProfile();
   
   // First, get the company data from the companies table to ensure we have the correct company ID
   const { data: companyData } = useQuery({
@@ -253,7 +254,7 @@ export function CompanyInfoCard({
           )}
 
           {/* Investment Memo component for general users */}
-          {companyData?.id && isGeneralUser && (
+          {companyData?.id && isVC && !isBits && !isIITBombayUser && (
             // Pass the company data to the InvestmentMemo component
             // The InvestmentMemo component will render its own button/logic
             <InvestmentMemo company={companyData} />
