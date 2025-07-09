@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Circle } from "lucide-react";
+import { CheckCircle, AlertTriangle, Circle } from "lucide-react";
 import { Section } from "@/lib/api/apiContract";
 
 interface SectionChecklistProps {
@@ -49,15 +49,71 @@ export const SectionChecklist = ({ sections }: SectionChecklistProps) => {
       .join(' ');
   };
 
-  // Check if section is addressed (has content or description)
-  const isSectionAddressed = (section: Section) => {
-    return !!(section.description || section.strengths?.length || section.weaknesses?.length);
+  // Determine section status based on analysis data
+  const getSectionStatus = (section: Section) => {
+    // First check if there's a status field from the analysis
+    if (section.status) {
+      return section.status;
+    }
+    
+    // Fallback to legacy logic for backwards compatibility
+    const hasContent = !!(section.description || section.strengths?.length || section.weaknesses?.length);
+    
+    if (!hasContent) {
+      return 'Not Addressed';
+    }
+    
+    // Check content quality for "Needs Improvement" vs "Addressed"
+    const hasDetailedContent = section.description && section.description.length > 50;
+    const hasStrengthsAndWeaknesses = section.strengths && section.strengths.length > 0 && section.weaknesses && section.weaknesses.length > 0;
+    
+    if (hasDetailedContent || hasStrengthsAndWeaknesses) {
+      return 'Addressed';
+    } else {
+      return 'Needs Improvement';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'Addressed':
+        return <CheckCircle className="h-5 w-5 text-green-500" />;
+      case 'Needs Improvement':
+        return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
+      case 'Not Addressed':
+      default:
+        return <Circle className="h-5 w-5 text-gray-300" />;
+    }
+  };
+
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'Addressed':
+        return 'default';
+      case 'Needs Improvement':
+        return 'secondary';
+      case 'Not Addressed':
+      default:
+        return 'outline';
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'Addressed':
+        return 'text-green-600';
+      case 'Needs Improvement':
+        return 'text-yellow-600';
+      case 'Not Addressed':
+      default:
+        return 'text-gray-500';
+    }
   };
 
   return (
     <div className="space-y-3">
       {sections.map((section) => {
-        const isAddressed = isSectionAddressed(section);
+        const status = getSectionStatus(section);
         
         return (
           <Card 
@@ -67,21 +123,24 @@ export const SectionChecklist = ({ sections }: SectionChecklistProps) => {
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center justify-between text-base">
                 <div className="flex items-center gap-3">
-                  {isAddressed ? (
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                  ) : (
-                    <Circle className="h-5 w-5 text-gray-300" />
-                  )}
+                  {getStatusIcon(status)}
                   <span>{formatSectionTitle(section.title, section.section_type)}</span>
                 </div>
                 <Badge 
-                  variant={isAddressed ? "default" : "outline"}
-                  className="text-xs"
+                  variant={getStatusBadgeVariant(status)}
+                  className={`text-xs ${getStatusColor(status)}`}
                 >
-                  {isAddressed ? "Addressed" : "Not Found"}
+                  {status}
                 </Badge>
               </CardTitle>
             </CardHeader>
+            {section.description && (
+              <CardContent className="pt-0">
+                <p className="text-sm text-muted-foreground">
+                  {section.description}
+                </p>
+              </CardContent>
+            )}
           </Card>
         );
       })}

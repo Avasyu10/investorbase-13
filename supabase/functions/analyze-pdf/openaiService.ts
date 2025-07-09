@@ -111,6 +111,7 @@ export async function analyzeWithOpenAI(pdfBase64, apiKey, usePublicAnalysisProm
   console.log("Overall score:", analysis.overallScore);
   return analysis;
 }
+
 function getEnhancedAnalysisPrompt(isIITBombayUser = false) {
   return `Analyze this PDF pitch deck and provide a comprehensive checklist assessment with company information extraction. You MUST examine each page/slide of the document and provide specific insights for every single slide in a slideBySlideNotes array. Each slide should have exactly 4 detailed notes with specific observations, content analysis, design feedback, business insights, and recommendations.
 
@@ -129,52 +130,62 @@ Return your analysis in EXACTLY this JSON format:
     {
       "type": "PROBLEM",
       "title": "Problem Statement",
-      "description": "<brief description of what was found in this section with 4-5 detailed points with market data and numbers>"
+      "description": "<brief description of what was found in this section with 4-5 detailed points with market data and numbers>",
+      "status": "<one of: 'Addressed', 'Needs Improvement', 'Not Addressed'>"
     },
     {
       "type": "MARKET",
       "title": "Market Opportunity",
-      "description": "<brief description of what was found in this section with 4-5 detailed points with market data and numbers>"
+      "description": "<brief description of what was found in this section with 4-5 detailed points with market data and numbers>",
+      "status": "<one of: 'Addressed', 'Needs Improvement', 'Not Addressed'>"
     },
     {
       "type": "SOLUTION",
       "title": "Solution (Product)",
-      "description": "<brief description of what was found in this section with 4-5 detailed points with market data and numbers>"
+      "description": "<brief description of what was found in this section with 4-5 detailed points with market data and numbers>",
+      "status": "<one of: 'Addressed', 'Needs Improvement', 'Not Addressed'>"
     },
     {
       "type": "COMPETITIVE_LANDSCAPE",
       "title": "Competitive Landscape",
-      "description": "<brief description of what was found in this section with 4-5 detailed points with market data and numbers>"
+      "description": "<brief description of what was found in this section with 4-5 detailed points with market data and numbers>",
+      "status": "<one of: 'Addressed', 'Needs Improvement', 'Not Addressed'>"
     },
     {
       "type": "TRACTION",
       "title": "Traction & Milestones",
-      "description": "<brief description of what was found in this section with 4-5 detailed points with market data and numbers>"
+      "description": "<brief description of what was found in this section with 4-5 detailed points with market data and numbers>",
+      "status": "<one of: 'Addressed', 'Needs Improvement', 'Not Addressed'>"
     },
     {
       "type": "BUSINESS_MODEL",
       "title": "Business Model",
-      "description": "<brief description of what was found in this section with 4-5 detailed points with market data and numbers>"
+      "description": "<brief description of what was found in this section with 4-5 detailed points with market data and numbers>",
+      "status": "<one of: 'Addressed', 'Needs Improvement', 'Not Addressed'>"
     },
     {
       "type": "GTM_STRATEGY",
       "title": "Go-to-Market Strategy",
-      "description": "<brief description of what was found in this section with 4-5 detailed points with market data and numbers>"
+      "description": "<brief description of what was found in this section with 4-5 detailed points with market data and numbers>",
+      "status": "<one of: 'Addressed', 'Needs Improvement', 'Not Addressed'>"
     },
     {
       "type": "TEAM",
       "title": "Founder & Team Background",
-      "description": "<brief description of what was found in this section with 4-5 detailed points with market data and numbers>"
+      "description": "<brief description of what was found in this section with 4-5 detailed points with market data and numbers>",
+      "status": "<one of: 'Addressed', 'Needs Improvement', 'Not Addressed'>"
     },
     {
       "type": "FINANCIALS",
       "title": "Financial Overview & Projections",
-      "description": "<brief description of what was found in this section with 4-5 detailed points with market data and numbers>"
+      "description": "<brief description of what was found in this section with 4-5 detailed points with market data and numbers>",
+      "status": "<one of: 'Addressed', 'Needs Improvement', 'Not Addressed'>"
     },
     {
       "type": "ASK",
       "title": "The Ask & Next Steps",
-      "description": "<brief description of what was found in this section with 4-5 detailed points with market data and numbers>"
+      "description": "<brief description of what was found in this section with 4-5 detailed points with market data and numbers>",
+      "status": "<one of: 'Addressed', 'Needs Improvement', 'Not Addressed'>"
     }
   ],
   "slideBySlideNotes": [
@@ -226,9 +237,12 @@ COMPANY INFORMATION EXTRACTION REQUIREMENTS:
 - Description: Create a brief company description based on the pitch content
 
 SECTION CHECKLIST REQUIREMENTS:
-- For each section, provide only a brief description of what content was found (if any)
+- For each section, provide a brief description of what content was found (if any)
+- **CRITICAL**: Assign a status based on the quality and completeness of the section:
+  * "Addressed": Section is well-covered with comprehensive information, data, and clear explanations
+  * "Needs Improvement": Section is present but lacks depth, specific data, or has gaps in information
+  * "Not Addressed": Section is completely missing or has minimal/irrelevant content
 - Focus on identifying whether each section is present and what key information it contains
-- Do not provide scores, ratings, strengths, weaknesses, or detailed assessments
 - Keep descriptions concise and factual
 
 SLIDE-BY-SLIDE ANALYSIS REQUIREMENTS:
@@ -263,6 +277,7 @@ IMPROVEMENT SUGGESTIONS REQUIREMENTS:
 
 Count all pages in the PDF and analyze EVERY SINGLE ONE. Include title slides, content slides, appendix slides, etc. The slideBySlideNotes array MUST contain an entry for every slide in the PDF.`;
 }
+
 function getPublicAnalysisPrompt(scoringScale) {
   return `Analyze this PDF document and provide a comprehensive investment assessment. Please return your analysis in the following JSON format:
 
@@ -308,6 +323,7 @@ Score each section from 0-${scoringScale} based on quality, completeness, and in
 
 The overall score should reflect the weighted average of all sections, considering the investment potential and business viability.`;
 }
+
 function getSlideBySlideAnalysisPrompt(scoringScale) {
   return `Analyze this PDF pitch deck and provide a comprehensive assessment with detailed slide-by-slide notes. You MUST examine each page/slide of the document and provide specific insights for every single slide.
 
