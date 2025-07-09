@@ -276,7 +276,7 @@ const UploadReport = () => {
         <div className="max-w-3xl mx-auto bg-card rounded-lg border shadow-sm p-6">
           <div className="mb-4">
             <h2 className="text-xl font-semibold mb-1">Submit Your Pitch</h2>
-            <p className="text-sm text-muted-foreground">Upload your pitch here to be reviewed by our Investments Team.</p>
+            <p className="text-sm text-muted-foreground">Upload your pitch here to be reviewed by our Team.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
