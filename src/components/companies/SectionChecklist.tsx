@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, AlertTriangle, Circle } from "lucide-react";
@@ -31,17 +30,17 @@ export const SectionChecklist = ({ sections }: SectionChecklistProps) => {
           break;
       }
     }
-    
+
     // Use the title from the section directly if it's already formatted
     if (title && title.includes('&')) {
       return title; // Already formatted titles like "Problem & Solution"
     }
-    
+
     // Handle "Differentiation" in title and map to "USP"
     if (title && title.toLowerCase().includes('differentiation')) {
       return 'USP';
     }
-    
+
     // Fallback to formatting for older sections
     return title
       .split('_')
@@ -53,23 +52,23 @@ export const SectionChecklist = ({ sections }: SectionChecklistProps) => {
   const getSectionStatus = (section: Section) => {
     // First check if there's a status field from the analysis - this is the primary source
     if (section.status) {
-      console.log(`Section ${section.title} has status from analysis:`, section.status);
+      // console.log(`Section ${section.title} has status from analysis:`, section.status); // Removed for cleaner console
       return section.status;
     }
-    
-    console.log(`Section ${section.title} has no status field, falling back to legacy logic`);
-    
+
+    // console.log(`Section ${section.title} has no status field, falling back to legacy logic`); // Removed for cleaner console
+
     // Fallback to legacy logic only if no status is provided
     const hasContent = !!(section.description || section.strengths?.length || section.weaknesses?.length);
-    
+
     if (!hasContent) {
       return 'Not Addressed';
     }
-    
+
     // Check content quality for "Needs Improvement" vs "Addressed"
     const hasDetailedContent = section.description && section.description.length > 50;
     const hasStrengthsAndWeaknesses = section.strengths && section.strengths.length > 0 && section.weaknesses && section.weaknesses.length > 0;
-    
+
     if (hasDetailedContent || hasStrengthsAndWeaknesses) {
       return 'Addressed';
     } else {
@@ -89,48 +88,35 @@ export const SectionChecklist = ({ sections }: SectionChecklistProps) => {
     }
   };
 
+  // MODIFIED: To remove highlight colors, return a single variant for all statuses.
   const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case 'Addressed':
-        return 'default';
-      case 'Needs Improvement':
-        return 'secondary';
-      case 'Not Addressed':
-      default:
-        return 'outline';
-    }
+    return 'outline'; // Always return 'outline' to remove specific highlighting
   };
 
+  // MODIFIED: To remove highlight colors, return a single neutral color for all statuses.
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Addressed':
-        return 'text-green-600';
-      case 'Needs Improvement':
-        return 'text-yellow-600';
-      case 'Not Addressed':
-      default:
-        return 'text-gray-500';
-    }
+    return 'text-gray-700'; // Always return a neutral gray color
   };
 
   return (
     <div className="space-y-3">
       {sections.map((section) => {
         const status = getSectionStatus(section);
-        console.log(`Final status for section ${section.title}:`, status);
-        
+        // console.log(`Final status for section ${section.title}:`, status); // Removed for cleaner console
+
         return (
-          <Card 
+          <Card
             key={section.id}
-            className="border-l-4 border-l-primary/20"
+            // MODIFIED: Removed the conditional border styling to remove highlight
+            className="border-l-4 border-l-gray-200" // Use a neutral light gray border
           >
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center justify-between text-base">
                 <div className="flex items-center gap-3">
                   {getStatusIcon(status)}
-                  <span>{formatSectionTitle(section.title, section.section_type)}</span>
+                  <span>{formatSectionTitle(section.title, section.type)}</span> {/* Use section.type here */}
                 </div>
-                <Badge 
+                <Badge
                   variant={getStatusBadgeVariant(status)}
                   className={`text-xs ${getStatusColor(status)}`}
                 >
