@@ -41,23 +41,63 @@ export const SectionChecklist = ({ sections }: SectionChecklistProps) => {
       return 'USP';
     }
 
-    // Fallback to formatting for older sections
-    return title
+    // Fallback to formatting for older sections (e.g., "GTM_STRATEGY" -> "Gtm Strategy")
+    // This part should handle cases where titles like "Go-to-Market Strategy" are already correctly formatted in JSON
+    // and only fallback if they are like "GO_TO_MARKET_STRATEGY".
+    // Given your provided titles are already well-formatted, this part might not be strictly needed for those,
+    // but it's good for robustness.
+    const formattedTitle = title
       .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Ensure only first letter is capitalized
       .join(' ');
+
+    // For specific titles that might have unique casing or formatting not covered by split/map
+    if (title === "Go-to-Market Strategy") return "Go-to-Market Strategy";
+    if (title === "Founder & Team Background") return "Founder & Team Background";
+    if (title === "Financial Overview & Projections") return "Financial Overview & Projections";
+    if (title === "Competitive Landscape") return "Competitive Landscape";
+    if (title === "The Ask & Next Steps") return "The Ask & Next Steps";
+    if (title === "Market Opportunity") return "Market Opportunity";
+    if (title === "Business Model") return "Business Model";
+    if (title === "Solution (Product)") return "Solution (Product)";
+    if (title === "Traction & Milestones") return "Traction & Milestones";
+    if (title === "Problem Statement") return "Problem Statement";
+
+
+    return formattedTitle; // Return the formatted title if no specific match
   };
 
   // Get section status - prioritize the status field from analysis result
   const getSectionStatus = (section: Section) => {
-    // First check if there's a status field from the analysis - this is the primary source
+    // Primary source: The explicit status field from the analysis.
+    // This is the most reliable source for status.
     if (section.status) {
-      // console.log(`Section ${section.title} has status from analysis:`, section.status); // Removed for cleaner console
       return section.status;
     }
 
-    // console.log(`Section ${section.title} has no status field, falling back to legacy logic`); // Removed for cleaner console
+    // Fallback to legacy logic only if no explicit status is provided in `section.status`.
+    // This part tries to infer the status based on content.
 
+    const hasDescription = section.description && section.description.trim().length > 0;
+    const hasStrengths = section.strengths && section.strengths.length > 0;
+    const hasWeaknesses = section.weaknesses && section.weaknesses.length > 0;
+
+    // If there's absolutely no content, it's "Not Addressed"
+    if (!hasDescription && !hasStrengths && !hasWeaknesses) {
+      return 'Not Addressed';
+    }
+
+    // If there is some content, but it's not detailed enough to be "Addressed"
+    // We define "detailed enough" as a description over 50 characters OR having both strengths and weaknesses.
+    const isDetailed = (hasDescription && section.description!.trim().length > 50) || (hasStrengths && hasWeaknesses);
+
+    if (isDetailed) {
+      return 'Addressed';
+    } else {
+      // If content exists but isn't detailed enough, it "Needs Improvement"
+      return 'Needs Improvement';
+    }
+  }; // <<<<<<<<<<<<<<<<<<<< CORRECTED: getSectionStatus function now properly closes here.
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -71,33 +111,32 @@ export const SectionChecklist = ({ sections }: SectionChecklistProps) => {
     }
   };
 
-  // MODIFIED: To remove highlight colors, return a single variant for all statuses.
+  // To remove highlight colors, return a single variant for all statuses.
   const getStatusBadgeVariant = (status: string) => {
     return 'outline'; // Always return 'outline' to remove specific highlighting
   };
 
-  // MODIFIED: To remove highlight colors, return a single neutral color for all statuses.
+  // To remove highlight colors, return a single neutral color for all statuses.
   const getStatusColor = (status: string) => {
     return 'text-gray-700'; // Always return a neutral gray color
   };
 
   return (
     <div className="space-y-3">
-      {sections.map((section) => {
+      {sections.map((section, index) => { // Added index for key if section.id is not unique
         const status = getSectionStatus(section);
-        // console.log(`Final status for section ${section.title}:`, status); // Removed for cleaner console
 
         return (
           <Card
-            key={section.id}
-            // MODIFIED: Removed the conditional border styling to remove highlight
+            key={section.id || index} // Fallback to index if section.id is not present
             className="border-l-4 border-l-gray-200" // Use a neutral light gray border
           >
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center justify-between text-base">
                 <div className="flex items-center gap-3">
                   {getStatusIcon(status)}
-                  <span>{formatSectionTitle(section.title, section.type)}</span> {/* Use section.type here */}
+                  {/* Using section.title directly here is best since your JSON titles are already formatted */}
+                  <span>{section.title}</span>
                 </div>
                 <Badge
                   variant={getStatusBadgeVariant(status)}
