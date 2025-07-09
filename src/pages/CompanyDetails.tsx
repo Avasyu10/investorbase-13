@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SectionCard } from "@/components/companies/SectionCard";
@@ -16,39 +17,37 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CompanyDetailed } from "@/lib/api/apiContract";
 import { supabase } from "@/integrations/supabase/client";
 import { MarketResearch } from "@/components/companies/MarketResearch";
+
 interface SlideNote {
   slideNumber: number;
   notes: string[];
 }
+
 interface AnalysisResult {
   slideBySlideNotes?: SlideNote[];
   improvementSuggestions?: string[];
+  sections?: Array<{
+    title: string;
+    type: string;
+    status?: string;
+    score?: number;
+    description?: string;
+    strengths?: string[];
+    weaknesses?: string[];
+  }>;
   [key: string]: any;
 }
+
 function CompanyDetails() {
-  const {
-    id
-  } = useParams<{
-    id: string;
-  }>();
+  const { id } = useParams<{ id: string; }>();
   const navigate = useNavigate();
-  const {
-    isLoading: authLoading,
-    user
-  } = useAuth();
-  const {
-    profile,
-    isLoading: profileLoading,
-    isVCAndBits,
-    isBitsQuestion
-  } = useProfile();
-  const {
-    company,
-    isLoading
-  } = useCompanyDetails(id || "");
+  const { isLoading: authLoading, user } = useAuth();
+  const { profile, isLoading: profileLoading, isVCAndBits, isBitsQuestion } = useProfile();
+  const { company, isLoading } = useCompanyDetails(id || "");
   const [error, setError] = useState<string | null>(null);
   const [slideNotes, setSlideNotes] = useState<SlideNote[]>([]);
   const [improvementSuggestions, setImprovementSuggestions] = useState<string[]>([]);
+  const [sectionsWithStatus, setSectionsWithStatus] = useState<any[]>([]);
 
   // Convert Company to CompanyDetailed for components that need it
   const companyDetailed: CompanyDetailed | null = company ? {
@@ -67,18 +66,21 @@ function CompanyDetails() {
   const industryToShow = company?.industry || "Not specified";
   const introductionToShow = company?.introduction || `${company?.name || 'This company'} is a company in our portfolio. Detailed information about their business model, market opportunity, and growth strategy is available through their pitch deck analysis.`;
 
-  // Extract slide notes and improvement suggestions from company data
+  // Extract slide notes, improvement suggestions, and section statuses from company data
   useEffect(() => {
     if (company?.report_id) {
-      console.log('Fetching slide notes and improvement suggestions for report_id:', company.report_id);
+      console.log('Fetching analysis data for report_id:', company.report_id);
 
-      // Get slide notes and improvement suggestions from the report analysis result
       const fetchAnalysisData = async () => {
         try {
-          const {
-            data: report
-          } = await supabase.from('reports').select('analysis_result').eq('id', company.report_id).single();
+          const { data: report } = await supabase
+            .from('reports')
+            .select('analysis_result')
+            .eq('id', company.report_id)
+            .single();
+          
           console.log('Report data fetched:', report);
+          
           if (report?.analysis_result) {
             const analysisResult = report.analysis_result as AnalysisResult;
             console.log('Full analysis result:', analysisResult);
@@ -92,13 +94,12 @@ function CompanyDetails() {
               setSlideNotes([]);
             }
 
-            // Set improvement suggestions - check multiple possible locations
+            // Set improvement suggestions
             let suggestions: string[] = [];
             if (analysisResult.improvementSuggestions && Array.isArray(analysisResult.improvementSuggestions)) {
               suggestions = analysisResult.improvementSuggestions;
               console.log('Found improvementSuggestions in root:', suggestions.length);
             } else if (analysisResult.sections) {
-              // Sometimes improvement suggestions might be nested in sections
               console.log('Checking sections for improvement suggestions');
               for (const section of analysisResult.sections) {
                 if (section.improvementSuggestions && Array.isArray(section.improvementSuggestions)) {
@@ -108,26 +109,54 @@ function CompanyDetails() {
               console.log('Found suggestions in sections:', suggestions.length);
             }
             setImprovementSuggestions(suggestions);
-            console.log('Final improvement suggestions count:', suggestions.length);
-            console.log('Improvement suggestions:', suggestions);
+
+            // Merge sections from database with statuses from analysis result
+            if (company.sections && analysisResult.sections) {
+              console.log('Merging section statuses from analysis result');
+              const mergedSections = company.sections.map(dbSection => {
+                // Find matching section in analysis result by title or type
+                const analysisSection = analysisResult.sections?.find(
+                  (analysisSection: any) => 
+                    analysisSection.title === dbSection.title || 
+                    analysisSection.type === dbSection.type
+                );
+                
+                console.log(`Section ${dbSection.title}: status from analysis = ${analysisSection?.status}`);
+                
+                return {
+                  ...dbSection,
+                  status: analysisSection?.status || 'Not Addressed'
+                };
+              });
+              
+              setSectionsWithStatus(mergedSections);
+              console.log('Merged sections with status:', mergedSections);
+            } else {
+              console.log('Using original sections without status merge');
+              setSectionsWithStatus(company.sections || []);
+            }
           } else {
             console.log('No analysis_result in report');
             setSlideNotes([]);
             setImprovementSuggestions([]);
+            setSectionsWithStatus(company.sections || []);
           }
         } catch (error) {
           console.error('Error fetching analysis data:', error);
           setSlideNotes([]);
           setImprovementSuggestions([]);
+          setSectionsWithStatus(company.sections || []);
         }
       };
+      
       fetchAnalysisData();
     } else {
       console.log('No report_id found for company');
       setSlideNotes([]);
       setImprovementSuggestions([]);
+      setSectionsWithStatus(company?.sections || []);
     }
-  }, [company?.report_id]);
+  }, [company?.report_id, company?.sections]);
 
   // Early return for loading state
   if (authLoading || isLoading || profileLoading) {
@@ -155,14 +184,12 @@ function CompanyDetails() {
   if (isBitsQuestion) {
     return <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8 max-w-4xl">
-          {/* Enhanced Header */}
           <div className="mb-8">
             <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")} className="mb-6 flex items-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
               <ChevronLeft className="mr-1 h-4 w-4" /> Back to Dashboard
             </Button>
           </div>
 
-          {/* Enhanced Questions Section */}
           <div className="mb-8">
             <QuestionsToAsk companyId={company.id} companyName={company.name} />
           </div>
@@ -171,7 +198,7 @@ function CompanyDetails() {
   }
 
   // Filter sections based on user type - exclude slide notes and GTM strategy for display in section cards
-  const filteredSections = company?.sections ? company.sections.filter(section => section.type !== 'SLIDE_NOTES' && section.type !== 'GTM_STRATEGY') : [];
+  const filteredSections = sectionsWithStatus ? sectionsWithStatus.filter(section => section.type !== 'SLIDE_NOTES' && section.type !== 'GTM_STRATEGY') : [];
 
   // Custom sorting for VC users with specific order
   const getSortedSections = () => {
@@ -179,30 +206,25 @@ function CompanyDetails() {
 
     // Special order for VC & BITS users
     if (isVCAndBits) {
-      const vcAndBitsSectionOrder = ['PROBLEM',
-      // Problem Clarity & Founder Insight
-      'TEAM',
-      // Founder Capability & Market Fit  
-      'MARKET',
-      // Market Opportunity & Entry Strategy
-      'TRACTION',
-      // Early Proof or Demand Signals
-      'COMPETITIVE_LANDSCAPE' // Differentiation & Competitive Edge
+      const vcAndBitsSectionOrder = [
+        'PROBLEM',      // Problem Clarity & Founder Insight
+        'TEAM',         // Founder Capability & Market Fit  
+        'MARKET',       // Market Opportunity & Entry Strategy
+        'TRACTION',     // Early Proof or Demand Signals
+        'COMPETITIVE_LANDSCAPE' // Differentiation & Competitive Edge
       ];
+      
       return [...filteredSections].sort((a, b) => {
         const indexA = vcAndBitsSectionOrder.indexOf(a.type);
         const indexB = vcAndBitsSectionOrder.indexOf(b.type);
 
-        // If both sections are in the custom order, sort by that order
         if (indexA !== -1 && indexB !== -1) {
           return indexA - indexB;
         }
 
-        // If only one is in the custom order, prioritize it
         if (indexA !== -1) return -1;
         if (indexB !== -1) return 1;
 
-        // If neither is in the custom order, maintain original order
         return 0;
       });
     }
@@ -213,32 +235,25 @@ function CompanyDetails() {
       const indexA = vcSectionOrder.indexOf(a.type);
       const indexB = vcSectionOrder.indexOf(b.type);
 
-      // If both sections are in the custom order, sort by that order
       if (indexA !== -1 && indexB !== -1) {
         return indexA - indexB;
       }
 
-      // If only one is in the custom order, prioritize it
       if (indexA !== -1) return -1;
       if (indexB !== -1) return 1;
 
-      // If neither is in the custom order, maintain original order
       return 0;
     });
   };
+  
   const sortedSections = getSortedSections();
-  console.log('User types:', {
-    isVCUser,
-    isIITBombayUser,
-    isRegularUser,
-    isVCAndBits,
-    isBitsQuestion
-  });
+  console.log('User types:', { isVCUser, isIITBombayUser, isRegularUser, isVCAndBits, isBitsQuestion });
   console.log('Filtered sections (excluding SLIDE_NOTES and GTM_STRATEGY):', filteredSections);
   console.log('Should show slide viewer:', !!company.report_id);
 
   // Always use 100-point scale for display
   const displayScore = company.overall_score > 5 ? company.overall_score : company.overall_score * 20;
+  
   return <div className="min-h-screen">
       <div className="w-full px-4 pt-0 pb-6 animate-fade-in">
         {/* Back Button */}
@@ -289,8 +304,6 @@ function CompanyDetails() {
 
           {/* For regular users (not VC and not IIT Bombay), show slide by slide notes */}
           {isRegularUser && company.report_id && slideNotes.length > 0 && <>
-              
-              
               <div className="mb-8">
                 <SlideBySlideViewer reportId={company.report_id} slideNotes={slideNotes} companyName={company.name} />
               </div>
@@ -323,4 +336,5 @@ function CompanyDetails() {
       </div>
     </div>;
 }
+
 export default CompanyDetails;
