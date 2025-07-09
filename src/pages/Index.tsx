@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -10,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Building2, TrendingUp, Eye, EyeOff } from "lucide-react";
 import { Link } from "react-router-dom";
-
 const Index = () => {
   const {
     user,
@@ -25,13 +23,11 @@ const Index = () => {
   const [password, setPassword] = useState("");
   const [activeTab, setActiveTab] = useState("signin");
   const [showPassword, setShowPassword] = useState(false);
-  
   useEffect(() => {
     if (user && !isLoading) {
       navigate('/dashboard');
     }
   }, [user, isLoading, navigate]);
-  
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUserType) {
@@ -40,7 +36,6 @@ const Index = () => {
     }
     await signInWithEmail(email, password, selectedUserType);
   };
-  
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUserType) {
@@ -54,14 +49,12 @@ const Index = () => {
       setActiveTab("signin");
     }
   };
-  
   const handleUserTypeChange = (userType: 'founder' | 'accelerator' | 'vc') => {
     setSelectedUserType(userType);
     if (userType === 'accelerator' || userType === 'vc') {
       setActiveTab("signin");
     }
   };
-  
   const getUserTypeIcon = (type: string) => {
     switch (type) {
       case 'founder':
@@ -78,7 +71,6 @@ const Index = () => {
 
   // Determine if buttons should be disabled
   const isAuthDisabled = isLoading || !selectedUserType;
-  
   return <div className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4 text-center">
       <div className="max-w-md w-full space-y-6 animate-fade-in">
         <div className="flex justify-center mb-6">
@@ -86,15 +78,13 @@ const Index = () => {
         </div>
 
         <div className="text-center space-y-2 mb-6">
-          <h1 className="text-4xl font-bold tracking-tight">Login/Signup</h1>
-          <p className="text-xl text-muted-foreground">
-            Please sign in or create an account to continue
-          </p>
+          <h1 className="text-4xl font-bold tracking-tight">Welcome to InvestorBase</h1>
+          <p className="text-xl text-muted-foreground">Invest Smarter, Faster</p>
         </div>
 
         <Card className="w-full">
           <CardHeader>
-            <CardTitle>Welcome</CardTitle>
+            
             <CardDescription>
               Select your user type and enter your credentials
             </CardDescription>
@@ -155,10 +145,7 @@ const Index = () => {
                       </div>
                     </div>
                     <div className="text-right">
-                      <Link 
-                        to="/forgot-password" 
-                        className="text-sm text-primary hover:underline"
-                      >
+                      <Link to="/forgot-password" className="text-sm text-primary hover:underline">
                         Forgot password?
                       </Link>
                     </div>
@@ -208,10 +195,7 @@ const Index = () => {
                   </div>
                 </div>
                 <div className="text-right">
-                  <Link 
-                    to="/forgot-password" 
-                    className="text-sm text-primary hover:underline"
-                  >
+                  <Link to="/forgot-password" className="text-sm text-primary hover:underline">
                     Forgot password?
                   </Link>
                 </div>
@@ -231,5 +215,4 @@ const Index = () => {
       </div>
     </div>;
 };
-
 export default Index;
