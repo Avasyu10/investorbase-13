@@ -58,19 +58,6 @@ export const SectionChecklist = ({ sections }: SectionChecklistProps) => {
 
     // console.log(`Section ${section.title} has no status field, falling back to legacy logic`); // Removed for cleaner console
 
-    // Fallback to legacy logic only if no status is provided
-
-
-    // Check content quality for "Needs Improvement" vs "Addressed"
-    const hasDetailedContent = section.description && section.description.length > 50;
-    const hasStrengthsAndWeaknesses = section.strengths && section.strengths.length > 0 && section.weaknesses && section.weaknesses.length > 0;
-
-    if (hasDetailedContent || hasStrengthsAndWeaknesses) {
-      return 'Addressed';
-    } else {
-      return 'Needs Improvement';
-    }
-  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
