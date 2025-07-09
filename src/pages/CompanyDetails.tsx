@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SectionCard } from "@/components/companies/SectionCard";
@@ -34,6 +33,7 @@ interface AnalysisResult {
     description?: string;
     strengths?: string[];
     weaknesses?: string[];
+    improvementSuggestions?: string[];
   }>;
   [key: string]: any;
 }
@@ -94,7 +94,7 @@ function CompanyDetails() {
               setSlideNotes([]);
             }
 
-            // Set improvement suggestions
+            // Set improvement suggestions - fix the property access
             let suggestions: string[] = [];
             if (analysisResult.improvementSuggestions && Array.isArray(analysisResult.improvementSuggestions)) {
               suggestions = analysisResult.improvementSuggestions;

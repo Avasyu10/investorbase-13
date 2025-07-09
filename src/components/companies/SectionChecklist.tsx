@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, AlertTriangle, Circle } from "lucide-react";
@@ -63,7 +64,6 @@ export const SectionChecklist = ({ sections }: SectionChecklistProps) => {
     if (title === "Traction & Milestones") return "Traction & Milestones";
     if (title === "Problem Statement") return "Problem Statement";
 
-
     return formattedTitle; // Return the formatted title if no specific match
   };
 
@@ -97,7 +97,7 @@ export const SectionChecklist = ({ sections }: SectionChecklistProps) => {
       // If content exists but isn't detailed enough, it "Needs Improvement"
       return 'Needs Improvement';
     }
-  }; // <<<<<<<<<<<<<<<<<<<< CORRECTED: getSectionStatus function now properly closes here.
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -111,8 +111,8 @@ export const SectionChecklist = ({ sections }: SectionChecklistProps) => {
     }
   };
 
-  // To remove highlight colors, return a single variant for all statuses.
-  const getStatusBadgeVariant = (status: string) => {
+  // Fix the badge variant to use only allowed types
+  const getStatusBadgeVariant = (status: string): "default" | "destructive" | "outline" | "secondary" | "green" | "gold" | "blue" => {
     return 'outline'; // Always return 'outline' to remove specific highlighting
   };
 
