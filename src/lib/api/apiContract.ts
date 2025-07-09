@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   full_name?: string;
@@ -127,6 +126,7 @@ export interface Section {
   section_type?: string;
   strengths?: string[];
   weaknesses?: string[];
+  status?: string; // Add status property for section assessment
 }
 
 export interface SectionDetail {
