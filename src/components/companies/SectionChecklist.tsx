@@ -42,7 +42,6 @@ export const SectionChecklist = ({ sections }: SectionChecklistProps) => {
     }
 
     // For specific titles that might have unique casing or formatting not covered by split/map
-    // Using a map for direct lookup is cleaner than multiple if statements
     const directTitlesMap: { [key: string]: string } = {
       "Problem Statement": "Problem Statement",
       "Founder & Team Background": "Founder & Team Background",
@@ -60,10 +59,10 @@ export const SectionChecklist = ({ sections }: SectionChecklistProps) => {
       return directTitlesMap[title];
     }
 
-    // Fallback to formatting for older sections (e.g., "GTM_STRATEGY" -> "Gtm Strategy")
+    // Fallback to formatting for older sections
     return title
       .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Ensure only first letter is capitalized
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ');
   };
 
@@ -101,40 +100,30 @@ export const SectionChecklist = ({ sections }: SectionChecklistProps) => {
       case 'Needs Improvement':
         return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
       case 'Not Addressed':
-        return <XCircle className="h-5 w-5 text-red-500" />; // Changed to XCircle and red color
+        return <XCircle className="h-5 w-5 text-red-500" />; // XCircle for "Not Addressed"
       default:
-        return <XCircle className="h-5 w-5 text-red-500" />; // Fallback to cross icon as well
+        return <XCircle className="h-5 w-5 text-red-500" />; // Fallback to cross icon
     }
   };
 
-  // Updated to provide distinct but not "highlighted" badge variants
+  // CHANGED: Always return 'outline' for the badge variant
   const getStatusBadgeVariant = (status: string): "default" | "destructive" | "outline" | "secondary" => {
-    switch (status) {
-      case 'Addressed':
-        return 'default'; // A slightly bolder 'default' variant
-      case 'Needs Improvement':
-        return 'secondary'; // Keep secondary for warning
-      case 'Not Addressed':
-        return 'destructive'; // Use 'destructive' for a clear "not addressed" signal
-      default:
-        return 'outline'; // Fallback
-    }
+    return 'outline'; // Ensure badges have a subtle, non-filled background
   };
 
-  // Updated to provide distinct but not "highlighted" text colors
+  // CHANGED: Use specific, but still clear, text colors for the badge
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Addressed':
-        return 'text-green-700'; // Darker green for addressed text
+        return 'text-green-600'; // Green text
       case 'Needs Improvement':
-        return 'text-yellow-700'; // Darker yellow for needs improvement text
+        return 'text-yellow-600'; // Yellow text
       case 'Not Addressed':
-        return 'text-red-700'; // Darker red for not addressed text
+        return 'text-red-600'; // Red text
       default:
-        return 'text-gray-700'; // Neutral gray fallback
+        return 'text-gray-500'; // Grey text
     }
   };
-
 
   return (
     <div className="space-y-3">
@@ -144,7 +133,7 @@ export const SectionChecklist = ({ sections }: SectionChecklistProps) => {
         return (
           <Card
             key={section.id || index}
-            className="border-l-4 border-l-gray-200" // Kept neutral border as per previous request
+            className="border-l-4 border-l-gray-200" // Kept neutral border
           >
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center justify-between text-base">
@@ -154,20 +143,21 @@ export const SectionChecklist = ({ sections }: SectionChecklistProps) => {
                   <span>{section.title}</span>
                 </div>
                 <Badge
-                  variant={getStatusBadgeVariant(status)}
-                  className={`text-xs ${getStatusColor(status)}`}
+                  variant={getStatusBadgeVariant(status)} // Will now always be 'outline'
+                  className={`text-xs ${getStatusColor(status)}`} // Color controlled by getStatusColor
                 >
                   {status}
                 </Badge>
               </CardTitle>
             </CardHeader>
-            {section.description && (
+            {/* REMOVED: The description part */}
+            {/* {section.description && (
               <CardContent className="pt-0">
                 <p className="text-sm text-muted-foreground">
                   {section.description}
                 </p>
               </CardContent>
-            )}
+            )} */}
           </Card>
         );
       })}
