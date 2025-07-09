@@ -49,14 +49,17 @@ export const SectionChecklist = ({ sections }: SectionChecklistProps) => {
       .join(' ');
   };
 
-  // Determine section status based on analysis data
+  // Get section status - prioritize the status field from analysis result
   const getSectionStatus = (section: Section) => {
-    // First check if there's a status field from the analysis
+    // First check if there's a status field from the analysis - this is the primary source
     if (section.status) {
+      console.log(`Section ${section.title} has status from analysis:`, section.status);
       return section.status;
     }
     
-    // Fallback to legacy logic for backwards compatibility
+    console.log(`Section ${section.title} has no status field, falling back to legacy logic`);
+    
+    // Fallback to legacy logic only if no status is provided
     const hasContent = !!(section.description || section.strengths?.length || section.weaknesses?.length);
     
     if (!hasContent) {
@@ -114,6 +117,7 @@ export const SectionChecklist = ({ sections }: SectionChecklistProps) => {
     <div className="space-y-3">
       {sections.map((section) => {
         const status = getSectionStatus(section);
+        console.log(`Final status for section ${section.title}:`, status);
         
         return (
           <Card 
