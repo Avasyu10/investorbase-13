@@ -14,7 +14,6 @@ import { uploadReport, analyzeReport } from "@/lib/supabase";
 import { FileUploadZone } from "@/components/reports/upload/FileUploadZone"; // FileUploadZone is not used in the provided snippet
 import { supabase } from '@/integrations/supabase/client';
 import { AnalysisLimitModal } from "@/components/reports/AnalysisLimitModal";
-
 const UploadReport = () => {
   const {
     user,
@@ -36,7 +35,6 @@ const UploadReport = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
   const [isCheckingLimits, setIsCheckingLimits] = useState(false);
-
   useEffect(() => {
     if (!isLoading && !user) {
       navigate('/login', {
@@ -46,22 +44,18 @@ const UploadReport = () => {
       });
     }
   }, [user, isLoading, navigate]);
-
   useEffect(() => {
     return () => {
       setError(null);
     };
   }, []);
-
   const handleError = (errorMessage: string) => {
     setError(errorMessage);
     setTimeout(() => setError(null), 10000);
   };
-
   const handleBackClick = () => {
     navigate(-1);
   };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
@@ -123,7 +117,6 @@ const UploadReport = () => {
       setIsCheckingLimits(false);
     }
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -134,26 +127,22 @@ const UploadReport = () => {
       });
       return;
     }
-
     if (!title.trim()) {
       toast.error("Company name required", {
         description: "Please provide a company name for the report"
       });
       return;
     }
-
     if (!file) {
       toast.error("Pitch deck required", {
         description: "Please upload a PDF pitch deck"
       });
       return;
     }
-
     const canProceed = await checkAnalysisLimits();
     if (!canProceed) {
       return;
     }
-
     try {
       setIsUploading(true);
       // Initialize description as an empty string or with company email directly
@@ -186,12 +175,10 @@ const UploadReport = () => {
       toast.success("Upload complete", {
         description: "Your pitch deck has been uploaded successfully"
       });
-
       setIsAnalyzing(true);
       toast.info("Analysis started", {
         description: "This may take a few minutes depending on the size of your deck"
       });
-
       try {
         console.log("Starting analysis with report ID:", report.id);
         const result = await analyzeReport(report.id);
@@ -240,7 +227,6 @@ const UploadReport = () => {
       setIsAnalyzing(false);
     }
   };
-
   if (isLoading) {
     return <div className="container mx-auto px-4 py-6">
       <div className="flex justify-center items-center h-64">
@@ -248,22 +234,17 @@ const UploadReport = () => {
       </div>
     </div>;
   }
-
   if (!user) return null;
   const isProcessing = isUploading || isAnalyzing || isCheckingLimits;
-
-  return (
-    <div className="animate-fade-in">
+  return <div className="animate-fade-in">
       <Toaster position="top-center" />
       <div className="container mx-auto px-4 py-6">
 
-        {error && (
-          <Alert variant="destructive" className="mb-6">
+        {error && <Alert variant="destructive" className="mb-6">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Error</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
+          </Alert>}
 
         <div className="mb-6">
           <h1 className="text-2xl font-bold tracking-tight mb-2">Upload New Pitch Deck</h1>
@@ -298,33 +279,31 @@ const UploadReport = () => {
 
             {/* REMOVED: Brief Introduction section */}
             {/*
-            <div>
+             <div>
               <Label htmlFor="introduction">Brief Introduction (Optional)</Label>
               <Textarea id="introduction" placeholder="Briefly describe your company (max 500 characters)" value={briefIntroduction} onChange={e => setBriefIntroduction(e.target.value)} maxLength={500} disabled={isProcessing} className="mt-1 min-h-[100px]" />
               <div className="text-xs text-muted-foreground mt-1">
                 {briefIntroduction.length}/500 characters
               </div>
-            </div>
-            */}
+             </div>
+             */}
 
             {/* REMOVED: Founder LinkedIn Profiles section */}
             {/*
-            <div>
+             <div>
               <Label>Founder LinkedIn Profiles (Optional)</Label>
               {founderLinkedIns.map((profile, index) => <Input key={index} placeholder="LinkedIn profile URL" value={profile} onChange={e => updateLinkedInProfile(index, e.target.value)} disabled={isProcessing} className="mt-1 mb-2" />)}
               <Button type="button" variant="outline" size="sm" onClick={addLinkedInProfile} disabled={isProcessing} className="mt-1">
                 <Plus className="h-4 w-4 mr-1" /> Add Another Founder
               </Button>
-            </div>
-            */}
+             </div>
+             */}
 
             {/* Company Website (remains) */}
             <div>
               <Label htmlFor="website">Company Website (Optional)</Label>
               <Input id="website" placeholder="https://example.com" value={companyWebsite} onChange={e => setCompanyWebsite(e.target.value)} disabled={isProcessing} className="mt-1" />
-              <p className="text-xs text-muted-foreground mt-1">
-                If provided, we'll scrape the website to enhance the analysis
-              </p>
+              
             </div>
 
             {/* Company Stage and Sector (remain) */}
@@ -392,14 +371,10 @@ const UploadReport = () => {
             {/* Submit Button (remains) */}
             <div className="pt-2">
               <Button type="submit" className="w-full" disabled={isProcessing}>
-                {isProcessing ? (
-                  <>
+                {isProcessing ? <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     {isUploading ? "Uploading..." : "Analyzing..."} {/* Corrected "Analyzing.." to "Uploading..." */}
-                  </>
-                ) : (
-                  "Upload & Analyze"
-                )}
+                  </> : "Upload & Analyze"}
               </Button>
             </div>
           </form>
@@ -407,8 +382,6 @@ const UploadReport = () => {
       </div>
 
       <AnalysisLimitModal isOpen={isLimitModalOpen} onClose={() => setIsLimitModalOpen(false)} />
-    </div>
-  );
+    </div>;
 };
-
 export default UploadReport;
