@@ -1,10 +1,10 @@
 
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bot, User, Send } from "lucide-react";
+import { Bot, User, Send, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -135,83 +135,95 @@ export function CompanyChatbotDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl h-[600px] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Bot className="h-5 w-5" />
-            Chat about {companyName}
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="flex-1 flex flex-col min-h-0">
-          <ScrollArea className="flex-1 p-4 border rounded-lg">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex gap-3 mb-4 ${
-                  message.role === "user" ? "justify-end" : "justify-start"
-                }`}
+    <Drawer open={open} onOpenChange={onOpenChange}>
+      <DrawerContent className="h-screen top-0 right-0 left-auto mt-0 w-[400px] rounded-none">
+        <div className="flex flex-col h-full">
+          <DrawerHeader className="flex-shrink-0 border-b">
+            <div className="flex items-center justify-between">
+              <DrawerTitle className="flex items-center gap-2">
+                <Bot className="h-5 w-5" />
+                Chat about {companyName}
+              </DrawerTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onOpenChange(false)}
+                className="h-6 w-6 p-0"
               >
-                {message.role === "assistant" && (
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </DrawerHeader>
+
+          <div className="flex-1 flex flex-col min-h-0 p-4">
+            <ScrollArea className="flex-1 pr-4">
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex gap-3 mb-4 ${
+                    message.role === "user" ? "justify-end" : "justify-start"
+                  }`}
+                >
+                  {message.role === "assistant" && (
+                    <div className="flex-shrink-0">
+                      <Bot className="h-6 w-6 text-primary" />
+                    </div>
+                  )}
+                  
+                  <div
+                    className={`max-w-[280px] rounded-lg px-3 py-2 ${
+                      message.role === "user"
+                        ? "bg-primary text-primary-foreground ml-auto"
+                        : "bg-muted"
+                    }`}
+                  >
+                    <div className="text-sm whitespace-pre-wrap">
+                      {message.content}
+                    </div>
+                  </div>
+                  
+                  {message.role === "user" && (
+                    <div className="flex-shrink-0">
+                      <User className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
+              ))}
+              
+              {isLoading && (
+                <div className="flex gap-3 mb-4">
                   <div className="flex-shrink-0">
                     <Bot className="h-6 w-6 text-primary" />
                   </div>
-                )}
-                
-                <div
-                  className={`max-w-[80%] rounded-lg px-3 py-2 ${
-                    message.role === "user"
-                      ? "bg-primary text-primary-foreground ml-auto"
-                      : "bg-muted"
-                  }`}
-                >
-                  <div className="text-sm whitespace-pre-wrap">
-                    {message.content}
+                  <div className="bg-muted rounded-lg px-3 py-2">
+                    <div className="text-sm text-muted-foreground">
+                      Thinking...
+                    </div>
                   </div>
                 </div>
-                
-                {message.role === "user" && (
-                  <div className="flex-shrink-0">
-                    <User className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                )}
-              </div>
-            ))}
-            
-            {isLoading && (
-              <div className="flex gap-3 mb-4">
-                <div className="flex-shrink-0">
-                  <Bot className="h-6 w-6 text-primary" />
-                </div>
-                <div className="bg-muted rounded-lg px-3 py-2">
-                  <div className="text-sm text-muted-foreground">
-                    Thinking...
-                  </div>
-                </div>
-              </div>
-            )}
-          </ScrollArea>
+              )}
+            </ScrollArea>
 
-          <div className="flex gap-2 mt-4">
-            <Input
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Ask about the company..."
-              disabled={isLoading}
-              className="flex-1"
-            />
-            <Button
-              onClick={handleSendMessage}
-              disabled={!inputValue.trim() || isLoading}
-              size="sm"
-            >
-              <Send className="h-4 w-4" />
-            </Button>
+            <div className="flex gap-2 mt-4 flex-shrink-0">
+              <Input
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Ask about the company..."
+                disabled={isLoading}
+                className="flex-1"
+              />
+              <Button
+                onClick={handleSendMessage}
+                disabled={!inputValue.trim() || isLoading}
+                size="sm"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </DrawerContent>
+    </Drawer>
   );
 }
