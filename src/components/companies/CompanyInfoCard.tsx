@@ -255,7 +255,7 @@ export function CompanyInfoCard({
         </h3>
         {/* Buttons for Chatbot, VC Bot and Investment Memo */}
         <div className="flex gap-2">
-          {shouldShowChatbot && ( // Apply the new condition here
+          {shouldShowChatbot && ( // Apply the new condition here for the chatbot button
             <Button
               variant="outline"
               onClick={handleChatbot}
@@ -362,7 +362,7 @@ export function CompanyInfoCard({
       )}
 
       {/* Company Chatbot Dialog */}
-      {shouldShowChatbot && chatbotOpen && ( // Apply the new condition here
+      {shouldShowChatbot && chatbotOpen && (
         <CompanyChatbotDialog
           companyId={companyData.id}
           companyName={companyData.name || companyName}
