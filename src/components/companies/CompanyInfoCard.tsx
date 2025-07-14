@@ -255,7 +255,7 @@ export function CompanyInfoCard({
         </h3>
         {/* Buttons for Chatbot, VC Bot and Investment Memo */}
         <div className="flex gap-2">
-          {companyData?.id && isVC && isBits && isIITBombayUser && ( // Apply the new condition here for the chatbot button
+          {companyData?.id && (isVC || isBits || isIITBombayUser) && ( // Apply the new condition here for the chatbot button
             <Button
               variant="outline"
               onClick={handleChatbot}
@@ -267,7 +267,7 @@ export function CompanyInfoCard({
           )}
 
           {/* VC Evaluation Bot for specific user roles */}
-          {shouldShowVCBot && (
+          {companyData?.id && !isVC && !isBits && !isIITBombayUser && !isVCandBits && (
             <Button
               variant="outline"
               onClick={handleVCBot}
