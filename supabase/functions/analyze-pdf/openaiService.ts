@@ -240,165 +240,165 @@ Return your analysis in EXACTLY this JSON format:
 }
 
 **SCORE EACH SECTION FROM 1-100 BASED ON THESE SCORING METRICS:**
-1. Problem Statement
-Key Questions
-  Is the problem real, relevant, and urgent for the target audience?
-  Does the team demonstrate first-hand or deep insight into the user pain point?
-  Is this a surface-level problem or one rooted in fundamental need or behavior?
-What to Look For
-  Clear, concise articulation of a specific user pain or market inefficiency.
-  Evidence of deep understanding: lived experience, extensive research, or direct user engagement.
-  Quantifiable impact of the problem (e.g., time wasted, money lost, current workarounds).
-  Framing that highlights urgency or increasing intensity of the problem.
-Scoring Guide
-  1-30 (Weak/Poor): Problem is vague, fabricated, or lacks any real evidence. No clear target user or insight.
-  31-60 (Average/Developing): A real problem is stated, but it's generic, lacks specific user insight, or urgency is not clearly conveyed.
-  61-85 (Good/Strong): Sharp, grounded articulation of a clear problem with good founder insight and reasonable urgency. Some quantifiable impact.
-  86-100 (Excellent/Outstanding): Exceptionally sharp, grounded articulation of a critical, urgent problem. Demonstrates profound founder insight, supported by strong evidence and quantifiable impact.
-
-2. Market Opportunity
-Key Questions
-  Is the target market clearly defined and sufficiently large?
-  Does the pitch articulate a compelling growth trajectory for this market?
-  Are the TAM, SAM, and SOM calculations realistic and well-supported?
-What to Look For
-  Specific definition of the target customer segment.
-  Data-driven estimates for Total Addressable Market (TAM), Serviceable Available Market (SAM), and Serviceable Obtainable Market (SOM).
-  Evidence of market trends, shifts, or unmet needs that create significant opportunity.
-  A clear path to capturing a meaningful share of the market.
-Scoring Guide
-  1-30 (Weak/Poor): No clear market definition; market size is absent, wildly speculative, or irrelevant.
-  31-60 (Average/Developing): Market defined but estimates are generic or poorly supported; growth potential is unclear or unconvincing.
-  61-85 (Good/Strong): Well-defined market with credible TAM/SAM/SOM estimates, showing good growth potential and some supporting data.
-  86-100 (Excellent/Outstanding): Precisely defined, large, and rapidly growing market with highly credible, data-backed TAM/SAM/SOM calculations and a compelling path to significant market capture.
-
-3. Solution (Product)
-Key Questions
-  Does the solution directly address the identified problem effectively?
-  Is the product's value proposition clear, compelling, and differentiated?
-  Is there a clear roadmap for product development and future features?
-What to Look For
-  A concise explanation of how the product works and its core features.
-  Demonstration of the product (e.g., screenshots, demo video, prototype).
-  Highlighting of unique selling propositions (USPs) and competitive advantages.
-  A logical and phased product roadmap that aligns with market needs.
-Scoring Guide
-  1-30 (Weak/Poor): Solution is vague, doesn't clearly solve the problem, or lacks any differentiation. No product roadmap.
-  31-60 (Average/Developing): Solution addresses the problem, but its value proposition is weak, features are generic, or the roadmap is ill-defined.
-  61-85 (Good/Strong): Effective solution that addresses the problem with a clear value proposition and some differentiation. A reasonable product roadmap is presented.
-  86-100 (Excellent/Outstanding): Innovative, elegant, and highly effective solution that directly solves the problem with a clear, compelling, and defensible value proposition. A well-articulated and strategic product roadmap.
-
-4. Competitive Landscape
-Key Questions
-  Are the key competitors accurately identified and analyzed?
-  Does the pitch clearly articulate the company's sustainable competitive advantage?
-  Is there a realistic understanding of how to win against existing solutions?
-What to Look For
-  Identification of direct, indirect, and potential future competitors.
-  A clear competitive matrix or analysis highlighting strengths and weaknesses of competitors.
-  Articulating defensible moats (e.g., technology, network effects, brand, cost advantage).
-  A strategy for differentiation and market entry that acknowledges existing players.
-Scoring Guide
-  1-30 (Weak/Poor): Ignores competitors, provides a superficial assessment, or demonstrates a complete lack of understanding of the landscape.
-  31-60 (Average/Developing): Identifies some competitors but lacks deep analysis, or the differentiation strategy is weak/unconvincing.
-  61-85 (Good/Strong): Good understanding of the competitive landscape with a clear, albeit perhaps not fully defensible, differentiation strategy.
-  86-100 (Excellent/Outstanding): Comprehensive and insightful understanding of the competitive landscape, clearly articulating a strong, defensible, and sustainable competitive advantage.
-
-5. Traction and Milestones
-Key Questions
-  Has the company achieved significant, relevant milestones to date?
-  Is there clear evidence of market validation (e.g., users, revenue, partnerships)?
-  Are the future milestones ambitious yet achievable and clearly defined?
-What to Look For
-  Quantifiable metrics demonstrating progress (e.g., user growth, revenue, engagement, pilot results).
-  Evidence of product-market fit or strong early adoption.
-  Key partnerships, strategic alliances, or letters of intent.
-  A clear timeline of past achievements and a realistic projection of future milestones.
-Scoring Guide
-  1-30 (Weak/Poor): No demonstrable traction or milestones; purely conceptual or early-stage without any validation.
-  31-60 (Average/Developing): Some early traction, but it's not significant, poorly validated, or vaguely presented. Future milestones are unclear.
-  61-85 (Good/Strong): Good, verifiable traction with some market validation. Past milestones are clear, and future projections are reasonable.
-  86-100 (Excellent/Outstanding): Strong, compelling, and verifiable traction with clear evidence of product-market fit or significant early adoption. Past achievements are impressive, and future milestones are ambitious yet highly credible.
-
-6. Business Model
-Key Questions
-  Is the revenue model clear, scalable, and appropriate for the market?
-  Does the model demonstrate a clear path to profitability?
-  Are the pricing strategy and unit economics well-understood?
-What to Look For
-  Clear description of how the company will generate revenue (e.g., subscription, transaction fee, advertising).
-  Evidence of scalability and potential for high margins.
-  Detailed understanding of customer acquisition cost (CAC) and customer lifetime value (LTV).
-  Logical pricing strategy aligned with value proposition and market dynamics.
-Scoring Guide
-  1-30 (Weak/Poor): No clear business model, or a model that is unsustainable, unprofitable, or completely inappropriate for the market.
-  31-60 (Average/Developing): Business model is outlined but lacks detail on scalability, profitability, or unit economics. Pricing strategy is generic.
-  61-85 (Good/Strong): Clear and scalable business model with a reasonable path to profitability. Good understanding of pricing and key unit economics.
-  86-100 (Excellent/Outstanding): Clear, highly scalable, and defensible business model with strong unit economics and a well-defined, compelling path to profitability. Pricing strategy is astute and well-justified.
-
-7. Go-to-Market Strategy
-Key Questions
-  Is there a clear, actionable plan to acquire customers?
-  Are the chosen distribution channels effective and cost-efficient?
-  Does the strategy align with the target audience and product?
-What to Look For
-  Specific channels for customer acquisition (e.g., digital marketing, sales, partnerships).
-  Understanding of the sales cycle and conversion funnels.
-  Tactics for building brand awareness and generating leads.
-  Evidence of early testing or validation of GTM channels.
-Scoring Guide
-  1-30 (Weak/Poor): No defined GTM strategy, or a highly unrealistic, untested, and unscalable plan.
-  31-60 (Average/Developing): GTM strategy is generic, lacks specific tactics, or channel effectiveness is questionable.
-  61-85 (Good/Strong): Well-defined and actionable GTM strategy with appropriate channels. Some understanding of customer acquisition costs.
-  86-100 (Excellent/Outstanding): Highly detailed, actionable, and cost-efficient GTM strategy precisely tailored to the target market, with clear, validated acquisition channels and strong understanding of sales cycles.
-
-8. Founder & Team Background
-Key Questions
-  Do the founders have the skills, background, or context to solve this problem better than others?
-  Have they executed before — in startups, domain, or related roles?
-  Do their abilities match the demands of this particular market and stage?
-What to Look For
-  Relevant industry experience, technical expertise, or entrepreneurial track record.
-  Complementary skill sets among co-founders.
-  Demonstrated passion, commitment, and resilience.
-  Advisors or early hires who fill critical skill gaps.
-Scoring Guide
-  1-30 (Weak/Poor): Team lacks relevant experience, appears ill-equipped for the venture, or has significant skill gaps.
-  31-60 (Average/Developing): Team has some relevant skills, but lacks deep domain expertise, a strong track record, or clear complementary skill sets.
-  61-85 (Good/Strong): Competent team with good relevant experience and complementary skills. Demonstrated commitment.
-  86-100 (Excellent/Outstanding): Exceptional team with deep domain expertise, a proven track record of execution, highly complementary skill sets, and demonstrated passion and resilience. Strong advisory board.
-
-9. Financial Overview & Projections
-Key Questions
-  Are the financial projections realistic, well-justified, and clearly presented?
-  Does the pitch demonstrate an understanding of key financial drivers and assumptions?
-  Is there a clear use of funds and a path to future funding rounds or profitability?
-What to Look For
-  Clear revenue, expense, and profitability projections for the next 3-5 years.
-  Detailed breakdown of key assumptions driving the projections.
-  Understanding of burn rate, runway, and key financial metrics.
-  A clear articulation of how the requested funds will be utilized to achieve milestones.
-Scoring Guide
-  1-30 (Weak/Poor): Financials are absent, highly unrealistic, or based on unsubstantiated, vague assumptions. No clear use of funds.
-  31-60 (Average/Developing): Projections are present but lack detailed assumptions, appear overly optimistic, or show a weak understanding of financial drivers.
-  61-85 (Good/Strong): Realistic and well-justified financial projections with clear assumptions. Good understanding of key financial metrics and a reasonable use of funds.
-  86-100 (Excellent/Outstanding): Highly realistic, detailed, and well-justified financial projections with transparent assumptions. Demonstrates a strong grasp of financial health, burn rate, runway, and a strategic use of funds.
-
-10. The Ask & Next Steps
-Key Questions
- Is the funding ask clear, justified, and aligned with the company's milestones?
- Is there a clear understanding of the valuation and proposed terms?
- Are the next steps for investors clearly articulated?
-What to Look For
-  Specific amount of funding sought and the type of investment (e.g., seed, Series A).
-  Clear articulation of how the funds will be used to achieve specific, measurable milestones.
-  Understanding of the proposed valuation and equity stake.
-  A clear call to action for investors (e.g., follow-up meeting, due diligence).
-Scoring Guide
-  1-30 (Weak/Poor): No clear ask, or an ask that is unjustified, unrealistic, or lacks any detail on use of funds. No clear next steps.
-  31-60 (Average/Developing): Ask is stated but lacks clear justification for use of funds, or next steps are vague. Valuation/terms are unclear.
-  61-85 (Good/Strong): Clear and justified funding ask aligned with milestones. Good understanding of how funds will be used and clear next steps.
-  86-100 (Excellent/Outstanding): Extremely clear, well-justified funding ask precisely aligned with strategic milestones. Demonstrates a strong understanding of valuation and proposed terms, with a compelling vision for the future and clear, actionable next steps for investors.
+  1. Problem Statement
+  Key Questions
+    Is the problem real, relevant, and urgent for the target audience?
+    Does the team demonstrate first-hand or deep insight into the user pain point?
+    Is this a surface-level problem or one rooted in fundamental need or behavior?
+  What to Look For
+    Clear, concise articulation of a specific user pain or market inefficiency.
+    Evidence of deep understanding: lived experience, extensive research, or direct user engagement.
+    Quantifiable impact of the problem (e.g., time wasted, money lost, current workarounds).
+    Framing that highlights urgency or increasing intensity of the problem.
+  Scoring Guide
+    1-30 (Weak/Poor): Problem is vague, fabricated, or lacks any real evidence. No clear target user or insight.
+    31-60 (Average/Developing): A real problem is stated, but it's generic, lacks specific user insight, or urgency is not clearly conveyed.
+    61-85 (Good/Strong): Sharp, grounded articulation of a clear problem with good founder insight and reasonable urgency. Some quantifiable impact.
+    86-100 (Excellent/Outstanding): Exceptionally sharp, grounded articulation of a critical, urgent problem. Demonstrates profound founder insight, supported by strong evidence and quantifiable impact.
+  
+  2. Market Opportunity
+  Key Questions
+    Is the target market clearly defined and sufficiently large?
+    Does the pitch articulate a compelling growth trajectory for this market?
+    Are the TAM, SAM, and SOM calculations realistic and well-supported?
+  What to Look For
+    Specific definition of the target customer segment.
+    Data-driven estimates for Total Addressable Market (TAM), Serviceable Available Market (SAM), and Serviceable Obtainable Market (SOM).
+    Evidence of market trends, shifts, or unmet needs that create significant opportunity.
+    A clear path to capturing a meaningful share of the market.
+  Scoring Guide
+    1-30 (Weak/Poor): No clear market definition; market size is absent, wildly speculative, or irrelevant.
+    31-60 (Average/Developing): Market defined but estimates are generic or poorly supported; growth potential is unclear or unconvincing.
+    61-85 (Good/Strong): Well-defined market with credible TAM/SAM/SOM estimates, showing good growth potential and some supporting data.
+    86-100 (Excellent/Outstanding): Precisely defined, large, and rapidly growing market with highly credible, data-backed TAM/SAM/SOM calculations and a compelling path to significant market capture.
+  
+  3. Solution (Product)
+  Key Questions
+    Does the solution directly address the identified problem effectively?
+    Is the product's value proposition clear, compelling, and differentiated?
+    Is there a clear roadmap for product development and future features?
+  What to Look For
+    A concise explanation of how the product works and its core features.
+    Demonstration of the product (e.g., screenshots, demo video, prototype).
+    Highlighting of unique selling propositions (USPs) and competitive advantages.
+    A logical and phased product roadmap that aligns with market needs.
+  Scoring Guide
+    1-30 (Weak/Poor): Solution is vague, doesn't clearly solve the problem, or lacks any differentiation. No product roadmap.
+    31-60 (Average/Developing): Solution addresses the problem, but its value proposition is weak, features are generic, or the roadmap is ill-defined.
+    61-85 (Good/Strong): Effective solution that addresses the problem with a clear value proposition and some differentiation. A reasonable product roadmap is presented.
+    86-100 (Excellent/Outstanding): Innovative, elegant, and highly effective solution that directly solves the problem with a clear, compelling, and defensible value proposition. A well-articulated and strategic product roadmap.
+  
+  4. Competitive Landscape
+  Key Questions
+    Are the key competitors accurately identified and analyzed?
+    Does the pitch clearly articulate the company's sustainable competitive advantage?
+    Is there a realistic understanding of how to win against existing solutions?
+  What to Look For
+    Identification of direct, indirect, and potential future competitors.
+    A clear competitive matrix or analysis highlighting strengths and weaknesses of competitors.
+    Articulating defensible moats (e.g., technology, network effects, brand, cost advantage).
+    A strategy for differentiation and market entry that acknowledges existing players.
+  Scoring Guide
+    1-30 (Weak/Poor): Ignores competitors, provides a superficial assessment, or demonstrates a complete lack of understanding of the landscape.
+    31-60 (Average/Developing): Identifies some competitors but lacks deep analysis, or the differentiation strategy is weak/unconvincing.
+    61-85 (Good/Strong): Good understanding of the competitive landscape with a clear, albeit perhaps not fully defensible, differentiation strategy.
+    86-100 (Excellent/Outstanding): Comprehensive and insightful understanding of the competitive landscape, clearly articulating a strong, defensible, and sustainable competitive advantage.
+  
+  5. Traction and Milestones
+  Key Questions
+    Has the company achieved significant, relevant milestones to date?
+    Is there clear evidence of market validation (e.g., users, revenue, partnerships)?
+    Are the future milestones ambitious yet achievable and clearly defined?
+  What to Look For
+    Quantifiable metrics demonstrating progress (e.g., user growth, revenue, engagement, pilot results).
+    Evidence of product-market fit or strong early adoption.
+    Key partnerships, strategic alliances, or letters of intent.
+    A clear timeline of past achievements and a realistic projection of future milestones.
+  Scoring Guide
+    1-30 (Weak/Poor): No demonstrable traction or milestones; purely conceptual or early-stage without any validation.
+    31-60 (Average/Developing): Some early traction, but it's not significant, poorly validated, or vaguely presented. Future milestones are unclear.
+    61-85 (Good/Strong): Good, verifiable traction with some market validation. Past milestones are clear, and future projections are reasonable.
+    86-100 (Excellent/Outstanding): Strong, compelling, and verifiable traction with clear evidence of product-market fit or significant early adoption. Past achievements are impressive, and future milestones are ambitious yet highly credible.
+  
+  6. Business Model
+  Key Questions
+    Is the revenue model clear, scalable, and appropriate for the market?
+    Does the model demonstrate a clear path to profitability?
+    Are the pricing strategy and unit economics well-understood?
+  What to Look For
+    Clear description of how the company will generate revenue (e.g., subscription, transaction fee, advertising).
+    Evidence of scalability and potential for high margins.
+    Detailed understanding of customer acquisition cost (CAC) and customer lifetime value (LTV).
+    Logical pricing strategy aligned with value proposition and market dynamics.
+  Scoring Guide
+    1-30 (Weak/Poor): No clear business model, or a model that is unsustainable, unprofitable, or completely inappropriate for the market.
+    31-60 (Average/Developing): Business model is outlined but lacks detail on scalability, profitability, or unit economics. Pricing strategy is generic.
+    61-85 (Good/Strong): Clear and scalable business model with a reasonable path to profitability. Good understanding of pricing and key unit economics.
+    86-100 (Excellent/Outstanding): Clear, highly scalable, and defensible business model with strong unit economics and a well-defined, compelling path to profitability. Pricing strategy is astute and well-justified.
+  
+  7. Go-to-Market Strategy
+  Key Questions
+    Is there a clear, actionable plan to acquire customers?
+    Are the chosen distribution channels effective and cost-efficient?
+    Does the strategy align with the target audience and product?
+  What to Look For
+    Specific channels for customer acquisition (e.g., digital marketing, sales, partnerships).
+    Understanding of the sales cycle and conversion funnels.
+    Tactics for building brand awareness and generating leads.
+    Evidence of early testing or validation of GTM channels.
+  Scoring Guide
+    1-30 (Weak/Poor): No defined GTM strategy, or a highly unrealistic, untested, and unscalable plan.
+    31-60 (Average/Developing): GTM strategy is generic, lacks specific tactics, or channel effectiveness is questionable.
+    61-85 (Good/Strong): Well-defined and actionable GTM strategy with appropriate channels. Some understanding of customer acquisition costs.
+    86-100 (Excellent/Outstanding): Highly detailed, actionable, and cost-efficient GTM strategy precisely tailored to the target market, with clear, validated acquisition channels and strong understanding of sales cycles.
+  
+  8. Founder & Team Background
+  Key Questions
+    Do the founders have the skills, background, or context to solve this problem better than others?
+    Have they executed before — in startups, domain, or related roles?
+    Do their abilities match the demands of this particular market and stage?
+  What to Look For
+    Relevant industry experience, technical expertise, or entrepreneurial track record.
+    Complementary skill sets among co-founders.
+    Demonstrated passion, commitment, and resilience.
+    Advisors or early hires who fill critical skill gaps.
+  Scoring Guide
+    1-30 (Weak/Poor): Team lacks relevant experience, appears ill-equipped for the venture, or has significant skill gaps.
+    31-60 (Average/Developing): Team has some relevant skills, but lacks deep domain expertise, a strong track record, or clear complementary skill sets.
+    61-85 (Good/Strong): Competent team with good relevant experience and complementary skills. Demonstrated commitment.
+    86-100 (Excellent/Outstanding): Exceptional team with deep domain expertise, a proven track record of execution, highly complementary skill sets, and demonstrated passion and resilience. Strong advisory board.
+  
+  9. Financial Overview & Projections
+  Key Questions
+    Are the financial projections realistic, well-justified, and clearly presented?
+    Does the pitch demonstrate an understanding of key financial drivers and assumptions?
+    Is there a clear use of funds and a path to future funding rounds or profitability?
+  What to Look For
+    Clear revenue, expense, and profitability projections for the next 3-5 years.
+    Detailed breakdown of key assumptions driving the projections.
+    Understanding of burn rate, runway, and key financial metrics.
+    A clear articulation of how the requested funds will be utilized to achieve milestones.
+  Scoring Guide
+    1-30 (Weak/Poor): Financials are absent, highly unrealistic, or based on unsubstantiated, vague assumptions. No clear use of funds.
+    31-60 (Average/Developing): Projections are present but lack detailed assumptions, appear overly optimistic, or show a weak understanding of financial drivers.
+    61-85 (Good/Strong): Realistic and well-justified financial projections with clear assumptions. Good understanding of key financial metrics and a reasonable use of funds.
+    86-100 (Excellent/Outstanding): Highly realistic, detailed, and well-justified financial projections with transparent assumptions. Demonstrates a strong grasp of financial health, burn rate, runway, and a strategic use of funds.
+  
+  10. The Ask & Next Steps
+  Key Questions
+   Is the funding ask clear, justified, and aligned with the company's milestones?
+   Is there a clear understanding of the valuation and proposed terms?
+   Are the next steps for investors clearly articulated?
+  What to Look For
+    Specific amount of funding sought and the type of investment (e.g., seed, Series A).
+    Clear articulation of how the funds will be used to achieve specific, measurable milestones.
+    Understanding of the proposed valuation and equity stake.
+    A clear call to action for investors (e.g., follow-up meeting, due diligence).
+  Scoring Guide
+    1-30 (Weak/Poor): No clear ask, or an ask that is unjustified, unrealistic, or lacks any detail on use of funds. No clear next steps.
+    31-60 (Average/Developing): Ask is stated but lacks clear justification for use of funds, or next steps are vague. Valuation/terms are unclear.
+    61-85 (Good/Strong): Clear and justified funding ask aligned with milestones. Good understanding of how funds will be used and clear next steps.
+    86-100 (Excellent/Outstanding): Extremely clear, well-justified funding ask precisely aligned with strategic milestones. Demonstrates a strong understanding of valuation and proposed terms, with a compelling vision for the future and clear, actionable next steps for investors.
 
 COMPANY INFORMATION EXTRACTION REQUIREMENTS:
 - Stage: Look for funding stage mentions (seed, pre-seed, series A/B/C, growth, bootstrap, etc.)
