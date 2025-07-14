@@ -50,9 +50,9 @@ export function VCEvaluationBot({
       const initialMessage: Message = {
         id: "initial",
         role: "assistant",
-        content: `Welcome to the VC Evaluation Bot! I'm designed to simulate how a venture capitalist would evaluate ${companyName}.
+        content: `Welcome to the VC Evaluation Bot for ${companyName}!
 
-I'll ask you questions as if you're pitching this startup to investors. After each of your responses, I'll provide feedback and ask the next relevant question.
+I'll simulate a Venture Capitalist, asking questions and providing feedback on your responses.
 
 Let's begin: Can you tell me what problem ${companyName} is solving and why this problem is significant in the market?`,
         timestamp: new Date()
