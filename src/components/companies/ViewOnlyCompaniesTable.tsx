@@ -1,4 +1,3 @@
-
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -7,6 +6,7 @@ import { Company } from "@/lib/api/apiContract";
 import { formatDistanceToNow } from "date-fns";
 import { ArrowUpDown, ArrowUp, ArrowDown, FileText, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import FormResponsesDialog from "./FormResponsesDialog"; // Import the FormResponsesDialog component
 
 interface ViewOnlyCompaniesTableProps {
   companies: Company[];
@@ -71,7 +71,7 @@ export function ViewOnlyCompaniesTable({
 
   const handlePdfClick = async (company: Company, e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     if (!company.report_id) {
       console.log('No report ID available for company:', company.name);
       return;
@@ -79,37 +79,37 @@ export function ViewOnlyCompaniesTable({
 
     try {
       console.log('Fetching report for ID:', company.report_id);
-      
+
       // Fetch the report to get the pdf_url
       const { data: report, error: reportError } = await supabase
         .from('reports')
         .select('pdf_url, user_id, is_public_submission')
         .eq('id', company.report_id)
         .maybeSingle();
-        
+
       if (reportError) {
         console.error('Error fetching report:', reportError);
         return;
       }
-      
+
       if (!report || !report.pdf_url) {
         console.log('No PDF found for report ID:', company.report_id);
         return;
       }
-      
+
       console.log('Report found, downloading PDF:', report.pdf_url);
-      
+
       // Download PDF - try user_id path first since PDFs are stored as user_id/pdf_url
       const bucketName = 'report-pdfs';
       let pdfData = null;
-      
+
       // Try with user_id path first (this is the correct format)
       if (report.user_id) {
         const userPath = `${report.user_id}/${report.pdf_url}`;
         const { data: userData, error: userError } = await supabase.storage
           .from(bucketName)
           .download(userPath);
-          
+
         if (!userError && userData) {
           pdfData = userData;
           console.log('PDF downloaded successfully (user path):', userPath);
@@ -117,13 +117,13 @@ export function ViewOnlyCompaniesTable({
           console.log('Failed to download from user path:', userPath, userError);
         }
       }
-      
+
       // Fallback to direct path if user path fails
       if (!pdfData) {
         const { data: directData, error: directError } = await supabase.storage
           .from(bucketName)
           .download(report.pdf_url);
-          
+
         if (!directError && directData) {
           pdfData = directData;
           console.log('PDF downloaded successfully (direct path)');
@@ -131,21 +131,21 @@ export function ViewOnlyCompaniesTable({
           console.log('Failed to download from direct path:', report.pdf_url, directError);
         }
       }
-      
+
       if (!pdfData) {
         console.error('Failed to download PDF from storage');
         return;
       }
-      
+
       // Create blob URL and open in new tab
       const blobUrl = URL.createObjectURL(new Blob([pdfData], { type: 'application/pdf' }));
       window.open(blobUrl, '_blank');
-      
+
       // Clean up the blob URL after a delay
       setTimeout(() => {
         URL.revokeObjectURL(blobUrl);
       }, 1000);
-      
+
     } catch (error) {
       console.error('Error opening PDF:', error);
     }
@@ -194,8 +194,8 @@ export function ViewOnlyCompaniesTable({
             {companies.map(company => {
               const formattedScore = Math.round(company.overall_score);
               const industry = company.industry || "—";
-              const showDeck = company.report_id;
-              
+              // const showDeck = company.report_id; // This is now handled by the conditional rendering below
+
               return (
                 <TableRow key={company.id} className="hover:bg-muted/50 transition-colors">
                   <TableCell className="font-medium">
@@ -219,7 +219,11 @@ export function ViewOnlyCompaniesTable({
                     </div>
                   </TableCell>
                   <TableCell>
-                    {showDeck ? (
+                    {company.source === 'IIT Bombay' ? (
+                      // Render FormResponsesDialog for IIT Bombay companies
+                      <FormResponsesDialog companyId={company.id} />
+                    ) : company.report_id ? (
+                      // Render PDF download button if report_id exists for other sources
                       <Button
                         variant="ghost"
                         size="sm"
@@ -230,6 +234,7 @@ export function ViewOnlyCompaniesTable({
                         <ExternalLink className="h-3 w-3" />
                       </Button>
                     ) : (
+                      // Display dash if no report_id for other sources
                       <span className="text-muted-foreground text-sm">—</span>
                     )}
                   </TableCell>
@@ -249,3 +254,5 @@ export function ViewOnlyCompaniesTable({
     </Card>
   );
 }
+
+export default FormResponsesDialog;
