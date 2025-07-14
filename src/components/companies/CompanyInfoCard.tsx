@@ -239,6 +239,12 @@ export function CompanyInfoCard({
     setVcBotOpen(true);
   };
 
+    // Determine if the VC Bot should be visible based on user roles
+  const shouldShowVCBot = companyData?.id && (isBits || isVCAndBits || isIITBombayUser || isVC);
+
+  // Determine if the general Chatbot should be visible based on user roles
+  const shouldShowChatbot = companyData?.id && (isBits || isVCAndBits || isIITBombayUser || isVC);
+
   return (
     <div className="mb-7">
       <div className="flex items-center justify-between mb-3">
@@ -248,7 +254,7 @@ export function CompanyInfoCard({
         </h3>
         {/* Buttons for Chatbot, VC Bot and Investment Memo */}
         <div className="flex gap-2">
-          {shouldShowMoreInfoButton && (
+          {shouldShowChatbot && (
             <Button
               variant="outline"
               onClick={handleChatbot}
