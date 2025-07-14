@@ -266,7 +266,7 @@ export function CompanyInfoCard({
             </Button>}
 
           {/* VC Evaluation Bot for general users */}
-          {companyData?.id && isGeneralUser && <Button variant="outline" onClick={handleVCBot} size="sm" className="h-10 px-4 bg-yellow-500 ">
+          {companyData?.id && isGeneralUser && <Button variant="outline" onClick={handleVCBot} size="sm" className="h-10 px-4 bg-yellow-500 text-zinc-950">
               <Bot className="h-4 w-4 mr-2" />
               <span className="font-medium">VC Bot</span>
             </Button>}
