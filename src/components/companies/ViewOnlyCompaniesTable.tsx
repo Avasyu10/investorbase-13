@@ -78,13 +78,13 @@ export function ViewOnlyCompaniesTable({
     }
 
     try {
-      console.log('Fetching report for ID:', company.report_id);
+      console.log('Fetching report for ID:', company.user_id);
       
       // Fetch the report to get the pdf_url
       const { data: report, error: reportError } = await supabase
         .from('reports')
         .select('pdf_url, user_id, is_public_submission')
-        .eq('id', company.report_id)
+        .eq('id', company.user_id)
         .maybeSingle();
         
       if (reportError) {
