@@ -239,7 +239,7 @@ export function CompanyInfoCard({
     setVcBotOpen(true);
   };
 
-    // Determine if the VC Bot should be visible based on user roles
+  // Determine if the VC Bot should be visible based on user roles
   const shouldShowVCBot = companyData?.id && (isBits || isVCAndBits || isIITBombayUser || isVC);
 
   // Determine if the general Chatbot should be visible based on user roles
@@ -271,9 +271,10 @@ export function CompanyInfoCard({
               variant="outline"
               onClick={handleVCBot}
               size="sm"
-              className="h-10 w-10 p-0 bg-emerald-500 hover:bg-emerald-400 text-white"
+              className="h-10 px-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
             >
-              <TrendingUp className="h-5 w-5" />
+              <Bot className="h-4 w-4 mr-2" />
+              <span className="font-medium">VC Bot</span>
             </Button>
           )}
 
