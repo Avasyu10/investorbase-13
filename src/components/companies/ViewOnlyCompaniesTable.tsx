@@ -1,10 +1,11 @@
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Company } from "@/lib/api/apiContract";
 import { formatDistanceToNow } from "date-fns";
-import { Star, ArrowUpDown, ArrowUp, ArrowDown, FileText, ExternalLink } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, FileText, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ViewOnlyCompaniesTableProps {
@@ -69,7 +70,7 @@ export function ViewOnlyCompaniesTable({
   };
 
   const handlePdfClick = async (company: Company, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent triggering company click
+    e.stopPropagation();
     
     if (!company.report_id) {
       console.log('No report ID available for company:', company.name);
@@ -79,7 +80,7 @@ export function ViewOnlyCompaniesTable({
     try {
       console.log('Fetching report for ID:', company.report_id);
       
-      // Fetch the report to get the pdf_url and user_id
+      // Fetch the report to get the pdf_url
       const { data: report, error: reportError } = await supabase
         .from('reports')
         .select('pdf_url, user_id, is_public_submission')
@@ -91,89 +92,40 @@ export function ViewOnlyCompaniesTable({
         return;
       }
       
-      if (!report) {
-        console.log('No report found for ID:', company.report_id);
+      if (!report || !report.pdf_url) {
+        console.log('No PDF found for report ID:', company.report_id);
         return;
       }
       
-      if (!report.pdf_url) {
-        console.log('No PDF URL found in report');
-        return;
-      }
+      console.log('Report found, downloading PDF:', report.pdf_url);
       
-      console.log('Report found:', {
-        pdf_url: report.pdf_url,
-        user_id: report.user_id,
-        is_public_submission: report.is_public_submission
-      });
-      
-      // Try different path patterns based on the edge function logic
+      // Simplified PDF download - try direct path first, then with user prefix
       const bucketName = 'report-pdfs';
       let pdfData = null;
-      let downloadPath = report.pdf_url;
       
-      console.log('Attempting to download PDF from storage:', downloadPath);
-      
-      // First try: direct path
-      try {
-        const { data, error } = await supabase.storage
+      // Try direct path first
+      const { data: directData, error: directError } = await supabase.storage
+        .from(bucketName)
+        .download(report.pdf_url);
+        
+      if (!directError && directData) {
+        pdfData = directData;
+        console.log('PDF downloaded successfully (direct path)');
+      } else if (report.user_id) {
+        // Try with user prefix if direct path fails
+        const userPath = `${report.user_id}/${report.pdf_url}`;
+        const { data: userData, error: userError } = await supabase.storage
           .from(bucketName)
-          .download(downloadPath);
+          .download(userPath);
           
-        if (!error && data) {
-          pdfData = data;
-          console.log('Successfully downloaded PDF with direct path, size:', data.size);
-        } else {
-          console.log('Direct path failed:', error?.message);
-        }
-      } catch (err) {
-        console.log('Direct path exception:', err);
-      }
-      
-      // Second try: with user ID prefix (if we have user_id and it's not a public submission)
-      if (!pdfData && report.user_id && !report.is_public_submission) {
-        const userSpecificPath = `${report.user_id}/${report.pdf_url}`;
-        console.log('Trying user-specific path:', userSpecificPath);
-        
-        try {
-          const { data, error } = await supabase.storage
-            .from(bucketName)
-            .download(userSpecificPath);
-            
-          if (!error && data) {
-            pdfData = data;
-            console.log('Successfully downloaded PDF with user-specific path, size:', data.size);
-          } else {
-            console.log('User-specific path failed:', error?.message);
-          }
-        } catch (err) {
-          console.log('User-specific path exception:', err);
-        }
-      }
-      
-      // Third try: just the filename (fallback)
-      if (!pdfData) {
-        const filename = report.pdf_url.split('/').pop() || report.pdf_url;
-        console.log('Trying filename only:', filename);
-        
-        try {
-          const { data, error } = await supabase.storage
-            .from(bucketName)
-            .download(filename);
-            
-          if (!error && data) {
-            pdfData = data;
-            console.log('Successfully downloaded PDF with filename only, size:', data.size);
-          } else {
-            console.log('Filename only failed:', error?.message);
-          }
-        } catch (err) {
-          console.log('Filename only exception:', err);
+        if (!userError && userData) {
+          pdfData = userData;
+          console.log('PDF downloaded successfully (user path)');
         }
       }
       
       if (!pdfData) {
-        console.error('Failed to download PDF from any path pattern');
+        console.error('Failed to download PDF from storage');
         return;
       }
       
@@ -181,7 +133,7 @@ export function ViewOnlyCompaniesTable({
       const blobUrl = URL.createObjectURL(new Blob([pdfData], { type: 'application/pdf' }));
       window.open(blobUrl, '_blank');
       
-      // Clean up the blob URL after a short delay
+      // Clean up the blob URL after a delay
       setTimeout(() => {
         URL.revokeObjectURL(blobUrl);
       }, 1000);
@@ -234,11 +186,10 @@ export function ViewOnlyCompaniesTable({
             {companies.map(company => {
               const formattedScore = Math.round(company.overall_score);
               const industry = company.industry || "—";
-              // Only show deck if company has a report_id (which means there's a report with PDF data)
               const showDeck = company.report_id;
               
               return (
-                <TableRow key={company.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onCompanyClick(company.id)}>
+                <TableRow key={company.id} className="hover:bg-muted/50 transition-colors">
                   <TableCell className="font-medium">
                     <span className="font-semibold text-foreground">{company.name}</span>
                   </TableCell>
