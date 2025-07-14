@@ -99,20 +99,12 @@ export function ViewOnlyCompaniesTable({
       
       console.log('Report found, downloading PDF:', report.pdf_url);
       
-      // Simplified PDF download - try direct path first, then with user prefix
+      // Download PDF - try user_id path first since PDFs are stored as user_id/pdf_url
       const bucketName = 'report-pdfs';
       let pdfData = null;
       
-      // Try direct path first
-      const { data: directData, error: directError } = await supabase.storage
-        .from(bucketName)
-        .download(report.pdf_url);
-        
-      if (!directError && directData) {
-        pdfData = directData;
-        console.log('PDF downloaded successfully (direct path)');
-      } else if (report.user_id) {
-        // Try with user prefix if direct path fails
+      // Try with user_id path first (this is the correct format)
+      if (report.user_id) {
         const userPath = `${report.user_id}/${report.pdf_url}`;
         const { data: userData, error: userError } = await supabase.storage
           .from(bucketName)
@@ -120,7 +112,23 @@ export function ViewOnlyCompaniesTable({
           
         if (!userError && userData) {
           pdfData = userData;
-          console.log('PDF downloaded successfully (user path)');
+          console.log('PDF downloaded successfully (user path):', userPath);
+        } else {
+          console.log('Failed to download from user path:', userPath, userError);
+        }
+      }
+      
+      // Fallback to direct path if user path fails
+      if (!pdfData) {
+        const { data: directData, error: directError } = await supabase.storage
+          .from(bucketName)
+          .download(report.pdf_url);
+          
+        if (!directError && directData) {
+          pdfData = directData;
+          console.log('PDF downloaded successfully (direct path)');
+        } else {
+          console.log('Failed to download from direct path:', report.pdf_url, directError);
         }
       }
       
