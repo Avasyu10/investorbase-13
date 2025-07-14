@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { CompanyScrapingDialog } from "./CompanyScrapingDialog";
 import { CompanyChatbotDialog } from "./CompanyChatbotDialog";
+import { VCEvaluationBot } from "./VCEvaluationBot";
 import { useProfile } from "@/hooks/useProfile";
 import { InvestmentMemo } from "./InvestmentMemo"; // Import the InvestmentMemo component
 
@@ -73,6 +74,7 @@ export function CompanyInfoCard({
   const { id } = useParams<{ id: string }>();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [chatbotOpen, setChatbotOpen] = useState(false);
+  const [vcBotOpen, setVcBotOpen] = useState(false);
   const { isIITBombayUser } = useProfile();
   const { isVCAndBits } = useProfile();
   const { isBitsQuestion } = useProfile();
@@ -233,6 +235,10 @@ export function CompanyInfoCard({
     setChatbotOpen(true);
   };
 
+  const handleVCBot = () => {
+    setVcBotOpen(true);
+  };
+
   return (
     <div className="mb-7">
       <div className="flex items-center justify-between mb-3">
@@ -240,7 +246,7 @@ export function CompanyInfoCard({
           <Briefcase className="h-5 w-5 text-primary" />
           Company Overview
         </h3>
-        {/* Buttons for Chatbot and Investment Memo */}
+        {/* Buttons for Chatbot, VC Bot and Investment Memo */}
         <div className="flex gap-2">
           {shouldShowMoreInfoButton && (
             <Button
@@ -250,6 +256,18 @@ export function CompanyInfoCard({
               className="h-10 w-10 p-0 bg-amber-400 hover:bg-amber-300 text-slate-950"
             >
               <Bot className="h-5 w-5" />
+            </Button>
+          )}
+
+          {/* VC Evaluation Bot for general users */}
+          {companyData?.id && isGeneralUser && (
+            <Button
+              variant="outline"
+              onClick={handleVCBot}
+              size="sm"
+              className="h-10 w-10 p-0 bg-emerald-500 hover:bg-emerald-400 text-white"
+            >
+              <TrendingUp className="h-5 w-5" />
             </Button>
           )}
 
@@ -347,6 +365,19 @@ export function CompanyInfoCard({
           assessmentPoints={analysisData?.assessmentPoints || []}
           open={chatbotOpen}
           onOpenChange={setChatbotOpen}
+        />
+      )}
+
+      {/* VC Evaluation Bot for general users */}
+      {companyData?.id && isGeneralUser && vcBotOpen && (
+        <VCEvaluationBot
+          companyId={companyData.id}
+          companyName={companyData.name || companyName}
+          companyIntroduction={displayIntroduction}
+          companyIndustry={displayIndustry}
+          companyStage={displayStage}
+          open={vcBotOpen}
+          onOpenChange={setVcBotOpen}
         />
       )}
     </div>
