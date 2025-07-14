@@ -59,7 +59,7 @@ Question flow should cover:
 - Financial projections and funding needs
 - Scalability and growth strategy
 
-Always provide specific feedback on their answer first, then ask the next logical question. Be conversational but professional.`;
+Always provide specific feedback on their answer first, then ask the next logical question. Be conversational but professional. Do NOT use any markdown formatting (e.g., bold, italics, lists, code blocks). Respond in plain text only.`; // Added instruction to avoid markdown
 
     // Prepare messages for Gemini API
     // Gemini's 'contents' array expects roles 'user' or 'model' and 'parts' array
@@ -95,7 +95,8 @@ Always provide specific feedback on their answer first, then ask the next logica
         contents: geminiContents,
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 800 // Corresponds to max_tokens
+          maxOutputTokens: 800, // Corresponds to max_tokens
+          responseMimeType: "text/plain" // Instruct Gemini to return plain text
         }
       })
     });
