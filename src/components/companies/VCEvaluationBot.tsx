@@ -3,7 +3,7 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { TrendingUp, User, Send, X } from "lucide-react";
+import { Bot, User, Send, X } from "lucide-react"; // Changed TrendingUp to Bot
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -43,7 +43,7 @@ export function VCEvaluationBot({
     if (open && messages.length === 0) {
       const initialMessage: Message = {
         id: "initial",
-        role: "assistant", 
+        role: "assistant",
         content: `Welcome to the VC Evaluation Bot! I'm designed to simulate how a venture capitalist would evaluate ${companyName}.
 
 I'll ask you questions as if you're pitching this startup to investors. After each of your responses, I'll provide feedback and ask the next relevant question.
@@ -73,7 +73,7 @@ Let's begin: Can you tell me what problem ${companyName} is solving and why this
       const { data, error } = await supabase.functions.invoke("vc-evaluation-bot", {
         body: {
           companyName,
-          companyIntroduction, 
+          companyIntroduction,
           companyIndustry,
           companyStage,
           userResponse: inputValue,
@@ -126,7 +126,7 @@ Let's begin: Can you tell me what problem ${companyName} is solving and why this
           <DrawerHeader className="flex-shrink-0 border-b bg-gradient-to-r from-primary/10 to-primary/5">
             <div className="flex items-center justify-between">
               <DrawerTitle className="flex items-center gap-2 text-primary">
-                <TrendingUp className="h-5 w-5" />
+                <Bot className="h-5 w-5" /> {/* Changed icon here */}
                 VC Evaluation: {companyName}
               </DrawerTitle>
               <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)} className="h-6 w-6 p-0">
@@ -142,21 +142,21 @@ Let's begin: Can you tell me what problem ${companyName} is solving and why this
                   {message.role === "assistant" && (
                     <div className="flex-shrink-0">
                       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <TrendingUp className="h-5 w-5 text-primary" />
+                        <Bot className="h-5 w-5 text-primary" /> {/* Changed icon here */}
                       </div>
                     </div>
                   )}
-                  
+
                   <div className={`max-w-[320px] rounded-lg px-4 py-3 ${
-                    message.role === "user" 
-                      ? "bg-primary text-primary-foreground ml-auto" 
+                    message.role === "user"
+                      ? "bg-primary text-primary-foreground ml-auto"
                       : "bg-muted border"
                   }`}>
                     <div className="text-sm whitespace-pre-wrap leading-relaxed">
                       {message.content}
                     </div>
                   </div>
-                  
+
                   {message.role === "user" && (
                     <div className="flex-shrink-0">
                       <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
@@ -166,12 +166,12 @@ Let's begin: Can you tell me what problem ${companyName} is solving and why this
                   )}
                 </div>
               ))}
-              
+
               {isLoading && (
                 <div className="flex gap-3 mb-4">
                   <div className="flex-shrink-0">
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <TrendingUp className="h-5 w-5 text-primary animate-pulse" />
+                      <Bot className="h-5 w-5 text-primary animate-pulse" /> {/* Changed icon here */}
                     </div>
                   </div>
                   <div className="bg-muted rounded-lg px-4 py-3 border">
