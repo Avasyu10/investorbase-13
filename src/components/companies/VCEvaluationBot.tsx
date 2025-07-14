@@ -6,7 +6,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Bot, User, Send, X } from "lucide-react"; // Changed TrendingUp to Bot
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-
 interface Message {
   id: string;
   role: "user" | "assistant";
@@ -20,7 +19,6 @@ interface VCBotFunctionResponse {
   response?: string; // The bot's generated response
   error?: string; // Any error message from the function's payload
 }
-
 interface VCEvaluationBotProps {
   companyId: string;
   companyName: string;
@@ -30,7 +28,6 @@ interface VCEvaluationBotProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
-
 export function VCEvaluationBot({
   companyId,
   companyName,
@@ -43,7 +40,9 @@ export function VCEvaluationBot({
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
 
   // Add initial VC evaluation message when dialog opens
   useEffect(() => {
@@ -61,24 +60,23 @@ Let's begin: Can you tell me what problem ${companyName} is solving and why this
       setMessages([initialMessage]);
     }
   }, [open, companyName, messages.length]);
-
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
-
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
       content: inputValue,
       timestamp: new Date()
     };
-
     setMessages(prev => [...prev, userMessage]);
     setInputValue("");
     setIsLoading(true);
-
     try {
       // Invoke the Supabase Edge Function
-      const { data, error } = await supabase.functions.invoke("vc-evaluation-bot", {
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke("vc-evaluation-bot", {
         body: {
           companyName,
           companyIntroduction,
@@ -91,7 +89,6 @@ Let's begin: Can you tell me what problem ${companyName} is solving and why this
           }))
         }
       });
-
       if (error) {
         console.error("Error calling VC evaluation bot:", error);
         // Propagate the error to the catch block for toast notification
@@ -100,7 +97,6 @@ Let's begin: Can you tell me what problem ${companyName} is solving and why this
 
       // Explicitly cast the data to the expected interface
       const functionResponse = data as VCBotFunctionResponse;
-
       if (functionResponse?.success && functionResponse?.response) {
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
@@ -124,22 +120,19 @@ Let's begin: Can you tell me what problem ${companyName} is solving and why this
       setIsLoading(false);
     }
   };
-
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
   };
-
-  return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
+  return <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent className="h-screen top-0 right-0 left-auto mt-0 w-[450px] rounded-none">
         <div className="flex flex-col h-full">
           <DrawerHeader className="flex-shrink-0 border-b bg-gradient-to-r from-primary/10 to-primary/5">
             <div className="flex items-center justify-between">
               <DrawerTitle className="flex items-center gap-2 text-primary">
-                <Bot className="h-5 w-5" /> {/* Changed icon here */}
+                 {/* Changed icon here */}
                 VC Evaluation: {companyName}
               </DrawerTitle>
               <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)} className="h-6 w-6 p-0">
@@ -150,38 +143,27 @@ Let's begin: Can you tell me what problem ${companyName} is solving and why this
 
           <div className="flex-1 flex flex-col min-h-0 p-4">
             <ScrollArea className="flex-1 pr-4">
-              {messages.map(message => (
-                <div key={message.id} className={`flex gap-3 mb-4 ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-                  {message.role === "assistant" && (
-                    <div className="flex-shrink-0">
+              {messages.map(message => <div key={message.id} className={`flex gap-3 mb-4 ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+                  {message.role === "assistant" && <div className="flex-shrink-0">
                       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                         <Bot className="h-5 w-5 text-primary" /> {/* Changed icon here */}
                       </div>
-                    </div>
-                  )}
+                    </div>}
 
-                  <div className={`max-w-[320px] rounded-lg px-4 py-3 ${
-                    message.role === "user"
-                      ? "bg-primary text-primary-foreground ml-auto"
-                      : "bg-muted border"
-                  }`}>
+                  <div className={`max-w-[320px] rounded-lg px-4 py-3 ${message.role === "user" ? "bg-primary text-primary-foreground ml-auto" : "bg-muted border"}`}>
                     <div className="text-sm whitespace-pre-wrap leading-relaxed">
                       {message.content}
                     </div>
                   </div>
 
-                  {message.role === "user" && (
-                    <div className="flex-shrink-0">
+                  {message.role === "user" && <div className="flex-shrink-0">
                       <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
                         <User className="h-5 w-5 text-muted-foreground" />
                       </div>
-                    </div>
-                  )}
-                </div>
-              ))}
+                    </div>}
+                </div>)}
 
-              {isLoading && (
-                <div className="flex gap-3 mb-4">
+              {isLoading && <div className="flex gap-3 mb-4">
                   <div className="flex-shrink-0">
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                       <Bot className="h-5 w-5 text-primary animate-pulse" /> {/* Changed icon here */}
@@ -192,30 +174,17 @@ Let's begin: Can you tell me what problem ${companyName} is solving and why this
                       Evaluating your response...
                     </div>
                   </div>
-                </div>
-              )}
+                </div>}
             </ScrollArea>
 
             <div className="flex gap-2 mt-4 flex-shrink-0">
-              <Input
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Your response to the VC..."
-                disabled={isLoading}
-                className="flex-1"
-              />
-              <Button
-                onClick={handleSendMessage}
-                disabled={!inputValue.trim() || isLoading}
-                size="sm"
-              >
+              <Input value={inputValue} onChange={e => setInputValue(e.target.value)} onKeyPress={handleKeyPress} placeholder="Your response to the VC..." disabled={isLoading} className="flex-1" />
+              <Button onClick={handleSendMessage} disabled={!inputValue.trim() || isLoading} size="sm">
                 <Send className="h-4 w-4" />
               </Button>
             </div>
           </div>
         </div>
       </DrawerContent>
-    </Drawer>
-  );
+    </Drawer>;
 }
