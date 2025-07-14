@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Globe, TrendingUp, Briefcase, Info, Bot } from "lucide-react";
-import { useParams } from "react-router-dom";
+import { Globe, TrendingUp, Briefcase, Info, Bot } from "lucide-react"; // No need for FileText icon here anymore
+import { useParams } from "react-router-dom"; // No need for useNavigate here
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -9,7 +9,7 @@ import { CompanyScrapingDialog } from "./CompanyScrapingDialog";
 import { CompanyChatbotDialog } from "./CompanyChatbotDialog";
 import { VCEvaluationBot } from "./VCEvaluationBot";
 import { useProfile } from "@/hooks/useProfile";
-import { InvestmentMemo } from "./InvestmentMemo";
+import { InvestmentMemo } from "./InvestmentMemo"; // Import the InvestmentMemo component
 
 type CompanyInfoProps = {
   website?: string;
@@ -81,7 +81,7 @@ export function CompanyInfoCard({
   const { isVC } = useProfile();
   const { isViewOnly } = useProfile();
   const { isBits } = useProfile();
-
+  
   // First, get the company data from the companies table to ensure we have the correct company ID
   const { data: companyData } = useQuery({
     queryKey: ['company-data', id],
@@ -176,8 +176,7 @@ export function CompanyInfoCard({
     enabled: !!companyData?.id
   });
 
-  // Check if this is a general user (not IIT Bombay, VC, VCAndBits, ViewOnly, or BitsQuestion)
-  // This variable is no longer used for VC Bot rendering, but kept for other uses if any.
+  // Check if this is a general user
   const isGeneralUser = !isIITBombayUser && !isVC && !isVCAndBits && !isViewOnly && !isBitsQuestion;
 
   // Data prioritization logic for IIT Bombay vs regular users
@@ -189,6 +188,7 @@ export function CompanyInfoCard({
 
   if (isIITBombayUser) {
     // For IIT Bombay users: Use Eureka submission data
+    // Note: The actual JSON structure uses company_info (with underscore)
     const eurekaCompanyInfo = eurekaSubmission?.analysis_result?.company_info;
 
     console.log("Eureka company info:", eurekaCompanyInfo);
@@ -239,13 +239,6 @@ export function CompanyInfoCard({
     setVcBotOpen(true);
   };
 
-  // Determine if the VC Bot should be visible based on user roles
-  const shouldShowVCBot = companyData?.id && (isBits || isVCAndBits || isIITBombayUser || isVC);
-
-  // Determine if the general Chatbot should be visible based on user roles
-  const shouldShowChatbot = companyData?.id && (isBits || isVCAndBits || isIITBombayUser || isVC);
-
-
   return (
     <div className="mb-7">
       <div className="flex items-center justify-between mb-3">
@@ -255,7 +248,7 @@ export function CompanyInfoCard({
         </h3>
         {/* Buttons for Chatbot, VC Bot and Investment Memo */}
         <div className="flex gap-2">
-          {shouldShowChatbot && ( // Apply the new condition here
+          {shouldShowMoreInfoButton && (
             <Button
               variant="outline"
               onClick={handleChatbot}
@@ -266,8 +259,8 @@ export function CompanyInfoCard({
             </Button>
           )}
 
-          {/* VC Evaluation Bot for specific user roles */}
-          {shouldShowVCBot && (
+          {/* VC Evaluation Bot for general users */}
+          {companyData?.id && isGeneralUser && (
             <Button
               variant="outline"
               onClick={handleVCBot}
@@ -362,7 +355,7 @@ export function CompanyInfoCard({
       )}
 
       {/* Company Chatbot Dialog */}
-      {shouldShowChatbot && chatbotOpen && ( // Apply the new condition here
+      {companyData?.id && chatbotOpen && (
         <CompanyChatbotDialog
           companyId={companyData.id}
           companyName={companyData.name || companyName}
@@ -375,8 +368,8 @@ export function CompanyInfoCard({
         />
       )}
 
-      {/* VC Evaluation Bot Dialog (conditionally rendered) */}
-      {shouldShowVCBot && vcBotOpen && (
+      {/* VC Evaluation Bot for general users */}
+      {companyData?.id && isGeneralUser && vcBotOpen && (
         <VCEvaluationBot
           companyId={companyData.id}
           companyName={companyData.name || companyName}
