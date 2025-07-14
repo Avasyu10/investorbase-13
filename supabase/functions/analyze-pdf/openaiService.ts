@@ -405,6 +405,7 @@ COMPANY INFORMATION EXTRACTION REQUIREMENTS:
 - Industry: Identify the business sector/domain (fintech, healthcare, edtech, saas, marketplace, etc.)
 - Website: Extract any website URLs mentioned in the deck
 - Description: Create a brief company description based on the pitch content
+**Important**: Make sure the industry, website and stage are extracted properly and try to make it 1-2 words.
 
 SECTION CHECKLIST REQUIREMENTS:
 - For each section, provide a brief description of what content was found (if any)
