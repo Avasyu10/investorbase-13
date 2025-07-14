@@ -127,7 +127,6 @@ function getVCAnalysisPrompt(): string {
   return `Analyze this PDF pitch deck and provide a comprehensive investment assessment from a venture capital perspective. Please return your analysis in the following JSON format:
 
 {
-  "overallScore": <number between 1-100>,
   "assessmentPoints": [
     "<comprehensive assessment point 1 with specific data/numbers>",
     "<comprehensive assessment point 2 with specific data/numbers>",
@@ -326,7 +325,8 @@ function getVCAnalysisPrompt(): string {
         "<detailed market-based challenge 4 with specific funding market conditions, valuation compression data, and investor sentiment trends - minimum 2 sentences with quantified investment climate challenges and capital availability constraints>"
       ]
     }
-  ]
+  ],
+  "overallScore": <number between 1-100>
 }
 
 CRITICAL REQUIREMENTS:
