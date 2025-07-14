@@ -23,7 +23,6 @@ type CompanyInfoProps = {
   companyName?: string; // Added to display company name in description
   companyLinkedInUrl?: string; // Added for LinkedIn scraping
 };
-
 interface Company {
   id: string;
   name: string;
@@ -32,7 +31,6 @@ interface Company {
   scoring_reason?: string;
   industry?: string;
 }
-
 interface AnalysisResult {
   companyInfo?: {
     stage: string;
@@ -44,7 +42,6 @@ interface AnalysisResult {
   assessmentPoints?: string[];
   [key: string]: any;
 }
-
 interface EurekaSubmission {
   analysis_result: {
     company_info?: {
@@ -55,7 +52,6 @@ interface EurekaSubmission {
     [key: string]: any;
   };
 }
-
 export function CompanyInfoCard({
   website = "",
   stage = "",
@@ -71,28 +67,45 @@ export function CompanyInfoCard({
   companyName = "this company",
   companyLinkedInUrl
 }: CompanyInfoProps) {
-  const { id } = useParams<{ id: string }>();
+  const {
+    id
+  } = useParams<{
+    id: string;
+  }>();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [chatbotOpen, setChatbotOpen] = useState(false);
   const [vcBotOpen, setVcBotOpen] = useState(false);
-  const { isIITBombayUser } = useProfile();
-  const { isVCAndBits } = useProfile();
-  const { isBitsQuestion } = useProfile();
-  const { isVC } = useProfile();
-  const { isViewOnly } = useProfile();
-  const { isBits } = useProfile();
-  
+  const {
+    isIITBombayUser
+  } = useProfile();
+  const {
+    isVCAndBits
+  } = useProfile();
+  const {
+    isBitsQuestion
+  } = useProfile();
+  const {
+    isVC
+  } = useProfile();
+  const {
+    isViewOnly
+  } = useProfile();
+  const {
+    isBits
+  } = useProfile();
+
   // First, get the company data from the companies table to ensure we have the correct company ID
-  const { data: companyData } = useQuery({
+  const {
+    data: companyData
+  } = useQuery({
     queryKey: ['company-data', id],
     queryFn: async () => {
       if (!id) return null;
       console.log("Fetching company data for ID:", id);
-      const { data, error } = await supabase
-        .from('companies')
-        .select('id, name, report_id, response_received, scoring_reason, industry')
-        .eq('id', id)
-        .single();
+      const {
+        data,
+        error
+      } = await supabase.from('companies').select('id, name, report_id, response_received, scoring_reason, industry').eq('id', id).single();
       if (error) {
         console.error('Error fetching company data:', error);
         return null;
@@ -104,16 +117,17 @@ export function CompanyInfoCard({
   });
 
   // Fetch Eureka form submission for IIT Bombay users
-  const { data: eurekaSubmission } = useQuery({
+  const {
+    data: eurekaSubmission
+  } = useQuery({
     queryKey: ['eureka-submission', companyData?.id],
     queryFn: async () => {
       if (!companyData?.id || !isIITBombayUser) return null;
       console.log("Fetching Eureka submission for company ID:", companyData.id);
-      const { data, error } = await supabase
-        .from('eureka_form_submissions')
-        .select('analysis_result')
-        .eq('company_id', companyData.id)
-        .maybeSingle();
+      const {
+        data,
+        error
+      } = await supabase.from('eureka_form_submissions').select('analysis_result').eq('company_id', companyData.id).maybeSingle();
       if (error) {
         console.error('Error fetching Eureka submission:', error);
         return null;
@@ -135,16 +149,17 @@ export function CompanyInfoCard({
   })() : null;
 
   // Fetch PDF analysis data from the report to get company info
-  const { data: analysisData } = useQuery({
+  const {
+    data: analysisData
+  } = useQuery({
     queryKey: ['analysis-company-info', companyData?.report_id],
     queryFn: async () => {
       if (!companyData?.report_id) return null;
       console.log("Fetching analysis data for report ID:", companyData.report_id);
-      const { data, error } = await supabase
-        .from('reports')
-        .select('analysis_result')
-        .eq('id', companyData.report_id)
-        .single();
+      const {
+        data,
+        error
+      } = await supabase.from('reports').select('analysis_result').eq('id', companyData.report_id).single();
       if (error) {
         console.error('Error fetching analysis data:', error);
         return null;
@@ -156,16 +171,17 @@ export function CompanyInfoCard({
   });
 
   // Now fetch BARC submission using the company ID from the companies table
-  const { data: barcSubmission } = useQuery({
+  const {
+    data: barcSubmission
+  } = useQuery({
     queryKey: ['barc-submission', companyData?.id],
     queryFn: async () => {
       if (!companyData?.id) return null;
       console.log("Fetching BARC submission for company ID:", companyData.id);
-      const { data, error } = await supabase
-        .from('barc_form_submissions')
-        .select('id, company_linkedin_url')
-        .eq('company_id', companyData.id)
-        .maybeSingle();
+      const {
+        data,
+        error
+      } = await supabase.from('barc_form_submissions').select('id, company_linkedin_url').eq('company_id', companyData.id).maybeSingle();
       if (error) {
         console.error('Error fetching BARC submission:', error);
         return null;
@@ -185,12 +201,10 @@ export function CompanyInfoCard({
   let websiteUrl: string | null;
   let displayStage: string;
   let displayIndustry: string;
-
   if (isIITBombayUser) {
     // For IIT Bombay users: Use Eureka submission data
     // Note: The actual JSON structure uses company_info (with underscore)
     const eurekaCompanyInfo = eurekaSubmission?.analysis_result?.company_info;
-
     console.log("Eureka company info:", eurekaCompanyInfo);
     console.log("Full analysis result:", eurekaSubmission?.analysis_result);
 
@@ -199,9 +213,7 @@ export function CompanyInfoCard({
 
     // Website from companies.scoring_reason - but we won't display it
     const websiteFromScoring = companyData?.scoring_reason || "";
-    displayWebsite = websiteFromScoring && websiteFromScoring !== ""
-      ? websiteFromScoring.replace(/^https?:\/\/(www\.)?/, '')
-      : "Not available";
+    displayWebsite = websiteFromScoring && websiteFromScoring !== "" ? websiteFromScoring.replace(/^https?:\/\/(www\.)?/, '') : "Not available";
     websiteUrl = null; // Don't show website for IIT Bombay users
 
     // Stage from companies.industry
@@ -226,15 +238,12 @@ export function CompanyInfoCard({
 
   // Show the "More Information" button for all analyzed companies
   const shouldShowMoreInfoButton = !!companyData?.id;
-
   const handleMoreInformation = () => {
     setDialogOpen(true);
   };
-
   const handleChatbot = () => {
     setChatbotOpen(true);
   };
-
   const handleVCBot = () => {
     setVcBotOpen(true);
   };
@@ -244,9 +253,7 @@ export function CompanyInfoCard({
 
   // Determine if the general Chatbot should be visible based on user roles
   const shouldShowChatbot = companyData?.id && (isBits || isVCAndBits || isIITBombayUser || isVC);
-
-  return (
-    <div className="mb-7">
+  return <div className="mb-7">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-xl font-semibold flex items-center gap-2">
           <Briefcase className="h-5 w-5 text-primary" />
@@ -254,36 +261,21 @@ export function CompanyInfoCard({
         </h3>
         {/* Buttons for Chatbot, VC Bot and Investment Memo */}
         <div className="flex gap-2">
-          {shouldShowChatbot && (
-            <Button
-              variant="outline"
-              onClick={handleChatbot}
-              size="sm"
-              className="h-10 w-10 p-0 bg-amber-400 hover:bg-amber-300 text-slate-950"
-            >
+          {shouldShowChatbot && <Button variant="outline" onClick={handleChatbot} size="sm" className="h-10 w-10 p-0 bg-amber-400 hover:bg-amber-300 text-slate-950">
               <Bot className="h-5 w-5" />
-            </Button>
-          )}
+            </Button>}
 
           {/* VC Evaluation Bot for general users */}
-          {companyData?.id && isGeneralUser && (
-            <Button
-              variant="outline"
-              onClick={handleVCBot}
-              size="sm"
-              className="h-10 px-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
-            >
+          {companyData?.id && isGeneralUser && <Button variant="outline" onClick={handleVCBot} size="sm" className="h-10 px-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 bg-yellow-500 hover:bg-yellow-400">
               <Bot className="h-4 w-4 mr-2" />
               <span className="font-medium">VC Bot</span>
-            </Button>
-          )}
+            </Button>}
 
           {/* Investment Memo component for general users */}
-          {companyData?.id && isVC && !isBits && !isIITBombayUser && (
-            // Pass the company data to the InvestmentMemo component
-            // The InvestmentMemo component will render its own button/logic
-            <InvestmentMemo company={companyData} />
-          )}
+          {companyData?.id && isVC && !isBits && !isIITBombayUser &&
+        // Pass the company data to the InvestmentMemo component
+        // The InvestmentMemo component will render its own button/logic
+        <InvestmentMemo company={companyData} />}
         </div>
       </div>
 
@@ -293,12 +285,10 @@ export function CompanyInfoCard({
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
               <h4 className="font-medium">About {companyData?.name || companyName}</h4>
-              {shouldShowMoreInfoButton && (
-                <Button variant="outline" onClick={handleMoreInformation} className="h-8 px-4">
+              {shouldShowMoreInfoButton && <Button variant="outline" onClick={handleMoreInformation} className="h-8 px-4">
                   <Info className="mr-2 h-4 w-4" />
                   More Information
-                </Button>
-              )}
+                </Button>}
             </div>
             <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
               {displayIntroduction}
@@ -308,26 +298,15 @@ export function CompanyInfoCard({
           {/* Company Details Grid - conditional rendering based on user type */}
           <div className={`grid grid-cols-1 ${isIITBombayUser ? 'md:grid-cols-1' : 'md:grid-cols-3'} gap-4`}>
             {/* Website section - only show for non-IIT Bombay users */}
-            {!isIITBombayUser && (
-              <div className="flex items-center gap-2">
+            {!isIITBombayUser && <div className="flex items-center gap-2">
                 <Globe className="h-4 w-4 text-primary flex-shrink-0" />
                 <div className="min-w-0">
                   <p className="text-sm font-medium">Website/Link</p>
-                  {websiteUrl ? (
-                    <a
-                      href={websiteUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-muted-foreground hover:text-primary hover:underline truncate block"
-                    >
+                  {websiteUrl ? <a href={websiteUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-primary hover:underline truncate block">
                       {displayWebsite}
-                    </a>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Not available</p>
-                  )}
+                    </a> : <p className="text-sm text-muted-foreground">Not available</p>}
                 </div>
-              </div>
-            )}
+              </div>}
 
             <div className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-primary flex-shrink-0" />
@@ -338,55 +317,24 @@ export function CompanyInfoCard({
             </div>
 
             {/* Industry section - only show for non-IIT Bombay users */}
-            {!isIITBombayUser && (
-              <div className="flex items-center gap-2">
+            {!isIITBombayUser && <div className="flex items-center gap-2">
                 <Briefcase className="h-4 w-4 text-primary flex-shrink-0" />
                 <div className="flex-1">
                   <p className="text-sm font-medium">Industry</p>
                   <p className="text-sm text-muted-foreground">{displayIndustry}</p>
                 </div>
-              </div>
-            )}
+              </div>}
           </div>
         </CardContent>
       </Card>
 
       {/* Company Scraping Dialog */}
-      {companyData?.id && (
-        <CompanyScrapingDialog
-          companyId={companyData.id}
-          companyName={companyData.name || companyName}
-          open={dialogOpen}
-          onOpenChange={setDialogOpen}
-        />
-      )}
+      {companyData?.id && <CompanyScrapingDialog companyId={companyData.id} companyName={companyData.name || companyName} open={dialogOpen} onOpenChange={setDialogOpen} />}
 
       {/* Company Chatbot Dialog */}
-      {companyData?.id && chatbotOpen && (
-        <CompanyChatbotDialog
-          companyId={companyData.id}
-          companyName={companyData.name || companyName}
-          companyIntroduction={displayIntroduction}
-          companyIndustry={isIITBombayUser ? "" : displayIndustry}
-          companyStage={displayStage}
-          assessmentPoints={analysisData?.assessmentPoints || []}
-          open={chatbotOpen}
-          onOpenChange={setChatbotOpen}
-        />
-      )}
+      {companyData?.id && chatbotOpen && <CompanyChatbotDialog companyId={companyData.id} companyName={companyData.name || companyName} companyIntroduction={displayIntroduction} companyIndustry={isIITBombayUser ? "" : displayIndustry} companyStage={displayStage} assessmentPoints={analysisData?.assessmentPoints || []} open={chatbotOpen} onOpenChange={setChatbotOpen} />}
 
       {/* VC Evaluation Bot for general users */}
-      {companyData?.id && isGeneralUser && vcBotOpen && (
-        <VCEvaluationBot
-          companyId={companyData.id}
-          companyName={companyData.name || companyName}
-          companyIntroduction={displayIntroduction}
-          companyIndustry={displayIndustry}
-          companyStage={displayStage}
-          open={vcBotOpen}
-          onOpenChange={setVcBotOpen}
-        />
-      )}
-    </div>
-  );
+      {companyData?.id && isGeneralUser && vcBotOpen && <VCEvaluationBot companyId={companyData.id} companyName={companyData.name || companyName} companyIntroduction={displayIntroduction} companyIndustry={displayIndustry} companyStage={displayStage} open={vcBotOpen} onOpenChange={setVcBotOpen} />}
+    </div>;
 }
