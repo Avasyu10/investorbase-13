@@ -389,10 +389,10 @@ const FunnelBarShape = (props) => {
   // Calculate x-coordinates to center the trapezoid within the plotting area
   // The 'x' prop passed to FunnelBarShape is the left-most point of the bar if it were a rectangle
   // We need to adjust it to center our custom trapezoid.
-  const xTopLeft = x + (width - adjustedTopEdgeWidth) / 2;
-  const xTopRight = x + (width + adjustedTopEdgeWidth) / 2;
-  const xBottomLeft = x + (width - adjustedBottomEdgeWidth) / 2;
-  const xBottomRight = x + (width + adjustedBottomEdgeWidth) / 2;
+  const xTopLeft = x + (props.width - adjustedTopEdgeWidth) / 2; // Use props.width for the full bar width
+  const xTopRight = x + (props.width + adjustedTopEdgeWidth) / 2;
+  const xBottomLeft = x + (props.width - adjustedBottomEdgeWidth) / 2;
+  const xBottomRight = x + (props.width + adjustedBottomEdgeWidth) / 2;
 
   // Points for the trapezoid: (top-left, top-right, bottom-right, bottom-left)
   return (
