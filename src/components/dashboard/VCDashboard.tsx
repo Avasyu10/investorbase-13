@@ -150,63 +150,8 @@ export function VCDashboard() {
     );
   };
 
-  // Custom shape for funnel bars to create the tapered effect
-  const FunnelBarShape = (props) => {
-    const { x, y, width, height, fill, index, data, margin } = props;
-
-    // Calculate the total plotting width within the ResponsiveContainer
-    const chartPlottingWidth = props.containerWidth - (margin.left || 0) - (margin.right || 0);
-
-    const currentSegmentValue = data[index].value;
-    const nextSegmentValue = data[index + 1] ? data[index + 1].value : 0;
-
-    // Assuming data is sorted by value descending for a proper funnel shape
-    const maxValue = data[0].value;
-
-    // Calculate the width of the top and bottom edges of the current trapezoid segment
-    // These widths are proportional to the values relative to the maximum value.
-    // We scale them to occupy a portion of the full plotting width.
-    const maxFunnelWidth = chartPlottingWidth * 0.8; // Max width of the funnel at its top (e.g., 80% of plotting area)
-    const minFunnelWidth = chartPlottingWidth * 0.2; // Min width of the funnel at its bottom (e.g., 20% of plotting area)
-
-    const topEdgeWidth = (currentSegmentValue / maxValue) * (maxFunnelWidth - minFunnelWidth) + minFunnelWidth;
-    const bottomEdgeWidth = (nextSegmentValue / maxValue) * (maxFunnelWidth - minFunnelWidth) + minFunnelWidth;
-
-    // Calculate x-coordinates to center the trapezoid within the plotting area
-    const centerX = chartPlottingWidth / 2;
-
-    const xTopLeft = centerX - topEdgeWidth / 2 + (margin.left || 0);
-    const xTopRight = centerX + topEdgeWidth / 2 + (margin.left || 0);
-    const xBottomLeft = centerX - bottomEdgeWidth / 2 + (margin.left || 0);
-    const xBottomRight = centerX + bottomEdgeWidth / 2 + (margin.left || 0);
-
-    // Points for the trapezoid: (top-left, top-right, bottom-right, bottom-left)
-    return (
-      <path
-        d={`M${xTopLeft} ${y}
-            L${xTopRight} ${y}
-            L${xBottomRight} ${y + height}
-            L${xBottomLeft} ${y + height} Z`}
-        fill={fill}
-      />
-    );
-  };
-
-  // Calculate dynamic metrics based on filteredData
-  const filteredMetrics = useMemo(() => {
-    const totalUniqueOutreaches = filteredData.reduce((sum, item) => sum + item.uniqueOutreaches, 0);
-    const totalFollowUps = filteredData.reduce((sum, item) => sum + item.followUps, 0);
-    const totalReplies = filteredData.reduce((sum, item) => sum + item.replies, 0);
-    const totalMeetings = filteredData.reduce((sum, item) => sum + item.meetings, 0);
-
-    return {
-      uniqueOutreaches: totalUniqueOutreaches,
-      followUps: totalFollowUps,
-      replies: totalReplies,
-      meetings: totalMeetings,
-    };
-  }, [filteredData]);
-
+  // Define the margin for the BarChart
+  const barChartMargin = { top: 20, right: 30, left: 20, bottom: 5 };
 
   return (
     <div className="flex flex-col lg:flex-row space-y-3 lg:space-y-0 lg:space-x-3 p-3 bg-gray-900 text-white font-inter">
@@ -350,26 +295,38 @@ export function VCDashboard() {
             </CardHeader>
             <CardContent className="pt-1">
               <ResponsiveContainer width="100%" height={200}>
-                <BarChart
-                  data={funnelChartData}
-                  layout="vertical"
-                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                  barCategoryGap={0} // No gap between bars for funnel effect
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#4a5568" />
-                  <XAxis type="number" hide /> {/* Hide X-axis */}
-                  <YAxis type="category" dataKey="name" stroke="#cbd5e0" style={{ fontSize: '10px' }} axisLine={false} tickLine={false} />
-                  <ChartTooltip
-                    contentStyle={{ backgroundColor: '#1f2937', borderColor: '#4a5568', color: '#ffffff' }}
-                    labelStyle={{ color: '#ffffff' }}
-                    formatter={(value, name) => [`${value} prospects`, name]}
-                  />
-                  <Bar dataKey="value" name="Number of Prospects" shape={<FunnelBarShape />}>
-                    {funnelChartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={FUNNEL_SHADES_OF_BLUE[index % FUNNEL_SHADES_OF_BLUE.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
+                {({ width: containerWidth }) => ( // Capture width from ResponsiveContainer
+                  <BarChart
+                    data={funnelChartData}
+                    layout="vertical"
+                    margin={barChartMargin} // Use defined margin
+                    barCategoryGap={0} // No gap between bars for funnel effect
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#4a5568" />
+                    <XAxis type="number" hide /> {/* Hide X-axis */}
+                    <YAxis type="category" dataKey="name" stroke="#cbd5e0" style={{ fontSize: '10px' }} axisLine={false} tickLine={false} />
+                    <ChartTooltip
+                      contentStyle={{ backgroundColor: '#1f2937', borderColor: '#4a5568', color: '#ffffff' }}
+                      labelStyle={{ color: '#ffffff' }}
+                      formatter={(value, name) => [`${value} prospects`, name]}
+                    />
+                    <Bar
+                      dataKey="value"
+                      name="Number of Prospects"
+                      shape={(props) => (
+                        <FunnelBarShape
+                          {...props}
+                          chartWidth={containerWidth} // Pass containerWidth
+                          chartMargin={barChartMargin} // Pass chartMargin
+                        />
+                      )}
+                    >
+                      {funnelChartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={FUNNEL_SHADES_OF_BLUE[index % FUNNEL_SHADES_OF_BLUE.length]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                )}
               </ResponsiveContainer>
             </CardContent>
           </Card>
@@ -381,10 +338,10 @@ export function VCDashboard() {
 
 // Custom shape for funnel bars to create the tapered effect
 const FunnelBarShape = (props) => {
-  const { x, y, width, height, fill, index, data, margin } = props;
+  const { x, y, width, height, fill, index, data, chartWidth, chartMargin } = props;
 
   // Calculate the total plotting width within the ResponsiveContainer
-  const chartPlottingWidth = props.containerWidth - (margin.left || 0) - (margin.right || 0);
+  const chartPlottingWidth = chartWidth - (chartMargin.left || 0) - (chartMargin.right || 0);
 
   const currentSegmentValue = data[index].value;
   const nextSegmentValue = data[index + 1] ? data[index + 1].value : 0;
@@ -404,10 +361,10 @@ const FunnelBarShape = (props) => {
   // Calculate x-coordinates to center the trapezoid within the plotting area
   const centerX = chartPlottingWidth / 2;
 
-  const xTopLeft = centerX - topEdgeWidth / 2 + (margin.left || 0);
-  const xTopRight = centerX + topEdgeWidth / 2 + (margin.left || 0);
-  const xBottomLeft = centerX - bottomEdgeWidth / 2 + (margin.left || 0);
-  const xBottomRight = centerX + bottomEdgeWidth / 2 + (margin.left || 0);
+  const xTopLeft = centerX - topEdgeWidth / 2 + (chartMargin.left || 0);
+  const xTopRight = centerX + topEdgeWidth / 2 + (chartMargin.left || 0);
+  const xBottomLeft = centerX - bottomEdgeWidth / 2 + (chartMargin.left || 0);
+  const xBottomRight = centerX + bottomEdgeWidth / 2 + (chartMargin.left || 0);
 
   // Points for the trapezoid: (top-left, top-right, bottom-right, bottom-left)
   return (
