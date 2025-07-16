@@ -1,13 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react'; // Import useMemo for optimized data filtering
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, RadialBarChart, RadialBar, AreaChart, Area, Legend, PieChart, Pie, Cell } from "recharts";
 import { ChartTooltip } from "@/components/ui/chart";
-// Assuming useCompanies and other imports remain the same or are provided elsewhere
-// import { useCompanies } from "@/hooks/useCompanies"; // Keep this if it's a real hook
 
 // Mocking useCompanies for demonstration purposes if it's not available
 const useCompanies = (page, limit) => {
-  // Mock data for companies to prevent errors if the hook is not truly provided
   const companies = Array.from({ length: 50 }, (_, i) => ({
     id: i,
     name: `Company ${i + 1}`,
@@ -17,7 +14,6 @@ const useCompanies = (page, limit) => {
   return { companies, isLoading: false, potentialStats: {} };
 };
 
-// Define proper color values using CSS variables
 const CHART_COLORS = [
   '#3b82f6', // blue-500
   '#ef4444', // red-500
@@ -39,11 +35,14 @@ const BLUE_SHADES = [
 export function VCDashboard() {
   const { companies, isLoading, potentialStats } = useCompanies(1, 100);
 
-  // State to manage the selected persons for the filter (now an array)
-  // Default to 'Roohi' being selected if no specific selection is made, or if all are deselected.
-  const [selectedPersons, setSelectedPersons] = useState(['Roohi']);
+  // Filter States
+  const [selectedPersons, setSelectedPersons] = useState(['Roohi']); // Default to Roohi
+  const [selectedChannels, setSelectedChannels] = useState(['LinkedIn', 'Others', 'Calls', 'Mail']); // All channels selected by default
+  const [startDate, setStartDate] = useState('2025-01-01'); // Mock start date
+  const [endDate, setEndDate] = useState('2025-12-31'); // Mock end date
 
   const availablePersons = ['Roohi', 'Avasyu', 'Kanishk', 'Tanisha'];
+  const availableChannels = ['LinkedIn', 'Others', 'Calls', 'Mail'];
 
   if (isLoading) {
     return (
@@ -59,6 +58,7 @@ export function VCDashboard() {
     );
   }
 
+  // Key Metrics (these remain mock data, not directly tied to filters without more complex data structure)
   const uniqueOutreaches = companies.length;
   const followUps = 15;
   const replies = 8;
@@ -92,73 +92,50 @@ export function VCDashboard() {
     ]
   };
 
-  // Get the channel data for the *first* currently selected person.
-  // If selectedPersons is empty, default to 'Roohi's data to ensure chart is always displayed.
-  const currentChannelData = selectedPersons.length > 0
-    ? channelDataByPerson[selectedPersons[0]]
-    : channelDataByPerson['Roohi']; // Default to Roohi's data
+  // Memoized currentChannelData based on selected person and channels
+  const currentChannelData = useMemo(() => {
+    // Determine which person's data to show
+    const personToShow = selectedPersons.length > 0 ? selectedPersons[0] : 'Roohi';
+    const dataForPerson = channelDataByPerson[personToShow] || [];
 
+    // Filter by selected channels
+    return dataForPerson.filter(item => selectedChannels.includes(item.channel));
+  }, [selectedPersons, selectedChannels]);
 
+  // Meeting Categories data (static for now, can be made dynamic with more complex mocks)
   const meetingCategoriesData = [
     { name: 'Product Demos', value: 85, fill: '#1e40af' },
     { name: 'Discovery Calls', value: 15, fill: '#3b82f6' }
   ];
 
-  const industryDistribution = companies.reduce((acc, company) => {
-    const industry = company.industry || 'Unknown';
-    acc[industry] = (acc[industry] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const industryData = Object.entries(industryDistribution)
-    .map(([industry, count], index) => ({
-      industry,
-      count,
-      fill: CHART_COLORS[index % CHART_COLORS.length]
-    }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 8);
-
-  const topCompanies = [...companies]
-    .sort((a, b) => b.overall_score - a.overall_score)
-    .slice(0, 10);
-
-  const trendData = [
-    { month: 'Jan', avgScore: 68, companies: 12 },
-    { month: 'Feb', avgScore: 71, companies: 18 },
-    { month: 'Mar', avgScore: 69, companies: 25 },
-    { month: 'Apr', avgScore: 73, companies: 32 },
-    { month: 'May', avgScore: 75, companies: 28 },
-    { month: 'Jun', avgScore: 77, companies: companies.length }
-  ];
-
-  const averageScore = companies.length > 0 ?
-    (companies.reduce((sum, c) => sum + c.overall_score, 0) / companies.length).toFixed(1) : 0;
-
-  const highPotentialCount = companies.filter(c => c.overall_score >= 80).length;
-  const mediumPotentialCount = companies.filter(c => c.overall_score >= 60 && c.overall_score < 80).length;
-
-  // Handler for checkbox changes
-  const handleCheckboxChange = (personName) => {
+  // Handlers for filter changes
+  const handlePersonCheckboxChange = (personName) => {
     setSelectedPersons((prevSelected) => {
       if (prevSelected.includes(personName)) {
-        // If already selected, remove it
         const newSelection = prevSelected.filter((name) => name !== personName);
-        // If deselecting the last one, default to 'Roohi' to prevent empty chart
+        // If deselecting the last one, ensure 'Roohi' is selected by default
         return newSelection.length === 0 ? ['Roohi'] : newSelection;
       } else {
-        // If not selected, add it (and ensure only one is selected if you want single-select behavior)
-        // For multi-select: return [...prevSelected, personName];
-        // For single-select with checkboxes (as per current design, only one chart shown):
-        return [personName]; // Only the newly selected one
+        // For single-selection behavior with checkboxes, just select the new one
+        return [personName];
+      }
+    });
+  };
+
+  const handleChannelCheckboxChange = (channelName) => {
+    setSelectedChannels((prevSelected) => {
+      if (prevSelected.includes(channelName)) {
+        return prevSelected.filter((name) => name !== channelName);
+      } else {
+        return [...prevSelected, channelName];
       }
     });
   };
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Key Metrics Cards - New Design */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Key Metrics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
           <CardContent className="p-6 text-center">
             <div>
@@ -196,36 +173,90 @@ export function VCDashboard() {
         </Card>
       </div>
 
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Channel Distribution with Checkbox Filter */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Unique Outreaches, Follow ups and Replies by Channel</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col md:flex-row gap-4">
-            {/* POC Checkbox Filter */}
-            <div className="flex-shrink-0 w-full md:w-1/4">
-              <h3 className="text-lg font-semibold mb-2 text-white">POC</h3> {/* Added text-white */}
-              <div className="space-y-2">
-                {availablePersons.map((personName) => (
-                  <div key={personName} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id={`checkbox-${personName}`}
-                      checked={selectedPersons.includes(personName)}
-                      onChange={() => handleCheckboxChange(personName)}
-                      className="form-checkbox h-4 w-4 text-blue-600 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:checked:bg-blue-600 dark:focus:ring-blue-600"
-                    />
-                    <label htmlFor={`checkbox-${personName}`} className="ml-2 text-sm text-white cursor-pointer"> {/* Changed to text-white */}
-                      {personName}
-                    </label>
-                  </div>
-                ))}
+      {/* Main Content Area: Sidebar + Charts */}
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Left Sidebar for Filters */}
+        <Card className="lg:w-1/4 p-6 space-y-6 flex-shrink-0">
+          <h2 className="text-xl font-bold text-white mb-4">Filters</h2>
+
+          {/* Date Filter */}
+          <div>
+            <h3 className="text-lg font-semibold mb-2 text-white">Date</h3>
+            <div className="space-y-2">
+              <div>
+                <label htmlFor="startDate" className="block text-sm font-medium text-white mb-1">From:</label>
+                <input
+                  type="date"
+                  id="startDate"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full p-2 border rounded-md bg-gray-700 text-white border-gray-600 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label htmlFor="endDate" className="block text-sm font-medium text-white mb-1">To:</label>
+                <input
+                  type="date"
+                  id="endDate"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full p-2 border rounded-md bg-gray-700 text-white border-gray-600 focus:ring-blue-500 focus:border-blue-500"
+                />
               </div>
             </div>
-            {/* Chart */}
-            <div className="flex-grow">
+          </div>
+
+          {/* POC Name Filter */}
+          <div>
+            <h3 className="text-lg font-semibold mb-2 text-white">POC</h3>
+            <div className="space-y-2">
+              {availablePersons.map((personName) => (
+                <div key={personName} className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id={`person-checkbox-${personName}`}
+                    checked={selectedPersons.includes(personName)}
+                    onChange={() => handlePersonCheckboxChange(personName)}
+                    className="form-checkbox h-4 w-4 text-blue-600 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:checked:bg-blue-600 dark:focus:ring-blue-600"
+                  />
+                  <label htmlFor={`person-checkbox-${personName}`} className="ml-2 text-sm text-white cursor-pointer">
+                    {personName}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Channel Filter */}
+          <div>
+            <h3 className="text-lg font-semibold mb-2 text-white">Channel</h3>
+            <div className="space-y-2">
+              {availableChannels.map((channelName) => (
+                <div key={channelName} className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id={`channel-checkbox-${channelName}`}
+                    checked={selectedChannels.includes(channelName)}
+                    onChange={() => handleChannelCheckboxChange(channelName)}
+                    className="form-checkbox h-4 w-4 text-blue-600 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:checked:bg-blue-600 dark:focus:ring-blue-600"
+                  />
+                  <label htmlFor={`channel-checkbox-${channelName}`} className="ml-2 text-sm text-white cursor-pointer">
+                    {channelName}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
+
+        {/* Right Content Area for Charts */}
+        <div className="flex-grow space-y-6">
+          {/* Unique Outreaches, Follow ups and Replies by Channel */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Unique Outreaches, Follow ups and Replies by Channel</CardTitle>
+            </CardHeader>
+            <CardContent>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={currentChannelData}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -238,119 +269,38 @@ export function VCDashboard() {
                   <Legend />
                 </BarChart>
               </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* Meeting Categories */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Meeting Categories</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={meetingCategoriesData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={120}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {meetingCategoriesData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                  ))}
-                </Pie>
-                <ChartTooltip formatter={(value, name) => [`${value}%`, name]} />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Industry Distribution - RadialBar Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Industry Distribution</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <RadialBarChart cx="50%" cy="50%" innerRadius="20%" outerRadius="80%" data={industryData}>
-                <RadialBar dataKey="count" cornerRadius={10} fill={BLUE_SHADES[0]} />
-                <Legend
-                  iconSize={10}
-                  layout="vertical"
-                  verticalAlign="middle"
-                  align="right"
-                  formatter={(value, entry) => {
-                    const item = entry.payload;
-                    return item ? `${item.industry}: ${item.count}` : `${value}`;
-                  }}
-                />
-                <ChartTooltip
-                  formatter={(value, name, props) => [`${value} companies`, props.payload.industry]}
-                />
-              </RadialBarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Score Trend */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Average Score Trend</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={trendData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis domain={[60, 80]} />
-                <ChartTooltip />
-                <Area
-                  type="monotone"
-                  dataKey="avgScore"
-                  stroke={CHART_COLORS[2]}
-                  fill={CHART_COLORS[2]}
-                  fillOpacity={0.3}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+          {/* Meeting Categories */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Meeting Categories</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={meetingCategoriesData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={120}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {meetingCategoriesData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <ChartTooltip formatter={(value, name) => [`${value}%`, name]} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-
-      {/* Top Performing Companies */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Top Performing Companies</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {topCompanies.map((company, index) => (
-              <div key={company.id} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center space-x-4">
-                  <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
-                    {index + 1}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">{company.name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {company.industry || 'Unknown Industry'}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-primary">{company.overall_score}</div>
-                  <div className="text-sm text-muted-foreground">Score</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
