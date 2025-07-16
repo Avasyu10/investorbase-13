@@ -137,7 +137,6 @@ const Dashboard = () => {
           {/* New Button for VC Dashboard */}
           {isVC && !isVCAndBits && (
             <Button onClick={() => setShowVcDashboard(true)} variant="outline" className="flex items-center">
-              <BarChart3 className="mr-2 h-4 w-4" /> {/* Changed icon to BarChart3 for business dashboard */}
               Business Dashboard
             </Button>
           )}
