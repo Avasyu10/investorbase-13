@@ -200,7 +200,10 @@ export function VCDashboard() {
                   layout="vertical" 
                   verticalAlign="middle" 
                   align="right"
-                  formatter={(value, entry) => `${entry.payload.industry}: ${entry.payload.count}`}
+                  formatter={(value, entry) => {
+                    const item = industryData.find(d => d.count === value);
+                    return item ? `${item.industry}: ${item.count}` : `${value}`;
+                  }}
                 />
                 <ChartTooltip 
                   formatter={(value, name, props) => [`${value} companies`, props.payload.industry]}
