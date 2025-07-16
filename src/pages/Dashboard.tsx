@@ -1,16 +1,15 @@
-
 import { ConditionalCompaniesList } from "@/components/companies/ConditionalCompaniesList";
 import { ReportsList } from "@/components/reports/ReportsList";
-import { PublicSubmissionsList } from "@/components/submissions/PublicSubmissionsList";
+import { PublicSubmissionsList } from "@/components/submissions/PublicSubSubmissionsList";
 import { VCChatInterface } from "@/components/vc/VCChatInterface";
-import { VCDashboard } from "@/components/dashboard/VCDashboard";
+import { VCDashboard } from "@/components/dashboard/VCDashboard"; // Keep VCDashboard import
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { FileUp, Loader2, Newspaper, ShieldCheck, Settings, GraduationCap, BarChart3, MessageSquare, PieChart } from "lucide-react";
+import { FileUp, Loader2, Newspaper, ShieldCheck, Settings, GraduationCap, BarChart3, MessageSquare, PieChart } from "lucide-react"; // Import PieChart
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { EurekaSampleButton } from "@/components/profile/EurekaSampleButton";
@@ -33,9 +32,12 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("companies");
   const [isAdmin, setIsAdmin] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [showVcDashboard, setShowVcDashboard] = useState(false); // New state to control VCDashboard visibility
+
   const {
     toast
   } = useToast();
+
   useEffect(() => {
     if (!isLoading && !user) {
       console.log("User not authenticated, redirecting to home");
@@ -69,6 +71,7 @@ const Dashboard = () => {
     // Scroll to top when dashboard loads
     window.scrollTo(0, 0);
   }, [user, isLoading, navigate, profile, isIITBombay, isVC, isViewOnly, profileLoading, isVCAndBits, isBitsQuestion]);
+
   const checkAdminStatus = async () => {
     if (!user) return;
     try {
@@ -94,82 +97,93 @@ const Dashboard = () => {
       console.error('Error in admin check:', err);
     }
   };
+
   if (isLoading || profileLoading) {
     return <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>;
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>;
   }
   if (!user) return null; // Will redirect in useEffect
 
-  return <div className="animate-fade-in">
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-          <div className="flex items-center gap-3">
-            {isIITBombay && <GraduationCap className="h-8 w-8 text-primary" />}
-            
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2 mt-4 sm:mt-0">
-            {isAdmin && <Button onClick={() => navigate("/admin")} variant="outline" className="flex items-center">
-                <ShieldCheck className="mr-2 h-4 w-4" />
-                Admin Panel
-              </Button>}
-            {isVC && !isVCAndBits && <Button onClick={() => navigate("/vc-analysis")} variant="outline" className="flex items-center">
-                <BarChart3 className="mr-2 h-4 w-4" />
-                Upload Deck
-              </Button>}
-            <Button onClick={() => navigate("/news-feed")} variant="outline" className="flex items-center">
-              <Newspaper className="mr-2 h-4 w-4" />
-              News Feed
-            </Button>
-            {!isIITBombay && !isVC && <Button onClick={() => navigate("/upload")}>
-                <FileUp className="mr-2 h-4 w-4" />
-                Upload New Deck
-              </Button>}
-          </div>
+  // Conditional rendering of VCDashboard
+  if (showVcDashboard && isVC && !isVCAndBits) {
+    return (
+      <div className="animate-fade-in">
+        <div className="container mx-auto px-4 py-6">
+          <Button onClick={() => setShowVcDashboard(false)} className="mb-4">
+            Back to Dashboard
+          </Button>
+          <VCDashboard />
         </div>
+      </div>
+    );
+  }
 
-        <div className="flex items-center justify-between mb-6">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <div className="flex items-center gap-4">
-              <TabsList>
-                <TabsTrigger value="companies">
-                  {isIITBombay ? "Eureka Prospects" : "Prospects"}
-                </TabsTrigger>
-                {isVC && !isVCAndBits && (
-                  <TabsTrigger value="dashboard">
-                    Dashboard
-                  </TabsTrigger>
-                )}
-                <TabsTrigger value="submissions">New Applications</TabsTrigger>
-                {!isIITBombay && <TabsTrigger value="reports">Pitch Decks</TabsTrigger>}
-              </TabsList>
-              
-              {isVC && !isVCAndBits}
-            </div>
-            
-            <div className="mt-6">
-              <TabsContent value="companies">
-                <ConditionalCompaniesList />
-              </TabsContent>
-              {isVC && !isVCAndBits && (
-                <TabsContent value="dashboard">
-                  <VCDashboard />
-                </TabsContent>
-              )}
-              <TabsContent value="submissions">
-                <PublicSubmissionsList />
-              </TabsContent>
-              {!isIITBombay && <TabsContent value="reports">
-                  <ReportsList />
-                </TabsContent>}
-            </div>
-          </Tabs>
+  return <div className="animate-fade-in">
+    <div className="container mx-auto px-4 py-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+        <div className="flex items-center gap-3">
+          {isIITBombay && <GraduationCap className="h-8 w-8 text-primary" />}
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2 mt-4 sm:mt-0">
+          {isAdmin && <Button onClick={() => navigate("/admin")} variant="outline" className="flex items-center">
+            <ShieldCheck className="mr-2 h-4 w-4" />
+            Admin Panel
+          </Button>}
+          {/* New Button for VC Dashboard */}
+          {isVC && !isVCAndBits && (
+            <Button onClick={() => setShowVcDashboard(true)} variant="outline" className="flex items-center">
+              <PieChart className="mr-2 h-4 w-4" /> {/* Icon from image */}
+              Business Dashboard
+            </Button>
+          )}
+          {isVC && !isVCAndBits && <Button onClick={() => navigate("/vc-analysis")} variant="outline" className="flex items-center">
+            <BarChart3 className="mr-2 h-4 w-4" />
+            Upload Deck
+          </Button>}
+          <Button onClick={() => navigate("/news-feed")} variant="outline" className="flex items-center">
+            <Newspaper className="mr-2 h-4 w-4" />
+            News Feed
+          </Button>
+          {!isIITBombay && !isVC && <Button onClick={() => navigate("/upload")}>
+            <FileUp className="mr-2 h-4 w-4" />
+            Upload New Deck
+          </Button>}
         </div>
       </div>
 
-      {/* VC Chat Interface */}
-      {isVC && !isVCAndBits && <VCChatInterface open={chatOpen} onOpenChange={setChatOpen} />}
-    </div>;
+      <div className="flex items-center justify-between mb-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className="flex items-center gap-4">
+            <TabsList>
+              <TabsTrigger value="companies">
+                {isIITBombay ? "Eureka Prospects" : "Prospects"}
+              </TabsTrigger>
+              {/* Removed VC Dashboard TabTrigger */}
+              <TabsTrigger value="submissions">New Applications</TabsTrigger>
+              {!isIITBombay && <TabsTrigger value="reports">Pitch Decks</TabsTrigger>}
+            </TabsList>
+          </div>
+
+          <div className="mt-6">
+            <TabsContent value="companies">
+              <ConditionalCompaniesList />
+            </TabsContent>
+            {/* Removed VC Dashboard TabsContent */}
+            <TabsContent value="submissions">
+              <PublicSubmissionsList />
+            </TabsContent>
+            {!isIITBombay && <TabsContent value="reports">
+              <ReportsList />
+            </TabsContent>}
+          </div>
+        </Tabs>
+      </div>
+    </div>
+
+    {/* VC Chat Interface */}
+    {isVC && !isVCAndBits && <VCChatInterface open={chatOpen} onOpenChange={setChatOpen} />}
+  </div>;
 };
 
 export default Dashboard;
