@@ -1,8 +1,7 @@
-
 import { useCompanies } from "@/hooks/useCompanies";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, RadialBarChart, RadialBar, AreaChart, Area, Legend, PieChart, Pie, Cell } from "recharts";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { ChartTooltip } from "@/components/ui/chart"; // Removed ChartTooltipContent as it's not used
 import { TrendingUp, TrendingDown, Building2, Star } from "lucide-react";
 
 // Define proper color values using CSS variables
@@ -11,17 +10,18 @@ const CHART_COLORS = [
   '#ef4444', // red-500
   '#10b981', // emerald-500
   '#f59e0b', // amber-500
-  '#8b5cf6', // violet-500
+  '#8b5cf6', // violet-500 (kept for other potential uses, but not directly used for the violet replacement)
   '#06b6d4', // cyan-500
   '#84cc16', // lime-500
   '#f97316', // orange-500
 ];
 
-const PURPLE_SHADES = [
-  '#8b5cf6', // violet-500
-  '#7c3aed', // violet-600
-  '#6d28d9', // violet-700
-  '#5b21b6', // violet-800
+// Replaced PURPLE_SHADES with BLUE_SHADES for consistency with the existing blue in the Meeting Categories
+const BLUE_SHADES = [
+  '#3b82f6', // blue-500
+  '#2563eb', // blue-600
+  '#1d4ed8', // blue-700
+  '#1e40af', // blue-800
 ];
 
 export function VCDashboard() {
@@ -92,7 +92,7 @@ export function VCDashboard() {
     { month: 'Jun', avgScore: 77, companies: companies.length }
   ];
 
-  const averageScore = companies.length > 0 ? 
+  const averageScore = companies.length > 0 ?
     (companies.reduce((sum, c) => sum + c.overall_score, 0) / companies.length).toFixed(1) : 0;
 
   const highPotentialCount = companies.filter(c => c.overall_score >= 80).length;
@@ -102,7 +102,8 @@ export function VCDashboard() {
     <div className="space-y-6 animate-fade-in">
       {/* Key Metrics Cards - New Design */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+        {/* Changed violet gradients to blue gradients */}
+        <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
           <CardContent className="p-6 text-center">
             <div>
               <p className="text-sm font-medium opacity-90">Unique Outreaches</p>
@@ -111,7 +112,7 @@ export function VCDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-400 to-purple-500 text-white">
+        <Card className="bg-gradient-to-br from-blue-400 to-blue-500 text-white">
           <CardContent className="p-6 text-center">
             <div>
               <p className="text-sm font-medium opacity-90">Follow Ups</p>
@@ -120,7 +121,7 @@ export function VCDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-300 to-purple-400 text-white">
+        <Card className="bg-gradient-to-br from-blue-300 to-blue-400 text-white">
           <CardContent className="p-6 text-center">
             <div>
               <p className="text-sm font-medium opacity-90">Replies</p>
@@ -153,9 +154,10 @@ export function VCDashboard() {
                 <XAxis dataKey="channel" />
                 <YAxis />
                 <ChartTooltip />
-                <Bar dataKey="uniqueOutreaches" fill={PURPLE_SHADES[0]} name="Unique Outreaches" />
-                <Bar dataKey="followUps" fill={PURPLE_SHADES[1]} name="Follow Ups" />
-                <Bar dataKey="replies" fill={PURPLE_SHADES[2]} name="Replies" />
+                {/* Changed fill colors to BLUE_SHADES */}
+                <Bar dataKey="uniqueOutreaches" fill={BLUE_SHADES[0]} name="Unique Outreaches" />
+                <Bar dataKey="followUps" fill={BLUE_SHADES[1]} name="Follow Ups" />
+                <Bar dataKey="replies" fill={BLUE_SHADES[2]} name="Replies" />
                 <Legend />
               </BarChart>
             </ResponsiveContainer>
@@ -198,18 +200,19 @@ export function VCDashboard() {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <RadialBarChart cx="50%" cy="50%" innerRadius="20%" outerRadius="80%" data={industryData}>
-                <RadialBar dataKey="count" cornerRadius={10} fill="#8884d8" />
-                <Legend 
-                  iconSize={10} 
-                  layout="vertical" 
-                  verticalAlign="middle" 
+                {/* Changed fill color to a shade of blue for consistency */}
+                <RadialBar dataKey="count" cornerRadius={10} fill={BLUE_SHADES[0]} />
+                <Legend
+                  iconSize={10}
+                  layout="vertical"
+                  verticalAlign="middle"
                   align="right"
                   formatter={(value, entry) => {
                     const item = entry.payload;
                     return item ? `${item.industry}: ${item.count}` : `${value}`;
                   }}
                 />
-                <ChartTooltip 
+                <ChartTooltip
                   formatter={(value, name, props) => [`${value} companies`, props.payload.industry]}
                 />
               </RadialBarChart>
@@ -232,7 +235,7 @@ export function VCDashboard() {
                 <Area
                   type="monotone"
                   dataKey="avgScore"
-                  stroke={CHART_COLORS[2]}
+                  stroke={CHART_COLORS[2]} // Keeping green/emerald for trend, as it signifies growth
                   fill={CHART_COLORS[2]}
                   fillOpacity={0.3}
                 />
