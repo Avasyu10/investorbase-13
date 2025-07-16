@@ -1,7 +1,7 @@
 
 import { useCompanies } from "@/hooks/useCompanies";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, RadialBarChart, RadialBar, AreaChart, Area, Legend } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, RadialBarChart, RadialBar, AreaChart, Area, Legend, PieChart, Pie, Cell } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { TrendingUp, TrendingDown, Building2, Star } from "lucide-react";
 
@@ -15,6 +15,13 @@ const CHART_COLORS = [
   '#06b6d4', // cyan-500
   '#84cc16', // lime-500
   '#f97316', // orange-500
+];
+
+const PURPLE_SHADES = [
+  '#8b5cf6', // violet-500
+  '#7c3aed', // violet-600
+  '#6d28d9', // violet-700
+  '#5b21b6', // violet-800
 ];
 
 export function VCDashboard() {
@@ -34,16 +41,27 @@ export function VCDashboard() {
     );
   }
 
-  // Process data for charts
-  const scoreDistribution = [
-    { range: "90-100", count: companies.filter(c => c.overall_score >= 90).length },
-    { range: "80-89", count: companies.filter(c => c.overall_score >= 80 && c.overall_score < 90).length },
-    { range: "70-79", count: companies.filter(c => c.overall_score >= 70 && c.overall_score < 80).length },
-    { range: "60-69", count: companies.filter(c => c.overall_score >= 60 && c.overall_score < 70).length },
-    { range: "50-59", count: companies.filter(c => c.overall_score >= 50 && c.overall_score < 60).length },
-    { range: "Below 50", count: companies.filter(c => c.overall_score < 50).length }
+  // Mock data for the new metrics
+  const uniqueOutreaches = companies.length;
+  const followUps = 15; // Mock data
+  const replies = 8; // Mock data
+  const meetings = 1; // Mock data
+
+  // Mock data for channel distribution (replacing score distribution)
+  const channelData = [
+    { channel: 'LinkedIn', uniqueOutreaches: 40, followUps: 8, replies: 5 },
+    { channel: 'Others', uniqueOutreaches: 28, followUps: 4, replies: 2 },
+    { channel: 'Calls', uniqueOutreaches: 12, followUps: 2, replies: 1 },
+    { channel: 'Mail', uniqueOutreaches: 8, followUps: 1, replies: 0 }
   ];
 
+  // Mock data for meeting categories (replacing section metrics)
+  const meetingCategoriesData = [
+    { name: 'Product Demos', value: 85, fill: '#1e40af' },
+    { name: 'Discovery Calls', value: 15, fill: '#3b82f6' }
+  ];
+
+  // Process data for charts
   const industryDistribution = companies.reduce((acc, company) => {
     const industry = company.industry || 'Unknown';
     acc[industry] = (acc[industry] || 0) + 1;
@@ -58,39 +76,6 @@ export function VCDashboard() {
     }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 8); // Top 8 industries
-
-  // Process section metrics data from assessment points
-  const sectionMetrics = companies.reduce((acc, company) => {
-    if (company.assessment_points && Array.isArray(company.assessment_points)) {
-      company.assessment_points.forEach((point: string) => {
-        // Extract section name and score from assessment point
-        // Expected format: "Section Name: 8.5/10" or "Section Name: 8.5"
-        const match = point.match(/^([^:]+):\s*(\d+(?:\.\d+)?)(?:\/\d+)?/);
-        if (match) {
-          const sectionName = match[1].trim();
-          const score = parseFloat(match[2]);
-          
-          if (!isNaN(score) && isFinite(score)) {
-            if (!acc[sectionName]) {
-              acc[sectionName] = { total: 0, count: 0 };
-            }
-            acc[sectionName].total += score;
-            acc[sectionName].count += 1;
-          }
-        }
-      });
-    }
-    return acc;
-  }, {} as Record<string, { total: number; count: number }>);
-
-  const sectionData = Object.entries(sectionMetrics)
-    .map(([section, data]) => ({
-      section: section.length > 15 ? section.substring(0, 15) + '...' : section,
-      avgScore: Math.round((data.total / data.count) * 10) / 10 // Round to 1 decimal
-    }))
-    .filter(item => !isNaN(item.avgScore) && isFinite(item.avgScore))
-    .sort((a, b) => b.avgScore - a.avgScore)
-    .slice(0, 8); // Top 8 sections
 
   // Top performing companies
   const topCompanies = [...companies]
@@ -115,52 +100,40 @@ export function VCDashboard() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Key Metrics Cards */}
+      {/* Key Metrics Cards - New Design */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Companies</p>
-                <p className="text-2xl font-bold">{companies.length}</p>
-              </div>
-              <Building2 className="h-8 w-8 text-primary" />
+        <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+          <CardContent className="p-6 text-center">
+            <div>
+              <p className="text-sm font-medium opacity-90">Unique Outreaches</p>
+              <p className="text-4xl font-bold mt-2">{uniqueOutreaches}</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Average Score</p>
-                <p className="text-2xl font-bold">{averageScore}</p>
-              </div>
-              <Star className="h-8 w-8 text-primary" />
+        <Card className="bg-gradient-to-br from-purple-400 to-purple-500 text-white">
+          <CardContent className="p-6 text-center">
+            <div>
+              <p className="text-sm font-medium opacity-90">Follow Ups</p>
+              <p className="text-4xl font-bold mt-2">{followUps}</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">High Potential</p>
-                <p className="text-2xl font-bold text-green-600">{highPotentialCount}</p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-green-600" />
+        <Card className="bg-gradient-to-br from-purple-300 to-purple-400 text-white">
+          <CardContent className="p-6 text-center">
+            <div>
+              <p className="text-sm font-medium opacity-90">Replies</p>
+              <p className="text-4xl font-bold mt-2">{replies}</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Medium Potential</p>
-                <p className="text-2xl font-bold text-blue-600">{mediumPotentialCount}</p>
-              </div>
-              <TrendingDown className="h-8 w-8 text-blue-600" />
+        <Card className="bg-gradient-to-br from-gray-300 to-gray-400 text-gray-800">
+          <CardContent className="p-6 text-center">
+            <div>
+              <p className="text-sm font-medium opacity-90">Meetings</p>
+              <p className="text-4xl font-bold mt-2">{meetings}</p>
             </div>
           </CardContent>
         </Card>
@@ -168,20 +141,51 @@ export function VCDashboard() {
 
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Score Distribution */}
+        {/* Channel Distribution */}
         <Card>
           <CardHeader>
-            <CardTitle>Score Distribution</CardTitle>
+            <CardTitle>Unique Outreaches, Follow ups and Replies by Channel</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={scoreDistribution}>
+              <BarChart data={channelData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="range" />
+                <XAxis dataKey="channel" />
                 <YAxis />
                 <ChartTooltip />
-                <Bar dataKey="count" fill={CHART_COLORS[0]} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="uniqueOutreaches" fill={PURPLE_SHADES[0]} name="Unique Outreaches" />
+                <Bar dataKey="followUps" fill={PURPLE_SHADES[1]} name="Follow Ups" />
+                <Bar dataKey="replies" fill={PURPLE_SHADES[2]} name="Replies" />
+                <Legend />
               </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Meeting Categories */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Meeting Categories</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={meetingCategoriesData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={120}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {meetingCategoriesData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  ))}
+                </Pie>
+                <ChartTooltip formatter={(value, name) => [`${value}%`, name]} />
+                <Legend />
+              </PieChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
@@ -201,7 +205,7 @@ export function VCDashboard() {
                   verticalAlign="middle" 
                   align="right"
                   formatter={(value, entry) => {
-                    const item = industryData.find(d => d.count === value);
+                    const item = entry.payload;
                     return item ? `${item.industry}: ${item.count}` : `${value}`;
                   }}
                 />
@@ -234,30 +238,6 @@ export function VCDashboard() {
                 />
               </AreaChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Section Metrics Performance */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Section Metrics Performance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {sectionData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={sectionData} layout="horizontal">
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" domain={[0, 10]} />
-                  <YAxis dataKey="section" type="category" width={100} />
-                  <ChartTooltip />
-                  <Bar dataKey="avgScore" fill={CHART_COLORS[3]} radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                <p>No section metrics data available</p>
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>
