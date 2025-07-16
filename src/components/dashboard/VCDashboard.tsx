@@ -5,7 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieCha
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { TrendingUp, TrendingDown, Building2, Star } from "lucide-react";
 
-const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
+const COLORS = ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 export function VCDashboard() {
   const { companies, isLoading, potentialStats } = useCompanies(1, 100); // Get all companies for analytics
@@ -26,12 +26,12 @@ export function VCDashboard() {
 
   // Process data for charts
   const scoreDistribution = [
-    { range: "90-100", count: companies.filter(c => c.overall_score >= 90).length, color: COLORS[0] },
-    { range: "80-89", count: companies.filter(c => c.overall_score >= 80 && c.overall_score < 90).length, color: COLORS[1] },
-    { range: "70-79", count: companies.filter(c => c.overall_score >= 70 && c.overall_score < 80).length, color: COLORS[2] },
-    { range: "60-69", count: companies.filter(c => c.overall_score >= 60 && c.overall_score < 70).length, color: COLORS[3] },
-    { range: "50-59", count: companies.filter(c => c.overall_score >= 50 && c.overall_score < 60).length, color: COLORS[4] },
-    { range: "Below 50", count: companies.filter(c => c.overall_score < 50).length, color: 'hsl(var(--destructive))' }
+    { range: "90-100", count: companies.filter(c => c.overall_score >= 90).length },
+    { range: "80-89", count: companies.filter(c => c.overall_score >= 80 && c.overall_score < 90).length },
+    { range: "70-79", count: companies.filter(c => c.overall_score >= 70 && c.overall_score < 80).length },
+    { range: "60-69", count: companies.filter(c => c.overall_score >= 60 && c.overall_score < 70).length },
+    { range: "50-59", count: companies.filter(c => c.overall_score >= 50 && c.overall_score < 60).length },
+    { range: "Below 50", count: companies.filter(c => c.overall_score < 50).length }
   ];
 
   const industryDistribution = companies.reduce((acc, company) => {
@@ -41,25 +41,53 @@ export function VCDashboard() {
   }, {} as Record<string, number>);
 
   const industryData = Object.entries(industryDistribution)
-    .map(([industry, count], index) => ({
+    .map(([industry, count]) => ({
       industry,
-      count,
-      color: COLORS[index % COLORS.length]
+      count
     }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 8); // Top 8 industries
 
-  const sourceDistribution = companies.reduce((acc, company) => {
-    const source = company.source || 'dashboard';
-    acc[source] = (acc[source] || 0) + 1;
+  // Calculate section metrics averages across all companies
+  const sectionMetrics = companies.reduce((acc, company) => {
+    if (company.assessment_points && company.assessment_points.length > 0) {
+      company.assessment_points.forEach(point => {
+        // Extract section name from assessment point (assuming format like "Market Size: Good potential")
+        const colonIndex = point.indexOf(':');
+        if (colonIndex > 0) {
+          const sectionName = point.substring(0, colonIndex).trim();
+          if (!acc[sectionName]) {
+            acc[sectionName] = { total: 0, count: 0, scores: [] };
+          }
+          // Assign a score based on keywords (simplified scoring)
+          let score = 50; // default
+          const pointLower = point.toLowerCase();
+          if (pointLower.includes('excellent') || pointLower.includes('strong') || pointLower.includes('great')) {
+            score = 85;
+          } else if (pointLower.includes('good') || pointLower.includes('solid') || pointLower.includes('promising')) {
+            score = 70;
+          } else if (pointLower.includes('average') || pointLower.includes('moderate')) {
+            score = 60;
+          } else if (pointLower.includes('weak') || pointLower.includes('poor') || pointLower.includes('limited')) {
+            score = 40;
+          }
+          acc[sectionName].total += score;
+          acc[sectionName].count += 1;
+          acc[sectionName].scores.push(score);
+        }
+      });
+    }
     return acc;
-  }, {} as Record<string, number>);
+  }, {} as Record<string, { total: number; count: number; scores: number[] }>);
 
-  const sourceData = Object.entries(sourceDistribution).map(([source, count], index) => ({
-    source: source.charAt(0).toUpperCase() + source.slice(1),
-    count,
-    color: COLORS[index % COLORS.length]
-  }));
+  const sectionMetricsData = Object.entries(sectionMetrics)
+    .map(([section, data]) => ({
+      section: section.length > 15 ? section.substring(0, 15) + '...' : section,
+      averageScore: Math.round(data.total / data.count),
+      companies: data.count
+    }))
+    .sort((a, b) => b.averageScore - a.averageScore)
+    .slice(0, 8); // Top 8 sections
 
   // Top performing companies
   const topCompanies = [...companies]
@@ -147,7 +175,7 @@ export function VCDashboard() {
               config={{
                 count: {
                   label: "Companies",
-                  color: "hsl(var(--chart-1))",
+                  color: "hsl(262.1 83.3% 57.8%)",
                 },
               }}
               className="h-[300px]"
@@ -158,7 +186,7 @@ export function VCDashboard() {
                   <XAxis dataKey="range" />
                   <YAxis />
                   <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="count" fill="var(--color-count)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="count" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </ChartContainer>
@@ -175,7 +203,7 @@ export function VCDashboard() {
               config={{
                 count: {
                   label: "Companies",
-                  color: "hsl(var(--chart-2))",
+                  color: "hsl(198.6 88.7% 48.4%)",
                 },
               }}
               className="h-[300px]"
@@ -193,7 +221,7 @@ export function VCDashboard() {
                     dataKey="count"
                   >
                     {industryData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
                   <ChartTooltip content={<ChartTooltipContent />} />
@@ -213,7 +241,7 @@ export function VCDashboard() {
               config={{
                 avgScore: {
                   label: "Average Score",
-                  color: "hsl(var(--chart-3))",
+                  color: "hsl(142.1 76.2% 36.3%)",
                 },
               }}
               className="h-[300px]"
@@ -227,8 +255,8 @@ export function VCDashboard() {
                   <Area
                     type="monotone"
                     dataKey="avgScore"
-                    stroke="var(--color-avgScore)"
-                    fill="var(--color-avgScore)"
+                    stroke="#10b981"
+                    fill="#10b981"
                     fillOpacity={0.3}
                   />
                 </AreaChart>
@@ -237,28 +265,28 @@ export function VCDashboard() {
           </CardContent>
         </Card>
 
-        {/* Source Distribution */}
+        {/* Section Metrics Performance */}
         <Card>
           <CardHeader>
-            <CardTitle>Company Sources</CardTitle>
+            <CardTitle>Section Metrics Performance</CardTitle>
           </CardHeader>
           <CardContent>
             <ChartContainer
               config={{
-                count: {
-                  label: "Companies",
-                  color: "hsl(var(--chart-4))",
+                averageScore: {
+                  label: "Average Score",
+                  color: "hsl(24.6 95% 53.1%)",
                 },
               }}
               className="h-[300px]"
             >
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={sourceData}>
+                <BarChart data={sectionMetricsData} layout="horizontal">
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="source" />
-                  <YAxis />
+                  <XAxis type="number" domain={[0, 100]} />
+                  <YAxis dataKey="section" type="category" width={100} />
                   <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="count" fill="var(--color-count)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="averageScore" fill="#f59e0b" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </ChartContainer>
