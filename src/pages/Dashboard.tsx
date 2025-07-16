@@ -137,7 +137,6 @@ const Dashboard = () => {
                 </TabsTrigger>
                 {isVC && !isVCAndBits && (
                   <TabsTrigger value="dashboard">
-                    <PieChart className="mr-2 h-4 w-4" />
                     Dashboard
                   </TabsTrigger>
                 )}
