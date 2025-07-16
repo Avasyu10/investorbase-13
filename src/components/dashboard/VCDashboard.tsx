@@ -33,12 +33,12 @@ const BLUE_SHADES = [
   '#1e40af', // blue-800
 ];
 
-// New shades of blue for the funnel chart to create a gradient effect
+// New shades of blue for the funnel chart to create a gradient effect, more distinct
 const FUNNEL_SHADES_OF_BLUE = [
-  '#1a5276', // Darkest blue for Initial Contact
-  '#21618C', // Darker blue for Under Review
-  '#2874A6', // Medium blue for Accepted
-  '#2E86C1', // Lighter blue for Rejected
+  '#1E3A8A', // Darker blue for top (Initial Contact)
+  '#2563EB', // Medium-dark blue (Under Review)
+  '#3B82F6', // Medium blue (Accepted)
+  '#60A5FA', // Lighter blue (Rejected)
 ];
 
 export function VCDashboard() {
@@ -120,14 +120,16 @@ export function VCDashboard() {
     return Object.values(aggregatedByChannel);
   }, [filteredData]);
 
-  // Data for the Funnel Chart (Prospect Status) - Manually set values for desired scale
+  // Data for the Funnel Chart (Prospect Status) - Manually set values for desired scale and design
   const funnelChartData = useMemo(() => {
     // These values are set to ensure the X-axis of the funnel chart is in the 200-250 range
+    // and to create a visually distinct funnel shape.
     return [
-      { name: 'Initial Contact', value: 250 },
-      { name: 'Under Review', value: 200 },
-      { name: 'Accepted', value: 150 },
-      { name: 'Rejected', value: 100 },
+      { name: 'Leads', value: 320 },
+      { name: 'Sales Calls', value: 240 },
+      { name: 'Follow-up', value: 150 },
+      { name: 'Conversion', value: 90 },
+      { name: 'Sales', value: 40 },
     ].filter(item => item.value > 0);
   }, []); // No dependencies on filteredData here, as values are fixed for demonstration
 
@@ -310,11 +312,11 @@ export function VCDashboard() {
                   data={funnelChartData}
                   layout="vertical"
                   margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                  barCategoryGap="10%" // Adjust gap between categories for funnel look
+                  barCategoryGap="0%" // Set gap to 0 for a continuous funnel look
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#4a5568" />
-                  <XAxis type="number" stroke="#cbd5e0" style={{ fontSize: '10px' }} />
-                  <YAxis type="category" dataKey="name" stroke="#cbd5e0" style={{ fontSize: '10px' }} />
+                  <XAxis type="number" hide /> {/* Hide X-axis as per the reference image */}
+                  <YAxis type="category" dataKey="name" stroke="#cbd5e0" style={{ fontSize: '10px' }} axisLine={false} tickLine={false} /> {/* Hide axis line and tick line */}
                   <ChartTooltip
                     contentStyle={{ backgroundColor: '#1f2937', borderColor: '#4a5568', color: '#ffffff' }}
                     labelStyle={{ color: '#ffffff' }}
