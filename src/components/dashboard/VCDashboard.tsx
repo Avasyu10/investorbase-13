@@ -24,7 +24,7 @@ export function VCDashboard() {
     );
   }
 
-  // Process data for charts
+  // Process data for charts with proper validation
   const scoreDistribution = [
     { range: "90-100", count: companies.filter(c => c.overall_score >= 90).length },
     { range: "80-89", count: companies.filter(c => c.overall_score >= 80 && c.overall_score < 90).length },
@@ -48,7 +48,7 @@ export function VCDashboard() {
     .sort((a, b) => b.count - a.count)
     .slice(0, 8); // Top 8 industries
 
-  // Calculate section metrics averages across all companies
+  // Calculate section metrics averages across all companies with proper validation
   const sectionMetrics = companies.reduce((acc, company) => {
     if (company.assessment_points && company.assessment_points.length > 0) {
       company.assessment_points.forEach(point => {
@@ -71,9 +71,13 @@ export function VCDashboard() {
           } else if (pointLower.includes('weak') || pointLower.includes('poor') || pointLower.includes('limited')) {
             score = 40;
           }
-          acc[sectionName].total += score;
-          acc[sectionName].count += 1;
-          acc[sectionName].scores.push(score);
+          
+          // Validate score before adding
+          if (!isNaN(score) && isFinite(score)) {
+            acc[sectionName].total += score;
+            acc[sectionName].count += 1;
+            acc[sectionName].scores.push(score);
+          }
         }
       });
     }
@@ -81,20 +85,26 @@ export function VCDashboard() {
   }, {} as Record<string, { total: number; count: number; scores: number[] }>);
 
   const sectionMetricsData = Object.entries(sectionMetrics)
-    .map(([section, data]) => ({
-      section: section.length > 15 ? section.substring(0, 15) + '...' : section,
-      averageScore: Math.round(data.total / data.count),
-      companies: data.count
-    }))
+    .map(([section, data]) => {
+      // Ensure we don't divide by zero and validate the result
+      const averageScore = data.count > 0 ? Math.round(data.total / data.count) : 0;
+      return {
+        section: section.length > 15 ? section.substring(0, 15) + '...' : section,
+        averageScore: isNaN(averageScore) ? 0 : averageScore,
+        companies: data.count
+      };
+    })
+    .filter(item => item.companies > 0) // Only include sections with data
     .sort((a, b) => b.averageScore - a.averageScore)
     .slice(0, 8); // Top 8 sections
 
   // Top performing companies
   const topCompanies = [...companies]
+    .filter(company => !isNaN(company.overall_score) && isFinite(company.overall_score))
     .sort((a, b) => b.overall_score - a.overall_score)
     .slice(0, 10);
 
-  // Score trend data (simulated monthly data)
+  // Score trend data (simulated monthly data) with validation
   const trendData = [
     { month: 'Jan', avgScore: 68, companies: 12 },
     { month: 'Feb', avgScore: 71, companies: 18 },
@@ -104,11 +114,13 @@ export function VCDashboard() {
     { month: 'Jun', avgScore: 77, companies: companies.length }
   ];
 
-  const averageScore = companies.length > 0 ? 
-    (companies.reduce((sum, c) => sum + c.overall_score, 0) / companies.length).toFixed(1) : 0;
+  // Calculate average score with validation
+  const validScores = companies.filter(c => !isNaN(c.overall_score) && isFinite(c.overall_score));
+  const averageScore = validScores.length > 0 ? 
+    (validScores.reduce((sum, c) => sum + c.overall_score, 0) / validScores.length).toFixed(1) : '0';
 
-  const highPotentialCount = companies.filter(c => c.overall_score >= 80).length;
-  const mediumPotentialCount = companies.filter(c => c.overall_score >= 60 && c.overall_score < 80).length;
+  const highPotentialCount = companies.filter(c => !isNaN(c.overall_score) && c.overall_score >= 80).length;
+  const mediumPotentialCount = companies.filter(c => !isNaN(c.overall_score) && c.overall_score >= 60 && c.overall_score < 80).length;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -266,63 +278,67 @@ export function VCDashboard() {
         </Card>
 
         {/* Section Metrics Performance */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Section Metrics Performance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer
-              config={{
-                averageScore: {
-                  label: "Average Score",
-                  color: "hsl(24.6 95% 53.1%)",
-                },
-              }}
-              className="h-[300px]"
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={sectionMetricsData} layout="horizontal">
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" domain={[0, 100]} />
-                  <YAxis dataKey="section" type="category" width={100} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="averageScore" fill="#f59e0b" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
+        {sectionMetricsData.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Section Metrics Performance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer
+                config={{
+                  averageScore: {
+                    label: "Average Score",
+                    color: "hsl(24.6 95% 53.1%)",
+                  },
+                }}
+                className="h-[300px]"
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={sectionMetricsData} layout="horizontal">
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" domain={[0, 100]} />
+                    <YAxis dataKey="section" type="category" width={100} />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar dataKey="averageScore" fill="#f59e0b" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Top Performing Companies */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Top Performing Companies</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {topCompanies.map((company, index) => (
-              <div key={company.id} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center space-x-4">
-                  <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
-                    {index + 1}
+      {topCompanies.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Top Performing Companies</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {topCompanies.map((company, index) => (
+                <div key={company.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
+                      {index + 1}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">{company.name}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {company.industry || 'Unknown Industry'}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold">{company.name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {company.industry || 'Unknown Industry'}
-                    </p>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-primary">{company.overall_score.toFixed(1)}</div>
+                    <div className="text-sm text-muted-foreground">Score</div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-primary">{company.overall_score}</div>
-                  <div className="text-sm text-muted-foreground">Score</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
