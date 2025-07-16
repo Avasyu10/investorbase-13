@@ -60,33 +60,51 @@ export function VCDashboard() {
     );
   }
 
-  // More granular mock data linking persons, channels, industries, and statuses
-  const allProspectData = useMemo(() => [
-    // Roohi's Data
-    { person: 'Roohi', channel: 'LinkedIn', industry: 'Tech', uniqueOutreaches: 20, followUps: 4, replies: 2, meetings: 1, status: 'Accepted' },
-    { person: 'Roohi', channel: 'LinkedIn', industry: 'Finance', uniqueOutreaches: 20, followUps: 4, replies: 3, meetings: 0, status: 'Rejected' },
-    { person: 'Roohi', channel: 'Others', industry: 'Healthcare', uniqueOutreaches: 15, followUps: 2, replies: 1, meetings: 0, status: 'Under Review' },
-    { person: 'Roohi', channel: 'Calls', industry: 'Retail', uniqueOutreaches: 12, followUps: 2, replies: 1, meetings: 0, status: 'Initial Contact' },
-    { person: 'Roohi', channel: 'Mail', industry: 'Tech', uniqueOutreaches: 8, followUps: 1, replies: 0, meetings: 0, status: 'Initial Contact' },
+  // More granular mock data linking persons, channels, industries, and statuses (SCALED UP FOR FUNNEL)
+  const allProspectData = useMemo(() => {
+    const data = [];
+    // Base values for metrics (can be adjusted)
+    const baseUniqueOutreaches = 20;
+    const baseFollowUps = 4;
+    const baseReplies = 2;
+    const baseMeetings = 1;
 
-    // Avasyu's Data
-    { person: 'Avasyu', channel: 'LinkedIn', industry: 'Finance', uniqueOutreaches: 25, followUps: 5, replies: 3, meetings: 0, status: 'Under Review' },
-    { person: 'Avasyu', channel: 'Others', industry: 'Tech', uniqueOutreaches: 35, followUps: 7, replies: 4, meetings: 1, status: 'Accepted' },
-    { person: 'Avasyu', channel: 'Calls', industry: 'Healthcare', uniqueOutreaches: 10, followUps: 1, replies: 0, meetings: 0, status: 'Rejected' },
-    { person: 'Avasyu', channel: 'Mail', industry: 'Retail', uniqueOutreaches: 15, followUps: 3, replies: 1, meetings: 0, status: 'Initial Contact' },
+    // Base values for funnel stages, scaled up to be in the 100s
+    const baseInitialContact = 100;
+    const baseUnderReview = 75;
+    const baseAccepted = 50;
+    const baseRejected = 25;
 
-    // Kanishk's Data
-    { person: 'Kanishk', channel: 'LinkedIn', industry: 'Healthcare', uniqueOutreaches: 30, followUps: 6, replies: 4, meetings: 0, status: 'Initial Contact' },
-    { person: 'Kanishk', channel: 'Others', industry: 'Retail', uniqueOutreaches: 20, followUps: 3, replies: 1, meetings: 0, status: 'Rejected' },
-    { person: 'Kanishk', channel: 'Calls', industry: 'Tech', uniqueOutreaches: 20, followUps: 4, replies: 2, meetings: 1, status: 'Accepted' },
-    { person: 'Kanishk', channel: 'Mail', industry: 'Finance', uniqueOutreaches: 10, followUps: 2, replies: 1, meetings: 0, status: 'Under Review' },
 
-    // Tanisha's Data
-    { person: 'Tanisha', channel: 'LinkedIn', industry: 'Retail', uniqueOutreaches: 15, followUps: 3, replies: 1, meetings: 0, status: 'Initial Contact' },
-    { person: 'Tanisha', channel: 'Others', industry: 'Tech', uniqueOutreaches: 18, followUps: 2, replies: 0, meetings: 0, status: 'Rejected' },
-    { person: 'Tanisha', channel: 'Calls', industry: 'Finance', uniqueOutreaches: 25, followUps: 5, replies: 3, meetings: 0, status: 'Under Review' },
-    { person: 'Tanisha', channel: 'Mail', industry: 'Healthcare', uniqueOutreaches: 30, followUps: 6, replies: 4, meetings: 1, status: 'Accepted' }
-  ], []);
+    const statuses = ['Initial Contact', 'Under Review', 'Accepted', 'Rejected'];
+    const channels = ['LinkedIn', 'Others', 'Calls', 'Mail'];
+    const industries = ['Tech', 'Finance', 'Healthcare', 'Retail'];
+
+    // Generate a larger dataset to get higher counts for funnel stages
+    // Each person will have a set of entries for each status
+    availablePersons.forEach(person => {
+      industries.forEach(industry => {
+        channels.forEach(channel => {
+          // Distribute base counts across persons/industries/channels
+          // This logic ensures that when filtered, the sums for statuses are higher
+          data.push({ person, channel, industry, uniqueOutreaches: baseUniqueOutreaches + Math.floor(Math.random() * 5), followUps: baseFollowUps + Math.floor(Math.random() * 2), replies: baseReplies + Math.floor(Math.random() * 1), meetings: baseMeetings + Math.floor(Math.random() * 1), status: 'Initial Contact' });
+          data.push({ person, channel, industry, uniqueOutreaches: baseUniqueOutreaches + Math.floor(Math.random() * 5), followUps: baseFollowUps + Math.floor(Math.random() * 2), replies: baseReplies + Math.floor(Math.random() * 1), meetings: baseMeetings + Math.floor(Math.random() * 1), status: 'Under Review' });
+          data.push({ person, channel, industry, uniqueOutreaches: baseUniqueOutreaches + Math.floor(Math.random() * 5), followUps: baseFollowUps + Math.floor(Math.random() * 2), replies: baseReplies + Math.floor(Math.random() * 1), meetings: baseMeetings + Math.floor(Math.random() * 1), status: 'Accepted' });
+          data.push({ person, channel, industry, uniqueOutreaches: baseUniqueOutreaches + Math.floor(Math.random() * 5), followUps: baseFollowUps + Math.floor(Math.random() * 2), replies: baseReplies + Math.floor(Math.random() * 1), meetings: baseMeetings + Math.floor(Math.random() * 1), status: 'Rejected' });
+        });
+      });
+    });
+
+    // Manually add some data to ensure high numbers for funnel stages
+    // This is a direct way to ensure the funnel values are high for demonstration
+    data.push({ person: 'Roohi', channel: 'LinkedIn', industry: 'Tech', uniqueOutreaches: 0, followUps: 0, replies: 0, meetings: 0, status: 'Initial Contact', value: 150 });
+    data.push({ person: 'Roohi', channel: 'LinkedIn', industry: 'Tech', uniqueOutreaches: 0, followUps: 0, replies: 0, meetings: 0, status: 'Under Review', value: 100 });
+    data.push({ person: 'Roohi', channel: 'LinkedIn', industry: 'Tech', uniqueOutreaches: 0, followUps: 0, replies: 0, meetings: 0, status: 'Accepted', value: 70 });
+    data.push({ person: 'Roohi', channel: 'LinkedIn', industry: 'Tech', uniqueOutreaches: 0, followUps: 0, replies: 0, meetings: 0, status: 'Rejected', value: 30 });
+
+
+    return data;
+  }, []);
 
 
   // Filtered data based on selected persons and industries
@@ -114,7 +132,8 @@ export function VCDashboard() {
   // Data for the Funnel Chart (Prospect Status)
   const funnelChartData = useMemo(() => {
     const statusCounts = filteredData.reduce((acc, item) => {
-      acc[item.status] = (acc[item.status] || 0) + 1;
+      // If item has a 'value' property (from manual additions), use it, otherwise use 1 for count
+      acc[item.status] = (acc[item.status] || 0) + (item.value || 1);
       return acc;
     }, {});
 
@@ -322,8 +341,8 @@ export function VCDashboard() {
                   margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#4a5568" />
-                  {/* Fixed X-axis domain to 0-3 */}
-                  <XAxis type="number" stroke="#cbd5e0" style={{ fontSize: '10px' }} domain={[0, 3]} />
+                  {/* Removed fixed domain to allow auto-scaling based on larger mock data */}
+                  <XAxis type="number" stroke="#cbd5e0" style={{ fontSize: '10px' }} />
                   <YAxis type="category" dataKey="name" stroke="#cbd5e0" style={{ fontSize: '10px' }} />
                   <ChartTooltip // Using ChartTooltip
                     contentStyle={{ backgroundColor: '#1f2937', borderColor: '#4a5568', color: '#ffffff' }}
