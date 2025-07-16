@@ -114,7 +114,8 @@ const Dashboard = () => {
             <Button onClick={() => setShowVcDashboard(false)} className="mr-4"> {/* Added margin-right */}
               Back
             </Button>
-            <h1 className="text-2xl font-bold text-white">Business Tracker Dashboard</h1> {/* Added heading */}
+            {/* Adjusted heading to be larger and shifted to the right */}
+            <h1 className="text-3xl font-bold text-white ml-auto pr-4">Business Tracker Dashboard</h1>
           </div>
           <VCDashboard />
         </div>
