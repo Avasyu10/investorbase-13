@@ -64,8 +64,8 @@ export function VCDashboard() {
     const industries = ['Tech', 'Finance', 'Healthcare', 'Retail'];
 
     // Generate a large number of entries to ensure sufficient data for filters
-    // Increased iterations to ensure more data points for filtering
-    for (let i = 0; i < 2000; i++) { // Increased from 500 to 2000
+    // Increased iterations and more random distribution to ensure data for all combinations
+    for (let i = 0; i < 5000; i++) { // Increased significantly for better data density
       const person = availablePersons[Math.floor(Math.random() * availablePersons.length)];
       const channel = channels[Math.floor(Math.random() * channels.length)];
       const industry = industries[Math.floor(Math.random() * industries.length)];
@@ -119,34 +119,39 @@ export function VCDashboard() {
     const orderedStages = ['Leads', 'Sales Calls', 'Follow-up', 'Conversion', 'Sales'];
     
     // Map to the ordered stages, ensuring a value exists for each
-    const data = orderedStages.map(stage => ({
+    let data = orderedStages.map(stage => ({
       name: stage,
       value: statusCounts[stage] || 0
     }));
 
     // Ensure values are decreasing for a proper funnel shape
-    // This is a simple way to enforce the funnel shape if counts don't naturally decrease
+    // If a stage has 0, try to give it a small value if the previous one is also 0
+    if (data.length > 0 && data[0].value === 0) {
+      data[0].value = 200 + Math.floor(Math.random() * 100); // Ensure a starting value
+    }
+
     for (let i = 1; i < data.length; i++) {
-      // If current stage value is greater than previous, reduce it
+      // Ensure current stage value is less than or equal to previous stage value
       if (data[i].value > data[i-1].value) {
-        data[i].value = Math.max(0, data[i-1].value - (Math.floor(Math.random() * 10) + 5)); // Ensure decrease
+        data[i].value = data[i-1].value - (Math.floor(Math.random() * 10) + 5); // Reduce to ensure decrease
       }
-      // If current stage value is still too close or equal to previous, ensure a more significant drop
-      if (data[i].value >= data[i-1].value) {
+      // If values are too close or equal, force a larger drop
+      if (data[i].value >= data[i-1].value && data[i-1].value > 0) {
         data[i].value = Math.max(0, data[i-1].value - (Math.floor(Math.random() * 20) + 10)); // Larger drop
       }
+      // Ensure no negative values
+      if (data[i].value < 0) {
+        data[i].value = 0;
+      }
     }
 
-    // Ensure first stage has a reasonable value if it happens to be 0
-    if (data.length > 0 && data[0].value === 0) {
-      data[0].value = 200 + Math.floor(Math.random() * 100); // Give it a starting value
-    }
-
-    return data.filter(item => item.value > 0); // Only show stages with prospects
+    // Filter out stages with 0 value at the end if desired, or keep them for full funnel structure
+    return data.filter(item => item.value >= 0); // Keep all stages, even if value is 0
   }, [filteredData]);
 
   // Custom label component for the funnel chart bars
   const CustomFunnelLabel = ({ x, y, width, height, value }) => {
+    if (value === 0) return null; // Don't render label for zero values
     return (
       <text
         x={x + width / 2}
@@ -362,6 +367,7 @@ export function VCDashboard() {
                           chartMargin={barChartMargin} // Pass chartMargin
                         />
                       )}
+                      label={<CustomFunnelLabel />} // Add CustomFunnelLabel here
                     >
                       {funnelChartData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={FUNNEL_SHADES_OF_BLUE[index % FUNNEL_SHADES_OF_BLUE.length]} />
