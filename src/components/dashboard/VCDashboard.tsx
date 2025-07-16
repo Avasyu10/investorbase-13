@@ -125,11 +125,11 @@ export function VCDashboard() {
   const funnelChartData = useMemo(() => {
     // Increased values to create more variety and ensure a larger scale
     return [
-      { name: 'Leads', value: 350 + Math.floor(Math.random() * 50) }, // 350-399
-      { name: 'Sales Calls', value: 280 + Math.floor(Math.random() * 40) }, // 280-319
-      { name: 'Follow-up', value: 180 + Math.floor(Math.random() * 30) }, // 180-209
-      { name: 'Conversion', value: 110 + Math.floor(Math.random() * 20) }, // 110-129
-      { name: 'Sales', value: 50 + Math.floor(Math.random() * 10) }, // 50-59
+      { name: 'Leads', value: 360 + Math.floor(Math.random() * 40) }, // 360-399
+      { name: 'Sales Calls', value: 290 + Math.floor(Math.random() * 30) }, // 290-319
+      { name: 'Follow-up', value: 190 + Math.floor(Math.random() * 20) }, // 190-209
+      { name: 'Conversion', value: 120 + Math.floor(Math.random() * 15) }, // 120-134
+      { name: 'Sales', value: 60 + Math.floor(Math.random() * 10) }, // 60-69
     ].filter(item => item.value > 0);
   }, []);
 
@@ -152,45 +152,42 @@ export function VCDashboard() {
 
   // Custom shape for funnel bars to create the tapered effect
   const FunnelBarShape = (props) => {
-    const { x, y, width, height, fill, index, data, dataKey } = props;
-    const nextValue = data[index + 1] ? data[index + 1].value : 0;
-    const prevValue = data[index - 1] ? data[index - 1].value : 0;
+    const { x, y, width, height, fill, index, data, margin } = props;
 
-    // Calculate the width of the top and bottom of the current bar segment
-    // This is a simplified approach to create a trapezoid.
-    // The width of the bar at its top should be proportional to its value.
-    // The width of the bar at its bottom should be proportional to the next segment's value.
-    // To center it, we adjust x based on the difference in widths.
+    // Calculate the total plotting width within the ResponsiveContainer
+    const chartPlottingWidth = props.containerWidth - (margin.left || 0) - (margin.right || 0);
 
-    const totalWidth = 350; // A reference total width for the funnel base
-    const currentSegmentWidth = (width / data[0].value) * totalWidth; // Scale current bar width
-    const nextSegmentWidth = (nextValue / data[0].value) * totalWidth; // Scale next bar width
+    const currentSegmentValue = data[index].value;
+    const nextSegmentValue = data[index + 1] ? data[index + 1].value : 0;
 
-    // Calculate the horizontal offset to center the trapezoid
-    const offsetLeft = (totalWidth - currentSegmentWidth) / 2;
-    const offsetRight = (totalWidth - nextSegmentWidth) / 2;
+    // Assuming data is sorted by value descending for a proper funnel shape
+    const maxValue = data[0].value;
 
+    // Calculate the width of the top and bottom edges of the current trapezoid segment
+    // These widths are proportional to the values relative to the maximum value.
+    // We scale them to occupy a portion of the full plotting width.
+    const maxFunnelWidth = chartPlottingWidth * 0.8; // Max width of the funnel at its top (e.g., 80% of plotting area)
+    const minFunnelWidth = chartPlottingWidth * 0.2; // Min width of the funnel at its bottom (e.g., 20% of plotting area)
+
+    const topEdgeWidth = (currentSegmentValue / maxValue) * (maxFunnelWidth - minFunnelWidth) + minFunnelWidth;
+    const bottomEdgeWidth = (nextSegmentValue / maxValue) * (maxFunnelWidth - minFunnelWidth) + minFunnelWidth;
+
+    // Calculate x-coordinates to center the trapezoid within the plotting area
+    const centerX = chartPlottingWidth / 2;
+
+    const xTopLeft = centerX - topEdgeWidth / 2 + (margin.left || 0);
+    const xTopRight = centerX + topEdgeWidth / 2 + (margin.left || 0);
+    const xBottomLeft = centerX - bottomEdgeWidth / 2 + (margin.left || 0);
+    const xBottomRight = centerX + bottomEdgeWidth / 2 + (margin.left || 0);
 
     // Points for the trapezoid: (top-left, top-right, bottom-right, bottom-left)
-    // x, y are the top-left corner of the rect provided by Recharts for the bar
-    // We adjust x to center the shape and width to create the trapezoid effect
     return (
       <path
-        d={`M${x} ${y} 
-            L${x + width} ${y} 
-            L${x + width} ${y + height} 
-            L${x} ${y + height} Z`}
+        d={`M${xTopLeft} ${y}
+            L${xTopRight} ${y}
+            L${xBottomRight} ${y + height}
+            L${xBottomLeft} ${y + height} Z`}
         fill={fill}
-        // This is a simplified approach. For a true funnel shape, you'd calculate
-        // the x-coordinates for the top and bottom edges of the trapezoid
-        // based on the current and next values, and the overall chart width.
-        // For demonstration, we'll use a standard bar and rely on `barCategoryGap`
-        // to create the visual separation, and potentially `barSize` if needed.
-        // To truly mimic the image, we need to draw a trapezoid.
-
-        // Let's try drawing a trapezoid based on the values
-        // The x and width provided by Recharts are for the standard bar.
-        // We need to calculate the x-coordinates for the tapered shape.
       />
     );
   };
@@ -384,43 +381,41 @@ export function VCDashboard() {
 
 // Custom shape for funnel bars to create the tapered effect
 const FunnelBarShape = (props) => {
-  const { x, y, width, height, fill, index, data } = props;
-  const totalChartWidth = props.containerWidth - props.margin.left - props.margin.right; // Get actual plot area width
+  const { x, y, width, height, fill, index, data, margin } = props;
 
-  // Calculate the width of the top and bottom of the current bar segment
-  // The funnel tapers. The top of a segment is based on its own value.
-  // The bottom of a segment is based on the value of the *next* segment.
-  // If it's the last segment, its bottom is the narrowest point.
+  // Calculate the total plotting width within the ResponsiveContainer
+  const chartPlottingWidth = props.containerWidth - (margin.left || 0) - (margin.right || 0);
 
   const currentSegmentValue = data[index].value;
-  const nextSegmentValue = data[index + 1] ? data[index + 1].value : 0; // If last segment, next value is 0 (or a small base value)
+  const nextSegmentValue = data[index + 1] ? data[index + 1].value : 0;
 
-  // Normalize values to a percentage of the largest value (top of the funnel)
-  const maxValue = data[0].value; // Assuming data is sorted largest to smallest
-  const topWidthRatio = currentSegmentValue / maxValue;
-  const bottomWidthRatio = nextSegmentValue / maxValue;
+  // Assuming data is sorted by value descending for a proper funnel shape
+  const maxValue = data[0].value;
 
-  // Calculate the actual pixel width for the top and bottom of the trapezoid
-  // We'll make the funnel's widest point (top) occupy a significant portion of the chart width, e.g., 80%
-  const maxFunnelWidth = totalChartWidth * 0.8; // Max width of the funnel at its top
-  const minFunnelWidth = totalChartWidth * 0.2; // Min width of the funnel at its bottom (for the 'Sales' segment)
+  // Calculate the width of the top and bottom edges of the current trapezoid segment
+  // These widths are proportional to the values relative to the maximum value.
+  // We scale them to occupy a portion of the full plotting width.
+  const maxFunnelWidth = chartPlottingWidth * 0.8; // Max width of the funnel at its top (e.g., 80% of plotting area)
+  const minFunnelWidth = chartPlottingWidth * 0.2; // Min width of the funnel at its bottom (e.g., 20% of plotting area)
 
-  const currentTopWidth = topWidthRatio * (maxFunnelWidth - minFunnelWidth) + minFunnelWidth;
-  const currentBottomWidth = bottomWidthRatio * (maxFunnelWidth - minFunnelWidth) + minFunnelWidth;
+  const topEdgeWidth = (currentSegmentValue / maxValue) * (maxFunnelWidth - minFunnelWidth) + minFunnelWidth;
+  const bottomEdgeWidth = (nextSegmentValue / maxValue) * (maxFunnelWidth - minFunnelWidth) + minFunnelWidth;
 
-  // Calculate x-coordinates to center the trapezoid
-  const x1 = x + (width - currentTopWidth) / 2; // Top-left x
-  const x2 = x + (width + currentTopWidth) / 2; // Top-right x
-  const x3 = x + (width + currentBottomWidth) / 2; // Bottom-right x
-  const x4 = x + (width - currentBottomWidth) / 2; // Bottom-left x
+  // Calculate x-coordinates to center the trapezoid within the plotting area
+  const centerX = chartPlottingWidth / 2;
+
+  const xTopLeft = centerX - topEdgeWidth / 2 + (margin.left || 0);
+  const xTopRight = centerX + topEdgeWidth / 2 + (margin.left || 0);
+  const xBottomLeft = centerX - bottomEdgeWidth / 2 + (margin.left || 0);
+  const xBottomRight = centerX + bottomEdgeWidth / 2 + (margin.left || 0);
 
   // Points for the trapezoid: (top-left, top-right, bottom-right, bottom-left)
   return (
     <path
-      d={`M${x1} ${y} 
-          L${x2} ${y} 
-          L${x3} ${y + height} 
-          L${x4} ${y + height} Z`}
+      d={`M${xTopLeft} ${y}
+          L${xTopRight} ${y}
+          L${xBottomRight} ${y + height}
+          L${xBottomLeft} ${y + height} Z`}
       fill={fill}
     />
   );
