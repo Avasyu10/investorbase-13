@@ -5,30 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieCha
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { TrendingUp, TrendingDown, Building2, Star } from "lucide-react";
 
-const COLORS = ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
-
-// Helper function to safely convert to number and validate
-const safeNumber = (value: any, defaultValue: number = 0): number => {
-  if (value === null || value === undefined) return defaultValue;
-  const num = typeof value === 'number' ? value : parseFloat(value);
-  return isNaN(num) || !isFinite(num) ? defaultValue : num;
-};
-
-// Helper function to validate chart data
-const validateChartData = (data: any[]): any[] => {
-  return data.filter(item => {
-    if (!item || typeof item !== 'object') return false;
-    
-    // Check all numeric values in the item
-    for (const [key, value] of Object.entries(item)) {
-      if (typeof value === 'number' && (isNaN(value) || !isFinite(value))) {
-        console.warn(`Invalid numeric value found: ${key} = ${value}`, item);
-        return false;
-      }
-    }
-    return true;
-  });
-};
+const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
 export function VCDashboard() {
   const { companies, isLoading, potentialStats } = useCompanies(1, 100); // Get all companies for analytics
@@ -47,137 +24,63 @@ export function VCDashboard() {
     );
   }
 
-  // Validate companies data and filter out any with invalid scores
-  const validCompanies = companies.filter(company => {
-    const score = safeNumber(company.overall_score);
-    return score >= 0 && score <= 100;
-  });
-
-  console.log(`Processing ${validCompanies.length} valid companies out of ${companies.length} total`);
-
-  // Process data for charts with comprehensive validation
+  // Process data for charts
   const scoreDistribution = [
-    { range: "90-100", count: validCompanies.filter(c => safeNumber(c.overall_score) >= 90).length },
-    { range: "80-89", count: validCompanies.filter(c => safeNumber(c.overall_score) >= 80 && safeNumber(c.overall_score) < 90).length },
-    { range: "70-79", count: validCompanies.filter(c => safeNumber(c.overall_score) >= 70 && safeNumber(c.overall_score) < 80).length },
-    { range: "60-69", count: validCompanies.filter(c => safeNumber(c.overall_score) >= 60 && safeNumber(c.overall_score) < 70).length },
-    { range: "50-59", count: validCompanies.filter(c => safeNumber(c.overall_score) >= 50 && safeNumber(c.overall_score) < 60).length },
-    { range: "Below 50", count: validCompanies.filter(c => safeNumber(c.overall_score) < 50).length }
+    { range: "90-100", count: companies.filter(c => c.overall_score >= 90).length, color: COLORS[0] },
+    { range: "80-89", count: companies.filter(c => c.overall_score >= 80 && c.overall_score < 90).length, color: COLORS[1] },
+    { range: "70-79", count: companies.filter(c => c.overall_score >= 70 && c.overall_score < 80).length, color: COLORS[2] },
+    { range: "60-69", count: companies.filter(c => c.overall_score >= 60 && c.overall_score < 70).length, color: COLORS[3] },
+    { range: "50-59", count: companies.filter(c => c.overall_score >= 50 && c.overall_score < 60).length, color: COLORS[4] },
+    { range: "Below 50", count: companies.filter(c => c.overall_score < 50).length, color: 'hsl(var(--destructive))' }
   ];
 
-  const industryDistribution = validCompanies.reduce((acc, company) => {
+  const industryDistribution = companies.reduce((acc, company) => {
     const industry = company.industry || 'Unknown';
     acc[industry] = (acc[industry] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
-  const industryData = validateChartData(
-    Object.entries(industryDistribution)
-      .map(([industry, count]) => ({
-        industry,
-        count: safeNumber(count)
-      }))
-      .filter(item => item.count > 0)
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 8)
-  );
-
-  // Calculate section metrics with enhanced validation
-  const sectionMetrics = validCompanies.reduce((acc, company) => {
-    if (!company.assessment_points || !Array.isArray(company.assessment_points)) {
-      return acc;
-    }
-
-    company.assessment_points.forEach(point => {
-      if (!point || typeof point !== 'string') return;
-
-      const colonIndex = point.indexOf(':');
-      if (colonIndex <= 0) return;
-
-      const sectionName = point.substring(0, colonIndex).trim();
-      if (!sectionName) return;
-
-      const content = point.substring(colonIndex + 1).trim().toLowerCase();
-      
-      // More robust scoring logic
-      let score = 50; // default neutral score
-      
-      if (content.includes('excellent') || content.includes('outstanding') || content.includes('exceptional')) {
-        score = 90;
-      } else if (content.includes('very good') || content.includes('strong') || content.includes('great')) {
-        score = 80;
-      } else if (content.includes('good') || content.includes('solid') || content.includes('promising')) {
-        score = 70;
-      } else if (content.includes('fair') || content.includes('decent') || content.includes('moderate')) {
-        score = 60;
-      } else if (content.includes('average') || content.includes('acceptable')) {
-        score = 55;
-      } else if (content.includes('below average') || content.includes('weak')) {
-        score = 40;
-      } else if (content.includes('poor') || content.includes('very weak') || content.includes('inadequate')) {
-        score = 30;
-      }
-
-      // Validate the calculated score
-      score = safeNumber(score, 50);
-      
-      if (!acc[sectionName]) {
-        acc[sectionName] = { total: 0, count: 0, scores: [] };
-      }
-      
-      acc[sectionName].total += score;
-      acc[sectionName].count += 1;
-      acc[sectionName].scores.push(score);
-    });
-    
-    return acc;
-  }, {} as Record<string, { total: number; count: number; scores: number[] }>);
-
-  const sectionMetricsData = validateChartData(
-    Object.entries(sectionMetrics)
-      .map(([section, data]) => {
-        const averageScore = data.count > 0 ? safeNumber(data.total / data.count) : 0;
-        return {
-          section: section.length > 15 ? section.substring(0, 15) + '...' : section,
-          averageScore: Math.round(averageScore),
-          companies: data.count
-        };
-      })
-      .filter(item => item.companies > 0 && item.averageScore > 0)
-      .sort((a, b) => b.averageScore - a.averageScore)
-      .slice(0, 8)
-  );
-
-  // Top performing companies with validation
-  const topCompanies = validCompanies
-    .map(company => ({
-      ...company,
-      overall_score: safeNumber(company.overall_score)
+  const industryData = Object.entries(industryDistribution)
+    .map(([industry, count], index) => ({
+      industry,
+      count,
+      color: COLORS[index % COLORS.length]
     }))
-    .filter(company => company.overall_score > 0)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8); // Top 8 industries
+
+  const sourceDistribution = companies.reduce((acc, company) => {
+    const source = company.source || 'dashboard';
+    acc[source] = (acc[source] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const sourceData = Object.entries(sourceDistribution).map(([source, count], index) => ({
+    source: source.charAt(0).toUpperCase() + source.slice(1),
+    count,
+    color: COLORS[index % COLORS.length]
+  }));
+
+  // Top performing companies
+  const topCompanies = [...companies]
     .sort((a, b) => b.overall_score - a.overall_score)
     .slice(0, 10);
 
-  // Score trend data with validation
-  const trendData = validateChartData([
+  // Score trend data (simulated monthly data)
+  const trendData = [
     { month: 'Jan', avgScore: 68, companies: 12 },
     { month: 'Feb', avgScore: 71, companies: 18 },
     { month: 'Mar', avgScore: 69, companies: 25 },
     { month: 'Apr', avgScore: 73, companies: 32 },
     { month: 'May', avgScore: 75, companies: 28 },
-    { month: 'Jun', avgScore: 77, companies: validCompanies.length }
-  ]);
+    { month: 'Jun', avgScore: 77, companies: companies.length }
+  ];
 
-  // Calculate metrics with validation
-  const validScores = validCompanies.map(c => safeNumber(c.overall_score)).filter(score => score > 0);
-  const averageScore = validScores.length > 0 ? 
-    safeNumber(validScores.reduce((sum, score) => sum + score, 0) / validScores.length).toFixed(1) : '0';
+  const averageScore = companies.length > 0 ? 
+    (companies.reduce((sum, c) => sum + c.overall_score, 0) / companies.length).toFixed(1) : 0;
 
-  const highPotentialCount = validCompanies.filter(c => safeNumber(c.overall_score) >= 80).length;
-  const mediumPotentialCount = validCompanies.filter(c => {
-    const score = safeNumber(c.overall_score);
-    return score >= 60 && score < 80;
-  }).length;
+  const highPotentialCount = companies.filter(c => c.overall_score >= 80).length;
+  const mediumPotentialCount = companies.filter(c => c.overall_score >= 60 && c.overall_score < 80).length;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -188,7 +91,7 @@ export function VCDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Companies</p>
-                <p className="text-2xl font-bold">{validCompanies.length}</p>
+                <p className="text-2xl font-bold">{companies.length}</p>
               </div>
               <Building2 className="h-8 w-8 text-primary" />
             </div>
@@ -244,18 +147,18 @@ export function VCDashboard() {
               config={{
                 count: {
                   label: "Companies",
-                  color: "hsl(262.1 83.3% 57.8%)",
+                  color: "hsl(var(--chart-1))",
                 },
               }}
               className="h-[300px]"
             >
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={validateChartData(scoreDistribution)}>
+                <BarChart data={scoreDistribution}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="range" />
                   <YAxis />
                   <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="count" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="count" fill="var(--color-count)" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </ChartContainer>
@@ -263,44 +166,42 @@ export function VCDashboard() {
         </Card>
 
         {/* Industry Distribution */}
-        {industryData.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Industry Distribution</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer
-                config={{
-                  count: {
-                    label: "Companies",
-                    color: "hsl(198.6 88.7% 48.4%)",
-                  },
-                }}
-                className="h-[300px]"
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={industryData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ industry, percent }) => `${industry} ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="count"
-                    >
-                      {industryData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-        )}
+        <Card>
+          <CardHeader>
+            <CardTitle>Industry Distribution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer
+              config={{
+                count: {
+                  label: "Companies",
+                  color: "hsl(var(--chart-2))",
+                },
+              }}
+              className="h-[300px]"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={industryData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ industry, percent }) => `${industry} ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="count"
+                  >
+                    {industryData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                </PieChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
 
         {/* Score Trend */}
         <Card>
@@ -312,7 +213,7 @@ export function VCDashboard() {
               config={{
                 avgScore: {
                   label: "Average Score",
-                  color: "hsl(142.1 76.2% 36.3%)",
+                  color: "hsl(var(--chart-3))",
                 },
               }}
               className="h-[300px]"
@@ -326,8 +227,8 @@ export function VCDashboard() {
                   <Area
                     type="monotone"
                     dataKey="avgScore"
-                    stroke="#10b981"
-                    fill="#10b981"
+                    stroke="var(--color-avgScore)"
+                    fill="var(--color-avgScore)"
                     fillOpacity={0.3}
                   />
                 </AreaChart>
@@ -336,68 +237,64 @@ export function VCDashboard() {
           </CardContent>
         </Card>
 
-        {/* Section Metrics Performance */}
-        {sectionMetricsData.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Section Metrics Performance</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer
-                config={{
-                  averageScore: {
-                    label: "Average Score",
-                    color: "hsl(24.6 95% 53.1%)",
-                  },
-                }}
-                className="h-[300px]"
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={sectionMetricsData} layout="horizontal">
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" domain={[0, 100]} />
-                    <YAxis dataKey="section" type="category" width={100} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Bar dataKey="averageScore" fill="#f59e0b" radius={[0, 4, 4, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-        )}
+        {/* Source Distribution */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Company Sources</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer
+              config={{
+                count: {
+                  label: "Companies",
+                  color: "hsl(var(--chart-4))",
+                },
+              }}
+              className="h-[300px]"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={sourceData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="source" />
+                  <YAxis />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Bar dataKey="count" fill="var(--color-count)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Top Performing Companies */}
-      {topCompanies.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Top Performing Companies</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {topCompanies.map((company, index) => (
-                <div key={company.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
-                      {index + 1}
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">{company.name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {company.industry || 'Unknown Industry'}
-                      </p>
-                    </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Top Performing Companies</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {topCompanies.map((company, index) => (
+              <div key={company.id} className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex items-center space-x-4">
+                  <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
+                    {index + 1}
                   </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-primary">{company.overall_score.toFixed(1)}</div>
-                    <div className="text-sm text-muted-foreground">Score</div>
+                  <div>
+                    <h3 className="font-semibold">{company.name}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {company.industry || 'Unknown Industry'}
+                    </p>
                   </div>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-primary">{company.overall_score}</div>
+                  <div className="text-sm text-muted-foreground">Score</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
