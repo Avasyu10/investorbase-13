@@ -62,30 +62,30 @@ export function VCDashboard() {
 
   // More granular mock data linking persons, channels, industries, and statuses
   const allProspectData = useMemo(() => [
-    // Roohi's Data
-    { person: 'Roohi', channel: 'LinkedIn', industry: 'Tech', uniqueOutreaches: 20, followUps: 4, replies: 2, meetings: 1, status: 'Accepted' },
-    { person: 'Roohi', channel: 'LinkedIn', industry: 'Finance', uniqueOutreaches: 20, followUps: 4, replies: 3, meetings: 0, status: 'Rejected' },
-    { person: 'Roohi', channel: 'Others', industry: 'Healthcare', uniqueOutreaches: 15, followUps: 2, replies: 1, meetings: 0, status: 'Under Review' },
-    { person: 'Roohi', channel: 'Calls', industry: 'Retail', uniqueOutreaches: 12, followUps: 2, replies: 1, meetings: 0, status: 'Initial Contact' },
-    { person: 'Roohi', channel: 'Mail', industry: 'Tech', uniqueOutreaches: 8, followUps: 1, replies: 0, meetings: 0, status: 'Initial Contact' },
+    // Roohi's Data (scaled up)
+    { person: 'Roohi', channel: 'LinkedIn', industry: 'Tech', uniqueOutreaches: 120, followUps: 25, replies: 15, meetings: 3, status: 'Accepted' },
+    { person: 'Roohi', channel: 'LinkedIn', industry: 'Finance', uniqueOutreaches: 100, followUps: 20, replies: 10, meetings: 1, status: 'Rejected' },
+    { person: 'Roohi', channel: 'Others', industry: 'Healthcare', uniqueOutreaches: 80, followUps: 15, replies: 8, meetings: 0, status: 'Under Review' },
+    { person: 'Roohi', channel: 'Calls', industry: 'Retail', uniqueOutreaches: 60, followUps: 10, replies: 5, meetings: 0, status: 'Initial Contact' },
+    { person: 'Roohi', channel: 'Mail', industry: 'Tech', uniqueOutreaches: 40, followUps: 5, replies: 2, meetings: 0, status: 'Initial Contact' },
 
-    // Avasyu's Data
-    { person: 'Avasyu', channel: 'LinkedIn', industry: 'Finance', uniqueOutreaches: 25, followUps: 5, replies: 3, meetings: 0, status: 'Under Review' },
-    { person: 'Avasyu', channel: 'Others', industry: 'Tech', uniqueOutreaches: 35, followUps: 7, replies: 4, meetings: 1, status: 'Accepted' },
-    { person: 'Avasyu', channel: 'Calls', industry: 'Healthcare', uniqueOutreaches: 10, followUps: 1, replies: 0, meetings: 0, status: 'Rejected' },
-    { person: 'Avasyu', channel: 'Mail', industry: 'Retail', uniqueOutreaches: 15, followUps: 3, replies: 1, meetings: 0, status: 'Initial Contact' },
+    // Avasyu's Data (scaled up)
+    { person: 'Avasyu', channel: 'LinkedIn', industry: 'Finance', uniqueOutreaches: 110, followUps: 22, replies: 12, meetings: 0, status: 'Under Review' },
+    { person: 'Avasyu', channel: 'Others', industry: 'Tech', uniqueOutreaches: 150, followUps: 30, replies: 18, meetings: 2, status: 'Accepted' },
+    { person: 'Avasyu', channel: 'Calls', industry: 'Healthcare', uniqueOutreaches: 70, followUps: 12, replies: 6, meetings: 0, status: 'Rejected' },
+    { person: 'Avasyu', channel: 'Mail', industry: 'Retail', uniqueOutreaches: 90, followUps: 18, replies: 7, meetings: 0, status: 'Initial Contact' },
 
-    // Kanishk's Data
-    { person: 'Kanishk', channel: 'LinkedIn', industry: 'Healthcare', uniqueOutreaches: 30, followUps: 6, replies: 4, meetings: 0, status: 'Initial Contact' },
-    { person: 'Kanishk', channel: 'Others', industry: 'Retail', uniqueOutreaches: 20, followUps: 3, replies: 1, meetings: 0, status: 'Rejected' },
-    { person: 'Kanishk', channel: 'Calls', industry: 'Tech', uniqueOutreaches: 20, followUps: 4, replies: 2, meetings: 1, status: 'Accepted' },
-    { person: 'Kanishk', channel: 'Mail', industry: 'Finance', uniqueOutreaches: 10, followUps: 2, replies: 1, meetings: 0, status: 'Under Review' },
+    // Kanishk's Data (scaled up)
+    { person: 'Kanishk', channel: 'LinkedIn', industry: 'Healthcare', uniqueOutreaches: 130, followUps: 28, replies: 16, meetings: 0, status: 'Initial Contact' },
+    { person: 'Kanishk', channel: 'Others', industry: 'Retail', uniqueOutreaches: 95, followUps: 17, replies: 9, meetings: 0, status: 'Rejected' },
+    { person: 'Kanishk', channel: 'Calls', industry: 'Tech', uniqueOutreaches: 115, followUps: 23, replies: 13, meetings: 1, status: 'Accepted' },
+    { person: 'Kanishk', channel: 'Mail', industry: 'Finance', uniqueOutreaches: 55, followUps: 10, replies: 4, meetings: 0, status: 'Under Review' },
 
-    // Tanisha's Data
-    { person: 'Tanisha', channel: 'LinkedIn', industry: 'Retail', uniqueOutreaches: 15, followUps: 3, replies: 1, meetings: 0, status: 'Initial Contact' },
-    { person: 'Tanisha', channel: 'Others', industry: 'Tech', uniqueOutreaches: 18, followUps: 2, replies: 0, meetings: 0, status: 'Rejected' },
-    { person: 'Tanisha', channel: 'Calls', industry: 'Finance', uniqueOutreaches: 25, followUps: 5, replies: 3, meetings: 0, status: 'Under Review' },
-    { person: 'Tanisha', channel: 'Mail', industry: 'Healthcare', uniqueOutreaches: 30, followUps: 6, replies: 4, meetings: 1, status: 'Accepted' }
+    // Tanisha's Data (scaled up)
+    { person: 'Tanisha', channel: 'LinkedIn', industry: 'Retail', uniqueOutreaches: 85, followUps: 16, replies: 7, meetings: 0, status: 'Initial Contact' },
+    { person: 'Tanisha', channel: 'Others', industry: 'Tech', uniqueOutreaches: 105, followUps: 20, replies: 10, meetings: 0, status: 'Rejected' },
+    { person: 'Tanisha', channel: 'Calls', industry: 'Finance', uniqueOutreaches: 140, followUps: 28, replies: 17, meetings: 0, status: 'Under Review' },
+    { person: 'Tanisha', channel: 'Mail', industry: 'Healthcare', uniqueOutreaches: 160, followUps: 32, replies: 20, meetings: 2, status: 'Accepted' }
   ], []);
 
 
