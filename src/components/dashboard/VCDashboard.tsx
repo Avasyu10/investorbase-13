@@ -17,7 +17,6 @@ const useCompanies = (page, limit) => {
   return { companies, isLoading: false, potentialStats: {} };
 };
 
-
 // Define proper color values using CSS variables
 const CHART_COLORS = [
   '#3b82f6', // blue-500
@@ -41,7 +40,7 @@ export function VCDashboard() {
   const { companies, isLoading, potentialStats } = useCompanies(1, 100);
 
   // State to manage the selected persons for the filter (now an array)
-  // Default to 'Roohi' being selected
+  // Default to 'Roohi' being selected if no specific selection is made, or if all are deselected.
   const [selectedPersons, setSelectedPersons] = useState(['Roohi']);
 
   const availablePersons = ['Roohi', 'Avasyu', 'Kanishk', 'Tanisha'];
@@ -93,11 +92,11 @@ export function VCDashboard() {
     ]
   };
 
-  // Get the channel data for the *first* currently selected person
-  // If no person is selected, default to Roohi's data or an empty array
+  // Get the channel data for the *first* currently selected person.
+  // If selectedPersons is empty, default to 'Roohi's data to ensure chart is always displayed.
   const currentChannelData = selectedPersons.length > 0
-    ? channelDataByPerson[selectedPersons[0]] || []
-    : [];
+    ? channelDataByPerson[selectedPersons[0]]
+    : channelDataByPerson['Roohi']; // Default to Roohi's data
 
 
   const meetingCategoriesData = [
@@ -144,16 +143,17 @@ export function VCDashboard() {
     setSelectedPersons((prevSelected) => {
       if (prevSelected.includes(personName)) {
         // If already selected, remove it
-        return prevSelected.filter((name) => name !== personName);
+        const newSelection = prevSelected.filter((name) => name !== personName);
+        // If deselecting the last one, default to 'Roohi' to prevent empty chart
+        return newSelection.length === 0 ? ['Roohi'] : newSelection;
       } else {
         // If not selected, add it (and ensure only one is selected if you want single-select behavior)
         // For multi-select: return [...prevSelected, personName];
-        // For single-select with checkboxes:
+        // For single-select with checkboxes (as per current design, only one chart shown):
         return [personName]; // Only the newly selected one
       }
     });
   };
-
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -203,10 +203,10 @@ export function VCDashboard() {
           <CardHeader>
             <CardTitle>Unique Outreaches, Follow ups and Replies by Channel</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col md:flex-row gap-4"> {/* Use flex for layout */}
+          <CardContent className="flex flex-col md:flex-row gap-4">
             {/* POC Checkbox Filter */}
-            <div className="flex-shrink-0 w-full md:w-1/4"> {/* Adjust width as needed */}
-              <h3 className="text-lg font-semibold mb-2">POC</h3> {/* New heading */}
+            <div className="flex-shrink-0 w-full md:w-1/4">
+              <h3 className="text-lg font-semibold mb-2 text-white">POC</h3> {/* Added text-white */}
               <div className="space-y-2">
                 {availablePersons.map((personName) => (
                   <div key={personName} className="flex items-center">
@@ -217,7 +217,7 @@ export function VCDashboard() {
                       onChange={() => handleCheckboxChange(personName)}
                       className="form-checkbox h-4 w-4 text-blue-600 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:checked:bg-blue-600 dark:focus:ring-blue-600"
                     />
-                    <label htmlFor={`checkbox-${personName}`} className="ml-2 text-sm text-gray-900 dark:text-gray-200 cursor-pointer">
+                    <label htmlFor={`checkbox-${personName}`} className="ml-2 text-sm text-white cursor-pointer"> {/* Changed to text-white */}
                       {personName}
                     </label>
                   </div>
