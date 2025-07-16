@@ -1,7 +1,8 @@
+import { useState } from 'react'; // Import useState
 import { useCompanies } from "@/hooks/useCompanies";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, RadialBarChart, RadialBar, AreaChart, Area, Legend, PieChart, Pie, Cell } from "recharts";
-import { ChartTooltip } from "@/components/ui/chart"; // Removed ChartTooltipContent as it's not used
+import { ChartTooltip } from "@/components/ui/chart";
 import { TrendingUp, TrendingDown, Building2, Star } from "lucide-react";
 
 // Define proper color values using CSS variables
@@ -16,7 +17,6 @@ const CHART_COLORS = [
   '#f97316', // orange-500
 ];
 
-// Replaced PURPLE_SHADES with BLUE_SHADES for consistency with the existing blue in the Meeting Categories
 const BLUE_SHADES = [
   '#3b82f6', // blue-500
   '#2563eb', // blue-600
@@ -25,7 +25,10 @@ const BLUE_SHADES = [
 ];
 
 export function VCDashboard() {
-  const { companies, isLoading, potentialStats } = useCompanies(1, 100); // Get all companies for analytics
+  const { companies, isLoading, potentialStats } = useCompanies(1, 100);
+
+  // State to manage the selected person for the filter
+  const [selectedPerson, setSelectedPerson] = useState('Roohi'); // Default selected person
 
   if (isLoading) {
     return (
@@ -41,27 +44,48 @@ export function VCDashboard() {
     );
   }
 
-  // Mock data for the new metrics
   const uniqueOutreaches = companies.length;
-  const followUps = 15; // Mock data
-  const replies = 8; // Mock data
-  const meetings = 1; // Mock data
+  const followUps = 15;
+  const replies = 8;
+  const meetings = 1;
 
-  // Mock data for channel distribution (replacing score distribution)
-  const channelData = [
-    { channel: 'LinkedIn', uniqueOutreaches: 40, followUps: 8, replies: 5 },
-    { channel: 'Others', uniqueOutreaches: 28, followUps: 4, replies: 2 },
-    { channel: 'Calls', uniqueOutreaches: 12, followUps: 2, replies: 1 },
-    { channel: 'Mail', uniqueOutreaches: 8, followUps: 1, replies: 0 }
-  ];
+  // Mock data for channel distribution, now categorized by person
+  const channelDataByPerson = {
+    'Roohi': [
+      { channel: 'LinkedIn', uniqueOutreaches: 40, followUps: 8, replies: 5 },
+      { channel: 'Others', uniqueOutreaches: 28, followUps: 4, replies: 2 },
+      { channel: 'Calls', uniqueOutreaches: 12, followUps: 2, replies: 1 },
+      { channel: 'Mail', uniqueOutreaches: 8, followUps: 1, replies: 0 }
+    ],
+    'Avasyu': [
+      { channel: 'LinkedIn', uniqueOutreaches: 25, followUps: 5, replies: 3 },
+      { channel: 'Others', uniqueOutreaches: 35, followUps: 7, replies: 4 },
+      { channel: 'Calls', uniqueOutreaches: 10, followUps: 1, replies: 0 },
+      { channel: 'Mail', uniqueOutreaches: 15, followUps: 3, replies: 1 }
+    ],
+    'Kanishk': [
+      { channel: 'LinkedIn', uniqueOutreaches: 30, followUps: 6, replies: 4 },
+      { channel: 'Others', uniqueOutreaches: 20, followUps: 3, replies: 1 },
+      { channel: 'Calls', uniqueOutreaches: 20, followUps: 4, replies: 2 },
+      { channel: 'Mail', uniqueOutreaches: 10, followUps: 2, replies: 1 }
+    ],
+    'Tanisha': [
+      { channel: 'LinkedIn', uniqueOutreaches: 15, followUps: 3, replies: 1 },
+      { channel: 'Others', uniqueOutreaches: 18, followUps: 2, replies: 0 },
+      { channel: 'Calls', uniqueOutreaches: 25, followUps: 5, replies: 3 },
+      { channel: 'Mail', uniqueOutreaches: 30, followUps: 6, replies: 4 }
+    ]
+  };
 
-  // Mock data for meeting categories (replacing section metrics)
+  // Get the channel data for the currently selected person
+  const currentChannelData = channelDataByPerson[selectedPerson];
+
+
   const meetingCategoriesData = [
     { name: 'Product Demos', value: 85, fill: '#1e40af' },
     { name: 'Discovery Calls', value: 15, fill: '#3b82f6' }
   ];
 
-  // Process data for charts
   const industryDistribution = companies.reduce((acc, company) => {
     const industry = company.industry || 'Unknown';
     acc[industry] = (acc[industry] || 0) + 1;
@@ -75,14 +99,12 @@ export function VCDashboard() {
       fill: CHART_COLORS[index % CHART_COLORS.length]
     }))
     .sort((a, b) => b.count - a.count)
-    .slice(0, 8); // Top 8 industries
+    .slice(0, 8);
 
-  // Top performing companies
   const topCompanies = [...companies]
     .sort((a, b) => b.overall_score - a.overall_score)
     .slice(0, 10);
 
-  // Score trend data (simulated monthly data)
   const trendData = [
     { month: 'Jan', avgScore: 68, companies: 12 },
     { month: 'Feb', avgScore: 71, companies: 18 },
@@ -102,7 +124,6 @@ export function VCDashboard() {
     <div className="space-y-6 animate-fade-in">
       {/* Key Metrics Cards - New Design */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Changed violet gradients to blue gradients */}
         <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
           <CardContent className="p-6 text-center">
             <div>
@@ -142,19 +163,36 @@ export function VCDashboard() {
 
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Channel Distribution */}
+        {/* Channel Distribution with Filter */}
         <Card>
           <CardHeader>
             <CardTitle>Unique Outreaches, Follow ups and Replies by Channel</CardTitle>
+            {/* Filter Dropdown */}
+            <div className="mt-4">
+              <label htmlFor="person-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Select Person:
+              </label>
+              <select
+                id="person-select"
+                value={selectedPerson}
+                onChange={(e) => setSelectedPerson(e.target.value)}
+                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+              >
+                {Object.keys(channelDataByPerson).map((personName) => (
+                  <option key={personName} value={personName}>
+                    {personName}
+                  </option>
+                ))}
+              </select>
+            </div>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={channelData}>
+              <BarChart data={currentChannelData}> {/* Use currentChannelData */}
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="channel" />
                 <YAxis />
                 <ChartTooltip />
-                {/* Changed fill colors to BLUE_SHADES */}
                 <Bar dataKey="uniqueOutreaches" fill={BLUE_SHADES[0]} name="Unique Outreaches" />
                 <Bar dataKey="followUps" fill={BLUE_SHADES[1]} name="Follow Ups" />
                 <Bar dataKey="replies" fill={BLUE_SHADES[2]} name="Replies" />
@@ -200,7 +238,6 @@ export function VCDashboard() {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <RadialBarChart cx="50%" cy="50%" innerRadius="20%" outerRadius="80%" data={industryData}>
-                {/* Changed fill color to a shade of blue for consistency */}
                 <RadialBar dataKey="count" cornerRadius={10} fill={BLUE_SHADES[0]} />
                 <Legend
                   iconSize={10}
@@ -235,7 +272,7 @@ export function VCDashboard() {
                 <Area
                   type="monotone"
                   dataKey="avgScore"
-                  stroke={CHART_COLORS[2]} // Keeping green/emerald for trend, as it signifies growth
+                  stroke={CHART_COLORS[2]}
                   fill={CHART_COLORS[2]}
                   fillOpacity={0.3}
                 />
