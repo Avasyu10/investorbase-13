@@ -111,7 +111,7 @@ const Dashboard = () => {
       <div className="animate-fade-in">
         <div className="container mx-auto px-4 py-6">
           <Button onClick={() => setShowVcDashboard(false)} className="mb-4">
-            Back to Dashboard
+            Back
           </Button>
           <VCDashboard />
         </div>
@@ -133,7 +133,7 @@ const Dashboard = () => {
           {/* New Button for VC Dashboard */}
           {isVC && !isVCAndBits && (
             <Button onClick={() => setShowVcDashboard(true)} variant="outline" className="flex items-center">
-              <PieChart className="mr-2 h-4 w-4" /> {/* Icon from image */}
+              
               Business Dashboard
             </Button>
           )}
