@@ -5,7 +5,17 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieCha
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { TrendingUp, TrendingDown, Building2, Star } from "lucide-react";
 
-const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
+// Define proper color values using CSS variables
+const CHART_COLORS = [
+  '#3b82f6', // blue-500
+  '#ef4444', // red-500
+  '#10b981', // emerald-500
+  '#f59e0b', // amber-500
+  '#8b5cf6', // violet-500
+  '#06b6d4', // cyan-500
+  '#84cc16', // lime-500
+  '#f97316', // orange-500
+];
 
 export function VCDashboard() {
   const { companies, isLoading, potentialStats } = useCompanies(1, 100); // Get all companies for analytics
@@ -26,12 +36,12 @@ export function VCDashboard() {
 
   // Process data for charts
   const scoreDistribution = [
-    { range: "90-100", count: companies.filter(c => c.overall_score >= 90).length, color: COLORS[0] },
-    { range: "80-89", count: companies.filter(c => c.overall_score >= 80 && c.overall_score < 90).length, color: COLORS[1] },
-    { range: "70-79", count: companies.filter(c => c.overall_score >= 70 && c.overall_score < 80).length, color: COLORS[2] },
-    { range: "60-69", count: companies.filter(c => c.overall_score >= 60 && c.overall_score < 70).length, color: COLORS[3] },
-    { range: "50-59", count: companies.filter(c => c.overall_score >= 50 && c.overall_score < 60).length, color: COLORS[4] },
-    { range: "Below 50", count: companies.filter(c => c.overall_score < 50).length, color: 'hsl(var(--destructive))' }
+    { range: "90-100", count: companies.filter(c => c.overall_score >= 90).length },
+    { range: "80-89", count: companies.filter(c => c.overall_score >= 80 && c.overall_score < 90).length },
+    { range: "70-79", count: companies.filter(c => c.overall_score >= 70 && c.overall_score < 80).length },
+    { range: "60-69", count: companies.filter(c => c.overall_score >= 60 && c.overall_score < 70).length },
+    { range: "50-59", count: companies.filter(c => c.overall_score >= 50 && c.overall_score < 60).length },
+    { range: "Below 50", count: companies.filter(c => c.overall_score < 50).length }
   ];
 
   const industryDistribution = companies.reduce((acc, company) => {
@@ -41,25 +51,44 @@ export function VCDashboard() {
   }, {} as Record<string, number>);
 
   const industryData = Object.entries(industryDistribution)
-    .map(([industry, count], index) => ({
+    .map(([industry, count]) => ({
       industry,
-      count,
-      color: COLORS[index % COLORS.length]
+      count
     }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 8); // Top 8 industries
 
-  const sourceDistribution = companies.reduce((acc, company) => {
-    const source = company.source || 'dashboard';
-    acc[source] = (acc[source] || 0) + 1;
+  // Process section metrics data from assessment points
+  const sectionMetrics = companies.reduce((acc, company) => {
+    if (company.assessment_points && Array.isArray(company.assessment_points)) {
+      company.assessment_points.forEach((point: string) => {
+        // Extract section name from assessment point (assuming format like "Business Model: 8.5/10")
+        const match = point.match(/^([^:]+):\s*(\d+(?:\.\d+)?)/);
+        if (match) {
+          const sectionName = match[1].trim();
+          const score = parseFloat(match[2]);
+          
+          if (!isNaN(score)) {
+            if (!acc[sectionName]) {
+              acc[sectionName] = { total: 0, count: 0 };
+            }
+            acc[sectionName].total += score;
+            acc[sectionName].count += 1;
+          }
+        }
+      });
+    }
     return acc;
-  }, {} as Record<string, number>);
+  }, {} as Record<string, { total: number; count: number }>);
 
-  const sourceData = Object.entries(sourceDistribution).map(([source, count], index) => ({
-    source: source.charAt(0).toUpperCase() + source.slice(1),
-    count,
-    color: COLORS[index % COLORS.length]
-  }));
+  const sectionData = Object.entries(sectionMetrics)
+    .map(([section, data]) => ({
+      section: section.length > 15 ? section.substring(0, 15) + '...' : section,
+      avgScore: Math.round((data.total / data.count) * 10) / 10 // Round to 1 decimal
+    }))
+    .filter(item => !isNaN(item.avgScore) && isFinite(item.avgScore))
+    .sort((a, b) => b.avgScore - a.avgScore)
+    .slice(0, 8); // Top 8 sections
 
   // Top performing companies
   const topCompanies = [...companies]
@@ -143,25 +172,15 @@ export function VCDashboard() {
             <CardTitle>Score Distribution</CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer
-              config={{
-                count: {
-                  label: "Companies",
-                  color: "hsl(var(--chart-1))",
-                },
-              }}
-              className="h-[300px]"
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={scoreDistribution}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="range" />
-                  <YAxis />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="count" fill="var(--color-count)" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={scoreDistribution}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="range" />
+                <YAxis />
+                <ChartTooltip />
+                <Bar dataKey="count" fill={CHART_COLORS[0]} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
 
@@ -171,35 +190,25 @@ export function VCDashboard() {
             <CardTitle>Industry Distribution</CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer
-              config={{
-                count: {
-                  label: "Companies",
-                  color: "hsl(var(--chart-2))",
-                },
-              }}
-              className="h-[300px]"
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={industryData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ industry, percent }) => `${industry} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="count"
-                  >
-                    {industryData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                </PieChart>
-              </ResponsiveContainer>
-            </ChartContainer>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={industryData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ industry, percent }) => `${industry} ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="count"
+                >
+                  {industryData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                  ))}
+                </Pie>
+                <ChartTooltip />
+              </PieChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
 
@@ -209,59 +218,45 @@ export function VCDashboard() {
             <CardTitle>Average Score Trend</CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer
-              config={{
-                avgScore: {
-                  label: "Average Score",
-                  color: "hsl(var(--chart-3))",
-                },
-              }}
-              className="h-[300px]"
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={trendData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis domain={[60, 80]} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Area
-                    type="monotone"
-                    dataKey="avgScore"
-                    stroke="var(--color-avgScore)"
-                    fill="var(--color-avgScore)"
-                    fillOpacity={0.3}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </ChartContainer>
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={trendData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis domain={[60, 80]} />
+                <ChartTooltip />
+                <Area
+                  type="monotone"
+                  dataKey="avgScore"
+                  stroke={CHART_COLORS[2]}
+                  fill={CHART_COLORS[2]}
+                  fillOpacity={0.3}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        {/* Source Distribution */}
+        {/* Section Metrics Performance */}
         <Card>
           <CardHeader>
-            <CardTitle>Company Sources</CardTitle>
+            <CardTitle>Section Metrics Performance</CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer
-              config={{
-                count: {
-                  label: "Companies",
-                  color: "hsl(var(--chart-4))",
-                },
-              }}
-              className="h-[300px]"
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={sourceData}>
+            {sectionData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={sectionData} layout="horizontal">
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="source" />
-                  <YAxis />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="count" fill="var(--color-count)" radius={[4, 4, 0, 0]} />
+                  <XAxis type="number" domain={[0, 10]} />
+                  <YAxis dataKey="section" type="category" width={100} />
+                  <ChartTooltip />
+                  <Bar dataKey="avgScore" fill={CHART_COLORS[3]} radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
-            </ChartContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                <p>No section metrics data available</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
