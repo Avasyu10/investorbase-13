@@ -1,7 +1,7 @@
 
 import { useCompanies } from "@/hooks/useCompanies";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, RadialBarChart, RadialBar, AreaChart, Area, Legend } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { TrendingUp, TrendingDown, Building2, Star } from "lucide-react";
 
@@ -51,9 +51,10 @@ export function VCDashboard() {
   }, {} as Record<string, number>);
 
   const industryData = Object.entries(industryDistribution)
-    .map(([industry, count]) => ({
+    .map(([industry, count], index) => ({
       industry,
-      count
+      count,
+      fill: CHART_COLORS[index % CHART_COLORS.length]
     }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 8); // Top 8 industries
@@ -62,13 +63,14 @@ export function VCDashboard() {
   const sectionMetrics = companies.reduce((acc, company) => {
     if (company.assessment_points && Array.isArray(company.assessment_points)) {
       company.assessment_points.forEach((point: string) => {
-        // Extract section name from assessment point (assuming format like "Business Model: 8.5/10")
-        const match = point.match(/^([^:]+):\s*(\d+(?:\.\d+)?)/);
+        // Extract section name and score from assessment point
+        // Expected format: "Section Name: 8.5/10" or "Section Name: 8.5"
+        const match = point.match(/^([^:]+):\s*(\d+(?:\.\d+)?)(?:\/\d+)?/);
         if (match) {
           const sectionName = match[1].trim();
           const score = parseFloat(match[2]);
           
-          if (!isNaN(score)) {
+          if (!isNaN(score) && isFinite(score)) {
             if (!acc[sectionName]) {
               acc[sectionName] = { total: 0, count: 0 };
             }
@@ -184,30 +186,26 @@ export function VCDashboard() {
           </CardContent>
         </Card>
 
-        {/* Industry Distribution */}
+        {/* Industry Distribution - RadialBar Chart */}
         <Card>
           <CardHeader>
             <CardTitle>Industry Distribution</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={industryData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ industry, percent }) => `${industry} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="count"
-                >
-                  {industryData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                  ))}
-                </Pie>
-                <ChartTooltip />
-              </PieChart>
+              <RadialBarChart cx="50%" cy="50%" innerRadius="20%" outerRadius="80%" data={industryData}>
+                <RadialBar dataKey="count" cornerRadius={10} fill="#8884d8" />
+                <Legend 
+                  iconSize={10} 
+                  layout="vertical" 
+                  verticalAlign="middle" 
+                  align="right"
+                  formatter={(value, entry) => `${entry.payload.industry}: ${entry.payload.count}`}
+                />
+                <ChartTooltip 
+                  formatter={(value, name, props) => [`${value} companies`, props.payload.industry]}
+                />
+              </RadialBarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
