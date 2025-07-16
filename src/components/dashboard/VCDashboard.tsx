@@ -1,9 +1,9 @@
 
 import { useCompanies } from "@/hooks/useCompanies";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Area, AreaChart, RadialBarChart, RadialBar, Legend } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { TrendingUp, TrendingDown, Building2, Star, DollarSign, Users } from "lucide-react";
+import { TrendingUp, TrendingDown, Building2, Star } from "lucide-react";
 
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
@@ -253,17 +253,13 @@ export function VCDashboard() {
               className="h-[300px]"
             >
               <ResponsiveContainer width="100%" height="100%">
-                <RadialBarChart cx="50%" cy="50%" innerRadius="20%" outerRadius="90%" data={sourceData}>
-                  <RadialBar
-                    minAngle={15}
-                    label={{ position: 'insideStart', fill: '#fff' }}
-                    background
-                    clockWise
-                    dataKey="count"
-                  />
-                  <Legend iconSize={10} />
+                <BarChart data={sourceData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="source" />
+                  <YAxis />
                   <ChartTooltip content={<ChartTooltipContent />} />
-                </RadialBarChart>
+                  <Bar dataKey="count" fill="var(--color-count)" radius={[4, 4, 0, 0]} />
+                </BarChart>
               </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
