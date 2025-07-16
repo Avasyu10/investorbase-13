@@ -12,7 +12,6 @@ import { FileUp, Loader2, Newspaper, ShieldCheck, Settings, GraduationCap, BarCh
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { EurekaSampleButton } from "@/components/profile/EurekaSampleButton";
-
 const Dashboard = () => {
   const {
     user,
@@ -34,7 +33,6 @@ const Dashboard = () => {
   const {
     toast
   } = useToast();
-
   useEffect(() => {
     if (!isLoading && !user) {
       console.log("User not authenticated, redirecting to home");
@@ -46,13 +44,12 @@ const Dashboard = () => {
     } else if (user && !profileLoading) {
       // Check if this is a general user (not any special user type)
       const isGeneralUser = !isIITBombay && !isVC && !isVCAndBits && !isViewOnly && !isBitsQuestion;
-      
       if (isGeneralUser) {
         console.log("General user detected, redirecting to upload page");
         navigate('/upload');
         return;
       }
-      
+
       // Redirect view-only users to the view-only dashboard
       if (isViewOnly) {
         console.log("User has view-only access, redirecting to view dashboard");
@@ -69,7 +66,6 @@ const Dashboard = () => {
     // Scroll to top when dashboard loads
     window.scrollTo(0, 0);
   }, [user, isLoading, navigate, profile, isIITBombay, isVC, isViewOnly, profileLoading, isVCAndBits, isBitsQuestion]);
-
   const checkAdminStatus = async () => {
     if (!user) return;
     try {
@@ -95,7 +91,6 @@ const Dashboard = () => {
       console.error('Error in admin check:', err);
     }
   };
-
   if (isLoading || profileLoading) {
     return <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -108,9 +103,7 @@ const Dashboard = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
           <div className="flex items-center gap-3">
             {isIITBombay && <GraduationCap className="h-8 w-8 text-primary" />}
-            <h1 className="text-3xl font-bold tracking-tight">
-              {isIITBombay ? "Eureka Dashboard" : "Dashboard"}
-            </h1>
+            
           </div>
           <div className="flex flex-col sm:flex-row gap-2 mt-4 sm:mt-0">
             {isAdmin && <Button onClick={() => navigate("/admin")} variant="outline" className="flex items-center">
@@ -165,5 +158,4 @@ const Dashboard = () => {
       {isVC && !isVCAndBits && <VCChatInterface open={chatOpen} onOpenChange={setChatOpen} />}
     </div>;
 };
-
 export default Dashboard;
