@@ -60,38 +60,33 @@ export function VCDashboard() {
     );
   }
 
-  // More granular mock data linking persons, channels, industries, and statuses (SCALED UP)
-  const allProspectData = useMemo(() => {
-    const data = [];
-    const baseOutreaches = 50;
-    const baseFollowUps = 10;
-    const baseReplies = 5;
-    const baseMeetings = 1;
+  // More granular mock data linking persons, channels, industries, and statuses
+  const allProspectData = useMemo(() => [
+    // Roohi's Data
+    { person: 'Roohi', channel: 'LinkedIn', industry: 'Tech', uniqueOutreaches: 20, followUps: 4, replies: 2, meetings: 1, status: 'Accepted' },
+    { person: 'Roohi', channel: 'LinkedIn', industry: 'Finance', uniqueOutreaches: 20, followUps: 4, replies: 3, meetings: 0, status: 'Rejected' },
+    { person: 'Roohi', channel: 'Others', industry: 'Healthcare', uniqueOutreaches: 15, followUps: 2, replies: 1, meetings: 0, status: 'Under Review' },
+    { person: 'Roohi', channel: 'Calls', industry: 'Retail', uniqueOutreaches: 12, followUps: 2, replies: 1, meetings: 0, status: 'Initial Contact' },
+    { person: 'Roohi', channel: 'Mail', industry: 'Tech', uniqueOutreaches: 8, followUps: 1, replies: 0, meetings: 0, status: 'Initial Contact' },
 
-    const statuses = ['Initial Contact', 'Under Review', 'Accepted', 'Rejected'];
-    const channels = ['LinkedIn', 'Others', 'Calls', 'Mail'];
-    const industries = ['Tech', 'Finance', 'Healthcare', 'Retail'];
+    // Avasyu's Data
+    { person: 'Avasyu', channel: 'LinkedIn', industry: 'Finance', uniqueOutreaches: 25, followUps: 5, replies: 3, meetings: 0, status: 'Under Review' },
+    { person: 'Avasyu', channel: 'Others', industry: 'Tech', uniqueOutreaches: 35, followUps: 7, replies: 4, meetings: 1, status: 'Accepted' },
+    { person: 'Avasyu', channel: 'Calls', industry: 'Healthcare', uniqueOutreaches: 10, followUps: 1, replies: 0, meetings: 0, status: 'Rejected' },
+    { person: 'Avasyu', channel: 'Mail', industry: 'Retail', uniqueOutreaches: 15, followUps: 3, replies: 1, meetings: 0, status: 'Initial Contact' },
 
-    // Generate a larger dataset to get higher counts for funnel stages
-    for (let i = 0; i < 200; i++) { // Increased number of mock data entries
-      const person = availablePersons[i % availablePersons.length];
-      const channel = channels[i % channels.length];
-      const industry = industries[i % industries.length];
-      const status = statuses[i % statuses.length];
+    // Kanishk's Data
+    { person: 'Kanishk', channel: 'LinkedIn', industry: 'Healthcare', uniqueOutreaches: 30, followUps: 6, replies: 4, meetings: 0, status: 'Initial Contact' },
+    { person: 'Kanishk', channel: 'Others', industry: 'Retail', uniqueOutreaches: 20, followUps: 3, replies: 1, meetings: 0, status: 'Rejected' },
+    { person: 'Kanishk', channel: 'Calls', industry: 'Tech', uniqueOutreaches: 20, followUps: 4, replies: 2, meetings: 1, status: 'Accepted' },
+    { person: 'Kanishk', channel: 'Mail', industry: 'Finance', uniqueOutreaches: 10, followUps: 2, replies: 1, meetings: 0, status: 'Under Review' },
 
-      data.push({
-        person,
-        channel,
-        industry,
-        uniqueOutreaches: baseOutreaches + Math.floor(Math.random() * 20),
-        followUps: baseFollowUps + Math.floor(Math.random() * 5),
-        replies: baseReplies + Math.floor(Math.random() * 3),
-        meetings: baseMeetings + Math.floor(Math.random() * 1),
-        status
-      });
-    }
-    return data;
-  }, []);
+    // Tanisha's Data
+    { person: 'Tanisha', channel: 'LinkedIn', industry: 'Retail', uniqueOutreaches: 15, followUps: 3, replies: 1, meetings: 0, status: 'Initial Contact' },
+    { person: 'Tanisha', channel: 'Others', industry: 'Tech', uniqueOutreaches: 18, followUps: 2, replies: 0, meetings: 0, status: 'Rejected' },
+    { person: 'Tanisha', channel: 'Calls', industry: 'Finance', uniqueOutreaches: 25, followUps: 5, replies: 3, meetings: 0, status: 'Under Review' },
+    { person: 'Tanisha', channel: 'Mail', industry: 'Healthcare', uniqueOutreaches: 30, followUps: 6, replies: 4, meetings: 1, status: 'Accepted' }
+  ], []);
 
 
   // Filtered data based on selected persons and industries
@@ -327,7 +322,8 @@ export function VCDashboard() {
                   margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#4a5568" />
-                  <XAxis type="number" stroke="#cbd5e0" style={{ fontSize: '10px' }} />
+                  {/* Fixed X-axis domain to 0-3 */}
+                  <XAxis type="number" stroke="#cbd5e0" style={{ fontSize: '10px' }} domain={[0, 3]} />
                   <YAxis type="category" dataKey="name" stroke="#cbd5e0" style={{ fontSize: '10px' }} />
                   <ChartTooltip // Using ChartTooltip
                     contentStyle={{ backgroundColor: '#1f2937', borderColor: '#4a5568', color: '#ffffff' }}
