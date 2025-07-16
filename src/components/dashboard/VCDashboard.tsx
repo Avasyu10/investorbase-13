@@ -70,10 +70,11 @@ export function VCDashboard() {
     const baseMeetings = 1;
 
     // Base values for funnel stages, scaled up to be in the 100s
-    const baseInitialContact = 100;
-    const baseUnderReview = 75;
-    const baseAccepted = 50;
-    const baseRejected = 25;
+    // These values will be added to the counts from the loop to ensure higher totals
+    const manualInitialContact = 150;
+    const manualUnderReview = 100;
+    const manualAccepted = 70;
+    const manualRejected = 30;
 
 
     const statuses = ['Initial Contact', 'Under Review', 'Accepted', 'Rejected'];
@@ -96,11 +97,11 @@ export function VCDashboard() {
     });
 
     // Manually add some data to ensure high numbers for funnel stages
-    // This is a direct way to ensure the funnel values are high for demonstration
-    data.push({ person: 'Roohi', channel: 'LinkedIn', industry: 'Tech', uniqueOutreaches: 0, followUps: 0, replies: 0, meetings: 0, status: 'Initial Contact', value: 150 });
-    data.push({ person: 'Roohi', channel: 'LinkedIn', industry: 'Tech', uniqueOutreaches: 0, followUps: 0, replies: 0, meetings: 0, status: 'Under Review', value: 100 });
-    data.push({ person: 'Roohi', channel: 'LinkedIn', industry: 'Tech', uniqueOutreaches: 0, followUps: 0, replies: 0, meetings: 0, status: 'Accepted', value: 70 });
-    data.push({ person: 'Roohi', channel: 'LinkedIn', industry: 'Tech', uniqueOutreaches: 0, followUps: 0, replies: 0, meetings: 0, status: 'Rejected', value: 30 });
+    // These 'value' properties will be added to the counts from the loop
+    data.push({ person: 'Roohi', channel: 'LinkedIn', industry: 'Tech', uniqueOutreaches: 0, followUps: 0, replies: 0, meetings: 0, status: 'Initial Contact', value: manualInitialContact });
+    data.push({ person: 'Roohi', channel: 'LinkedIn', industry: 'Tech', uniqueOutreaches: 0, followUps: 0, replies: 0, meetings: 0, status: 'Under Review', value: manualUnderReview });
+    data.push({ person: 'Roohi', channel: 'LinkedIn', industry: 'Tech', uniqueOutreaches: 0, followUps: 0, replies: 0, meetings: 0, status: 'Accepted', value: manualAccepted });
+    data.push({ person: 'Roohi', channel: 'LinkedIn', industry: 'Tech', uniqueOutreaches: 0, followUps: 0, replies: 0, meetings: 0, status: 'Rejected', value: manualRejected });
 
 
     return data;
@@ -341,7 +342,7 @@ export function VCDashboard() {
                   margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#4a5568" />
-                  {/* Removed fixed domain to allow auto-scaling based on larger mock data */}
+                  {/* The X-axis domain is not fixed, allowing it to auto-scale based on data values. */}
                   <XAxis type="number" stroke="#cbd5e0" style={{ fontSize: '10px' }} />
                   <YAxis type="category" dataKey="name" stroke="#cbd5e0" style={{ fontSize: '10px' }} />
                   <ChartTooltip // Using ChartTooltip
