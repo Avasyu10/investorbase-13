@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Cell } from "recharts";
-import { ChartTooltip } from "@/components/ui/chart"; // Reverted to ChartTooltip from your UI components
+import { ChartTooltip } from "@/components/ui/chart";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"; // Import Select components
 
 // Mocking useCompanies for demonstration purposes if it's not available
 const useCompanies = (page, limit) => {
@@ -32,12 +33,20 @@ const BLUE_SHADES = [
   '#1e40af', // blue-800
 ];
 
+// New shades of blue for the funnel chart to create a gradient effect
+const FUNNEL_SHADES_OF_BLUE = [
+  '#1a5276', // Darkest blue for Initial Contact
+  '#21618C', // Darker blue for Under Review
+  '#2874A6', // Medium blue for Accepted
+  '#2E86C1', // Lighter blue for Rejected
+];
+
 export function VCDashboard() {
   const { companies, isLoading, potentialStats } = useCompanies(1, 100);
 
-  // Filter States
-  const [selectedPersons, setSelectedPersons] = useState(['Roohi']); // Default to Roohi
-  const [selectedIndustries, setSelectedIndustries] = useState(['Tech', 'Finance', 'Healthcare', 'Retail']); // All industries selected by default
+  // Filter States - now single selection for dropdowns
+  const [selectedPerson, setSelectedPerson] = useState('Roohi'); // Default to Roohi
+  const [selectedIndustry, setSelectedIndustry] = useState('Tech'); // Default to Tech
 
   // Mock Date States (for future implementation, not currently used in data filtering)
   const [startDate, setStartDate] = useState('2025-01-01');
@@ -60,7 +69,7 @@ export function VCDashboard() {
     );
   }
 
-  // More granular mock data linking persons, channels, industries, and statuses
+  // More granular mock data linking persons, channels, industries, and statuses (original scale)
   const allProspectData = useMemo(() => [
     // Roohi's Data
     { person: 'Roohi', channel: 'LinkedIn', industry: 'Tech', uniqueOutreaches: 20, followUps: 4, replies: 2, meetings: 1, status: 'Accepted' },
@@ -89,13 +98,13 @@ export function VCDashboard() {
   ], []);
 
 
-  // Filtered data based on selected persons and industries
+  // Filtered data based on selected person and industry
   const filteredData = useMemo(() => {
     return allProspectData.filter(item =>
-      selectedPersons.includes(item.person) &&
-      selectedIndustries.includes(item.industry)
+      item.person === selectedPerson &&
+      item.industry === selectedIndustry
     );
-  }, [selectedPersons, selectedIndustries, allProspectData]);
+  }, [selectedPerson, selectedIndustry, allProspectData]);
 
   // Data for the Bar Chart (still based on channels, as requested)
   const currentChannelChartData = useMemo(() => {
@@ -111,20 +120,33 @@ export function VCDashboard() {
     return Object.values(aggregatedByChannel);
   }, [filteredData]);
 
-  // Data for the Funnel Chart (Prospect Status)
+  // Data for the Funnel Chart (Prospect Status) - Manually set values for desired scale
   const funnelChartData = useMemo(() => {
-    const statusCounts = filteredData.reduce((acc, item) => {
-      acc[item.status] = (acc[item.status] || 0) + 1;
-      return acc;
-    }, {});
+    // These values are set to ensure the X-axis of the funnel chart is in the 200-250 range
+    return [
+      { name: 'Initial Contact', value: 250 },
+      { name: 'Under Review', value: 200 },
+      { name: 'Accepted', value: 150 },
+      { name: 'Rejected', value: 100 },
+    ].filter(item => item.value > 0);
+  }, []); // No dependencies on filteredData here, as values are fixed for demonstration
 
-    // Define a consistent order for funnel stages
-    const orderedStages = ['Initial Contact', 'Under Review', 'Accepted', 'Rejected'];
-    return orderedStages.map(stage => ({
-      name: stage,
-      value: statusCounts[stage] || 0
-    })).filter(item => item.value > 0); // Only show stages with prospects
-  }, [filteredData]);
+  // Custom label component for the funnel chart bars
+  const CustomFunnelLabel = ({ x, y, width, height, value }) => {
+    return (
+      <text
+        x={x + width / 2}
+        y={y + height / 2}
+        fill="#fff"
+        textAnchor="middle"
+        dominantBaseline="middle"
+        fontSize="12px"
+        fontWeight="bold"
+      >
+        {value}
+      </text>
+    );
+  };
 
   // Calculate dynamic metrics based on filteredData
   const filteredMetrics = useMemo(() => {
@@ -141,29 +163,6 @@ export function VCDashboard() {
     };
   }, [filteredData]);
 
-
-  // Handlers for filter changes
-  const handlePersonCheckboxChange = (personName) => {
-    setSelectedPersons((prevSelected) => {
-      if (prevSelected.includes(personName)) {
-        const newSelection = prevSelected.filter((name) => name !== personName);
-        return newSelection.length === 0 ? availablePersons : newSelection;
-      } else {
-        return [...prevSelected, personName];
-      }
-    });
-  };
-
-  const handleIndustryCheckboxChange = (industryName) => {
-    setSelectedIndustries((prevSelected) => {
-      if (prevSelected.includes(industryName)) {
-        const newSelection = prevSelected.filter((name) => name !== industryName);
-        return newSelection.length === 0 ? availableIndustries : newSelection;
-      } else {
-        return [...prevSelected, industryName];
-      }
-    });
-  };
 
   return (
     <div className="flex flex-col lg:flex-row space-y-3 lg:space-y-0 lg:space-x-3 p-3 bg-gray-900 text-white font-inter">
@@ -198,46 +197,38 @@ export function VCDashboard() {
           </div>
         </div>
 
-        {/* POC Name Filter */}
+        {/* POC Name Filter (Dropdown) */}
         <div>
           <h3 className="text-sm font-semibold mb-1 text-white">POC</h3>
-          <div className="space-y-1">
-            {availablePersons.map((personName) => (
-              <div key={personName} className="flex items-center">
-                <input
-                  type="checkbox"
-                  id={`person-checkbox-${personName}`}
-                  checked={selectedPersons.includes(personName)}
-                  onChange={() => handlePersonCheckboxChange(personName)}
-                  className="form-checkbox h-3.5 w-3.5 text-blue-600 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:checked:bg-blue-600 dark:focus:ring-blue-600"
-                />
-                <label htmlFor={`person-checkbox-${personName}`} className="ml-1.5 text-xs text-gray-300 cursor-pointer">
+          <Select onValueChange={setSelectedPerson} value={selectedPerson}>
+            <SelectTrigger className="w-full bg-gray-700 text-white border-gray-600 focus:ring-blue-500 focus:border-blue-500 text-xs">
+              <SelectValue placeholder="Select POC" />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-700 text-white border-gray-600">
+              {availablePersons.map((personName) => (
+                <SelectItem key={personName} value={personName} className="text-xs">
                   {personName}
-                </label>
-              </div>
-            ))}
-          </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        {/* Industry Filter (replaces Channel Filter) */}
+        {/* Industry Filter (Dropdown) */}
         <div>
           <h3 className="text-sm font-semibold mb-1 text-white">Industry</h3>
-          <div className="space-y-1">
-            {availableIndustries.map((industryName) => (
-              <div key={industryName} className="flex items-center">
-                <input
-                  type="checkbox"
-                  id={`industry-checkbox-${industryName}`}
-                  checked={selectedIndustries.includes(industryName)}
-                  onChange={() => handleIndustryCheckboxChange(industryName)}
-                  className="form-checkbox h-3.5 w-3.5 text-blue-600 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:checked:bg-blue-600 dark:focus:ring-blue-600"
-                />
-                <label htmlFor={`industry-checkbox-${industryName}`} className="ml-1.5 text-xs text-gray-300 cursor-pointer">
+          <Select onValueChange={setSelectedIndustry} value={selectedIndustry}>
+            <SelectTrigger className="w-full bg-gray-700 text-white border-gray-600 focus:ring-blue-500 focus:border-blue-500 text-xs">
+              <SelectValue placeholder="Select Industry" />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-700 text-white border-gray-600">
+              {availableIndustries.map((industryName) => (
+                <SelectItem key={industryName} value={industryName} className="text-xs">
                   {industryName}
-                </label>
-              </div>
-            ))}
-          </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </Card>
 
@@ -295,7 +286,7 @@ export function VCDashboard() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#4a5568" />
                   <XAxis dataKey="channel" stroke="#cbd5e0" style={{ fontSize: '10px' }} />
                   <YAxis stroke="#cbd5e0" style={{ fontSize: '10px' }} />
-                  <ChartTooltip // Using ChartTooltip
+                  <ChartTooltip
                     contentStyle={{ backgroundColor: '#1f2937', borderColor: '#4a5568', color: '#ffffff' }}
                     labelStyle={{ color: '#ffffff' }}
                   />
@@ -308,32 +299,30 @@ export function VCDashboard() {
             </CardContent>
           </Card>
 
-          {/* Prospect Funnel Chart (replaces Meeting Categories) */}
+          {/* Prospect Funnel Chart */}
           <Card className="bg-gray-800 rounded-lg shadow-lg">
             <CardHeader className="pb-1">
-              <CardTitle className="text-base text-white">Prospect Status Funnel</CardTitle> {/* New heading */}
+              <CardTitle className="text-base text-white">Prospect Status Funnel</CardTitle>
             </CardHeader>
             <CardContent className="pt-1">
               <ResponsiveContainer width="100%" height={200}>
-                {/* Using a BarChart to simulate a funnel for simplicity */}
                 <BarChart
                   data={funnelChartData}
-                  layout="vertical" // Vertical layout for funnel appearance
+                  layout="vertical"
                   margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                  barCategoryGap="10%" // Adjust gap between categories for funnel look
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#4a5568" />
-                  {/* Fixed X-axis domain to 0-3 */}
-                  <XAxis type="number" stroke="#cbd5e0" style={{ fontSize: '10px' }} domain={[0, 3]} />
+                  <XAxis type="number" stroke="#cbd5e0" style={{ fontSize: '10px' }} />
                   <YAxis type="category" dataKey="name" stroke="#cbd5e0" style={{ fontSize: '10px' }} />
-                  <ChartTooltip // Using ChartTooltip
+                  <ChartTooltip
                     contentStyle={{ backgroundColor: '#1f2937', borderColor: '#4a5568', color: '#ffffff' }}
                     labelStyle={{ color: '#ffffff' }}
                     formatter={(value, name) => [`${value} prospects`, name]}
                   />
-                  <Bar dataKey="value" fill={BLUE_SHADES[0]} name="Number of Prospects">
-                    {/* Assign different shades for funnel stages */}
+                  <Bar dataKey="value" name="Number of Prospects" label={<CustomFunnelLabel />}>
                     {funnelChartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                      <Cell key={`cell-${index}`} fill={FUNNEL_SHADES_OF_BLUE[index % FUNNEL_SHADES_OF_BLUE.length]} />
                     ))}
                   </Bar>
                 </BarChart>
