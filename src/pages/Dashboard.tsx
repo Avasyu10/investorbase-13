@@ -1,6 +1,6 @@
 import { ConditionalCompaniesList } from "@/components/companies/ConditionalCompaniesList";
 import { ReportsList } from "@/components/reports/ReportsList";
-import { PublicSubmissionsList } from "@/components/submissions/PublicSubSubmissionsList";
+import { PublicSubmissionsList } from "@/components/submissions/PublicSubmissionsList"; // Corrected typo here
 import { VCChatInterface } from "@/components/vc/VCChatInterface";
 import { VCDashboard } from "@/components/dashboard/VCDashboard"; // Keep VCDashboard import
 import { useAuth } from "@/hooks/useAuth";
