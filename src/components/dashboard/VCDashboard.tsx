@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'; // Import useMemo for optimized data filtering
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, RadialBarChart, RadialBar, AreaChart, Area, Legend, PieChart, Pie, Cell } from "recharts";
 import { ChartTooltip } from "@/components/ui/chart";
@@ -250,7 +250,8 @@ export function VCDashboard() {
         </Card>
 
         {/* Right Content Area for Charts */}
-        <div className="flex-grow space-y-6">
+        {/* Changed this div to use grid for side-by-side charts */}
+        <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Unique Outreaches, Follow ups and Replies by Channel */}
           <Card>
             <CardHeader>
