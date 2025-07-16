@@ -47,7 +47,7 @@ export function VCDashboard() {
 
   // Filter States - now single selection for dropdowns
   const [selectedPerson, setSelectedPerson] = useState('Roohi'); // Default to Roohi
-  const [selectedIndustry, setSelectedIndustry] = useState('Tech'); // Default to Tech
+  const [selectedIndustries, setSelectedIndustries] = useState(['Tech', 'Finance', 'Healthcare', 'Retail']); // Default to Tech
 
   // Mock Date States (for future implementation, not currently used in data filtering)
   const [startDate, setStartDate] = useState('2025-01-01');
@@ -55,20 +55,6 @@ export function VCDashboard() {
 
   const availablePersons = ['Roohi', 'Avasyu', 'Kanishk', 'Tanisha'];
   const availableIndustries = ['Tech', 'Finance', 'Healthcare', 'Retail'];
-
-  if (isLoading) {
-    return (
-      <div className="space-y-6 animate-fade-in">
-        {[...Array(6)].map((_, i) => (
-          <Card key={i} className="animate-pulse">
-            <CardContent className="p-6">
-              <div className="h-32 bg-muted rounded"></div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
-  }
 
   // More granular mock data linking persons, channels, industries, and statuses (original scale)
   const allProspectData = useMemo(() => [
@@ -103,9 +89,9 @@ export function VCDashboard() {
   const filteredData = useMemo(() => {
     return allProspectData.filter(item =>
       item.person === selectedPerson &&
-      item.industry === selectedIndustry
+      selectedIndustries.includes(item.industry) // Use selectedIndustries array for filtering
     );
-  }, [selectedPerson, selectedIndustry, allProspectData]);
+  }, [selectedPerson, selectedIndustries, allProspectData]);
 
   // Data for the Bar Chart (still based on channels, as requested)
   const currentChannelChartData = useMemo(() => {
@@ -152,6 +138,20 @@ export function VCDashboard() {
 
   // Define the margin for the BarChart
   const barChartMargin = { top: 20, right: 30, left: 20, bottom: 5 };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        {[...Array(6)].map((_, i) => (
+          <Card key={i} className="animate-pulse">
+            <CardContent className="p-6">
+              <div className="h-32 bg-muted rounded"></div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col lg:flex-row space-y-3 lg:space-y-0 lg:space-x-3 p-3 bg-gray-900 text-white font-inter">
@@ -206,7 +206,7 @@ export function VCDashboard() {
         {/* Industry Filter (Dropdown) */}
         <div>
           <h3 className="text-sm font-semibold mb-1 text-white">Industry</h3>
-          <Select onValueChange={setSelectedIndustry} value={selectedIndustry}>
+          <Select onValueChange={(value) => setSelectedIndustries([value])} value={selectedIndustries[0]}>
             <SelectTrigger className="w-full bg-gray-700 text-white border-gray-600 focus:ring-blue-500 focus:border-blue-500 text-xs">
               <SelectValue placeholder="Select Industry" />
             </SelectTrigger>
