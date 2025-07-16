@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Tooltip } from "recharts"; // Import Tooltip for BarChart
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Cell } from "recharts";
+import { ChartTooltip } from "@/components/ui/chart"; // Reverted to ChartTooltip from your UI components
 
 // Mocking useCompanies for demonstration purposes if it's not available
 const useCompanies = (page, limit) => {
@@ -294,7 +295,7 @@ export function VCDashboard() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#4a5568" />
                   <XAxis dataKey="channel" stroke="#cbd5e0" style={{ fontSize: '10px' }} />
                   <YAxis stroke="#cbd5e0" style={{ fontSize: '10px' }} />
-                  <Tooltip
+                  <ChartTooltip // Using ChartTooltip
                     contentStyle={{ backgroundColor: '#1f2937', borderColor: '#4a5568', color: '#ffffff' }}
                     labelStyle={{ color: '#ffffff' }}
                   />
@@ -323,7 +324,7 @@ export function VCDashboard() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#4a5568" />
                   <XAxis type="number" stroke="#cbd5e0" style={{ fontSize: '10px' }} />
                   <YAxis type="category" dataKey="name" stroke="#cbd5e0" style={{ fontSize: '10px' }} />
-                  <Tooltip
+                  <ChartTooltip // Using ChartTooltip
                     contentStyle={{ backgroundColor: '#1f2937', borderColor: '#4a5568', color: '#ffffff' }}
                     labelStyle={{ color: '#ffffff' }}
                     formatter={(value, name) => [`${value} prospects`, name]}
