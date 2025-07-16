@@ -35,10 +35,11 @@ const BLUE_SHADES = [
 
 // New shades of blue for the funnel chart to create a gradient effect, more distinct
 const FUNNEL_SHADES_OF_BLUE = [
-  '#1E3A8A', // Darker blue for top (Initial Contact)
-  '#2563EB', // Medium-dark blue (Under Review)
-  '#3B82F6', // Medium blue (Accepted)
-  '#60A5FA', // Lighter blue (Rejected)
+  '#1E3A8A', // Darker blue for top (Leads)
+  '#2563EB', // Medium-dark blue (Sales Calls)
+  '#3B82F6', // Medium blue (Follow-up)
+  '#60A5FA', // Lighter blue (Conversion)
+  '#90CAF9', // Even lighter blue (Sales)
 ];
 
 export function VCDashboard() {
@@ -122,16 +123,15 @@ export function VCDashboard() {
 
   // Data for the Funnel Chart (Prospect Status) - Manually set values for desired scale and design
   const funnelChartData = useMemo(() => {
-    // These values are set to ensure the X-axis of the funnel chart is in the 200-250 range
-    // and to create a visually distinct funnel shape.
+    // Increased values to create more variety and ensure a larger scale
     return [
-      { name: 'Leads', value: 320 },
-      { name: 'Sales Calls', value: 240 },
-      { name: 'Follow-up', value: 150 },
-      { name: 'Conversion', value: 90 },
-      { name: 'Sales', value: 40 },
+      { name: 'Leads', value: 350 + Math.floor(Math.random() * 50) }, // 350-399
+      { name: 'Sales Calls', value: 280 + Math.floor(Math.random() * 40) }, // 280-319
+      { name: 'Follow-up', value: 180 + Math.floor(Math.random() * 30) }, // 180-209
+      { name: 'Conversion', value: 110 + Math.floor(Math.random() * 20) }, // 110-129
+      { name: 'Sales', value: 50 + Math.floor(Math.random() * 10) }, // 50-59
     ].filter(item => item.value > 0);
-  }, []); // No dependencies on filteredData here, as values are fixed for demonstration
+  }, []);
 
   // Custom label component for the funnel chart bars
   const CustomFunnelLabel = ({ x, y, width, height, value }) => {
@@ -147,6 +147,51 @@ export function VCDashboard() {
       >
         {value}
       </text>
+    );
+  };
+
+  // Custom shape for funnel bars to create the tapered effect
+  const FunnelBarShape = (props) => {
+    const { x, y, width, height, fill, index, data, dataKey } = props;
+    const nextValue = data[index + 1] ? data[index + 1].value : 0;
+    const prevValue = data[index - 1] ? data[index - 1].value : 0;
+
+    // Calculate the width of the top and bottom of the current bar segment
+    // This is a simplified approach to create a trapezoid.
+    // The width of the bar at its top should be proportional to its value.
+    // The width of the bar at its bottom should be proportional to the next segment's value.
+    // To center it, we adjust x based on the difference in widths.
+
+    const totalWidth = 350; // A reference total width for the funnel base
+    const currentSegmentWidth = (width / data[0].value) * totalWidth; // Scale current bar width
+    const nextSegmentWidth = (nextValue / data[0].value) * totalWidth; // Scale next bar width
+
+    // Calculate the horizontal offset to center the trapezoid
+    const offsetLeft = (totalWidth - currentSegmentWidth) / 2;
+    const offsetRight = (totalWidth - nextSegmentWidth) / 2;
+
+
+    // Points for the trapezoid: (top-left, top-right, bottom-right, bottom-left)
+    // x, y are the top-left corner of the rect provided by Recharts for the bar
+    // We adjust x to center the shape and width to create the trapezoid effect
+    return (
+      <path
+        d={`M${x} ${y} 
+            L${x + width} ${y} 
+            L${x + width} ${y + height} 
+            L${x} ${y + height} Z`}
+        fill={fill}
+        // This is a simplified approach. For a true funnel shape, you'd calculate
+        // the x-coordinates for the top and bottom edges of the trapezoid
+        // based on the current and next values, and the overall chart width.
+        // For demonstration, we'll use a standard bar and rely on `barCategoryGap`
+        // to create the visual separation, and potentially `barSize` if needed.
+        // To truly mimic the image, we need to draw a trapezoid.
+
+        // Let's try drawing a trapezoid based on the values
+        // The x and width provided by Recharts are for the standard bar.
+        // We need to calculate the x-coordinates for the tapered shape.
+      />
     );
   };
 
@@ -312,17 +357,17 @@ export function VCDashboard() {
                   data={funnelChartData}
                   layout="vertical"
                   margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                  barCategoryGap="0%" // Set gap to 0 for a continuous funnel look
+                  barCategoryGap={0} // No gap between bars for funnel effect
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#4a5568" />
-                  <XAxis type="number" hide /> {/* Hide X-axis as per the reference image */}
-                  <YAxis type="category" dataKey="name" stroke="#cbd5e0" style={{ fontSize: '10px' }} axisLine={false} tickLine={false} /> {/* Hide axis line and tick line */}
+                  <XAxis type="number" hide /> {/* Hide X-axis */}
+                  <YAxis type="category" dataKey="name" stroke="#cbd5e0" style={{ fontSize: '10px' }} axisLine={false} tickLine={false} />
                   <ChartTooltip
                     contentStyle={{ backgroundColor: '#1f2937', borderColor: '#4a5568', color: '#ffffff' }}
                     labelStyle={{ color: '#ffffff' }}
                     formatter={(value, name) => [`${value} prospects`, name]}
                   />
-                  <Bar dataKey="value" name="Number of Prospects" label={<CustomFunnelLabel />}>
+                  <Bar dataKey="value" name="Number of Prospects" shape={<FunnelBarShape />}>
                     {funnelChartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={FUNNEL_SHADES_OF_BLUE[index % FUNNEL_SHADES_OF_BLUE.length]} />
                     ))}
@@ -336,3 +381,47 @@ export function VCDashboard() {
     </div>
   );
 }
+
+// Custom shape for funnel bars to create the tapered effect
+const FunnelBarShape = (props) => {
+  const { x, y, width, height, fill, index, data } = props;
+  const totalChartWidth = props.containerWidth - props.margin.left - props.margin.right; // Get actual plot area width
+
+  // Calculate the width of the top and bottom of the current bar segment
+  // The funnel tapers. The top of a segment is based on its own value.
+  // The bottom of a segment is based on the value of the *next* segment.
+  // If it's the last segment, its bottom is the narrowest point.
+
+  const currentSegmentValue = data[index].value;
+  const nextSegmentValue = data[index + 1] ? data[index + 1].value : 0; // If last segment, next value is 0 (or a small base value)
+
+  // Normalize values to a percentage of the largest value (top of the funnel)
+  const maxValue = data[0].value; // Assuming data is sorted largest to smallest
+  const topWidthRatio = currentSegmentValue / maxValue;
+  const bottomWidthRatio = nextSegmentValue / maxValue;
+
+  // Calculate the actual pixel width for the top and bottom of the trapezoid
+  // We'll make the funnel's widest point (top) occupy a significant portion of the chart width, e.g., 80%
+  const maxFunnelWidth = totalChartWidth * 0.8; // Max width of the funnel at its top
+  const minFunnelWidth = totalChartWidth * 0.2; // Min width of the funnel at its bottom (for the 'Sales' segment)
+
+  const currentTopWidth = topWidthRatio * (maxFunnelWidth - minFunnelWidth) + minFunnelWidth;
+  const currentBottomWidth = bottomWidthRatio * (maxFunnelWidth - minFunnelWidth) + minFunnelWidth;
+
+  // Calculate x-coordinates to center the trapezoid
+  const x1 = x + (width - currentTopWidth) / 2; // Top-left x
+  const x2 = x + (width + currentTopWidth) / 2; // Top-right x
+  const x3 = x + (width + currentBottomWidth) / 2; // Bottom-right x
+  const x4 = x + (width - currentBottomWidth) / 2; // Bottom-left x
+
+  // Points for the trapezoid: (top-left, top-right, bottom-right, bottom-left)
+  return (
+    <path
+      d={`M${x1} ${y} 
+          L${x2} ${y} 
+          L${x3} ${y + height} 
+          L${x4} ${y + height} Z`}
+      fill={fill}
+    />
+  );
+};
