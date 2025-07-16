@@ -64,7 +64,7 @@ export function VCDashboard() {
     const industries = ['Tech', 'Finance', 'Healthcare', 'Retail'];
 
     // Generate a reasonable number of entries for diverse filtering results
-    for (let i = 0; i < 1000; i++) { // Adjusted down from 5000 for more controlled totals
+    for (let i = 0; i < 1500; i++) { // Adjusted for more controlled totals
       const person = availablePersons[Math.floor(Math.random() * availablePersons.length)];
       const channel = channels[Math.floor(Math.random() * channels.length)];
       const industry = industries[Math.floor(Math.random() * industries.length)];
@@ -74,10 +74,10 @@ export function VCDashboard() {
         person,
         channel,
         industry,
-        uniqueOutreaches: Math.floor(Math.random() * 20) + 5, // 5-24
-        followUps: Math.floor(Math.random() * 10) + 2, // 2-11
-        replies: Math.floor(Math.random() * 5) + 1, // 1-5
-        meetings: Math.floor(Math.random() * 3) + 1, // 1-3
+        uniqueOutreaches: Math.floor(Math.random() * 15) + 3, // 3-17
+        followUps: Math.floor(Math.random() * 8) + 1, // 1-8
+        replies: Math.floor(Math.random() * 4) + 1, // 1-4
+        meetings: Math.floor(Math.random() * 2) + 1, // 1-2
         status // This status will be used for the funnel chart
       });
     }
@@ -316,7 +316,8 @@ export function VCDashboard() {
                 {({ width: containerWidth }) => {
                   // Calculate max value for scaling the bars
                   const maxFunnelValue = funnelChartData.length > 0 ? Math.max(...funnelChartData.map(d => d.value)) : 1;
-                  const maxBarWidth = containerWidth * 0.8; // Max width for the widest bar
+                  // Define a base width for the top of the funnel relative to container width
+                  const baseFunnelWidth = containerWidth * 0.7; // 70% of container width
 
                   return (
                     <BarChart
@@ -342,7 +343,7 @@ export function VCDashboard() {
                             chartWidth={containerWidth}
                             chartMargin={barChartMargin}
                             maxFunnelValue={maxFunnelValue}
-                            maxBarWidth={maxBarWidth}
+                            baseFunnelWidth={baseFunnelWidth}
                           />
                         )}
                         label={<CustomFunnelLabel />}
@@ -365,7 +366,7 @@ export function VCDashboard() {
 
 // Custom shape for funnel bars to create the tapered effect
 const FunnelBarShape = (props) => {
-  const { x, y, width, height, fill, index, data, chartWidth, chartMargin, maxFunnelValue, maxBarWidth } = props;
+  const { x, y, height, fill, index, data, chartWidth, chartMargin, maxFunnelValue, baseFunnelWidth } = props;
 
   // Calculate the actual plotting width within the ResponsiveContainer
   const chartPlottingWidth = chartWidth - (chartMargin.left || 0) - (chartMargin.right || 0);
@@ -375,17 +376,23 @@ const FunnelBarShape = (props) => {
 
   // Calculate the width of the top and bottom edges of the current trapezoid segment
   // These widths are proportional to the values relative to the maximum value.
-  // We scale them based on the `maxBarWidth` to fit within the chart.
-  const topEdgeWidth = (currentSegmentValue / maxFunnelValue) * maxBarWidth;
-  const bottomEdgeWidth = (nextSegmentValue / maxFunnelValue) * maxBarWidth;
+  // We use baseFunnelWidth to control the overall size of the funnel.
+  const topEdgeWidth = (currentSegmentValue / maxFunnelValue) * baseFunnelWidth;
+  const bottomEdgeWidth = (nextSegmentValue / maxFunnelValue) * baseFunnelWidth;
+
+  // Ensure a minimum width for the smallest segment to prevent it from disappearing
+  const minSegmentWidth = 10; // Minimum width in pixels for the smallest bar
+  const adjustedTopEdgeWidth = Math.max(minSegmentWidth, topEdgeWidth);
+  const adjustedBottomEdgeWidth = Math.max(minSegmentWidth, bottomEdgeWidth);
+
 
   // Calculate x-coordinates to center the trapezoid within the plotting area
-  const centerX = chartPlottingWidth / 2;
-
-  const xTopLeft = centerX - topEdgeWidth / 2 + (chartMargin.left || 0);
-  const xTopRight = centerX + topEdgeWidth / 2 + (chartMargin.left || 0);
-  const xBottomLeft = centerX - bottomEdgeWidth / 2 + (chartMargin.left || 0);
-  const xBottomRight = centerX + bottomEdgeWidth / 2 + (chartMargin.left || 0);
+  // The 'x' prop passed to FunnelBarShape is the left-most point of the bar if it were a rectangle
+  // We need to adjust it to center our custom trapezoid.
+  const xTopLeft = x + (width - adjustedTopEdgeWidth) / 2;
+  const xTopRight = x + (width + adjustedTopEdgeWidth) / 2;
+  const xBottomLeft = x + (width - adjustedBottomEdgeWidth) / 2;
+  const xBottomRight = x + (width + adjustedBottomEdgeWidth) / 2;
 
   // Points for the trapezoid: (top-left, top-right, bottom-right, bottom-left)
   return (
