@@ -56,42 +56,42 @@ export function VCDashboard() {
   const availablePersons = ['Roohi', 'Avasyu', 'Kanishk', 'Tanisha'];
   const availableIndustries = ['Tech', 'Finance', 'Healthcare', 'Retail'];
 
-  // More granular mock data linking persons, channels, industries, and statuses (original scale)
-  const allProspectData = useMemo(() => [
-    // Roohi's Data
-    { person: 'Roohi', channel: 'LinkedIn', industry: 'Tech', uniqueOutreaches: 20, followUps: 4, replies: 2, meetings: 1, status: 'Accepted' },
-    { person: 'Roohi', channel: 'LinkedIn', industry: 'Finance', uniqueOutreaches: 20, followUps: 4, replies: 3, meetings: 0, status: 'Rejected' },
-    { person: 'Roohi', channel: 'Others', industry: 'Healthcare', uniqueOutreaches: 15, followUps: 2, replies: 1, meetings: 0, status: 'Under Review' },
-    { person: 'Roohi', channel: 'Calls', industry: 'Retail', uniqueOutreaches: 12, followUps: 2, replies: 1, meetings: 0, status: 'Initial Contact' },
-    { person: 'Roohi', channel: 'Mail', industry: 'Tech', uniqueOutreaches: 8, followUps: 1, replies: 0, meetings: 0, status: 'Initial Contact' },
+  // More granular mock data linking persons, channels, industries, and statuses
+  const allProspectData = useMemo(() => {
+    const data = [];
+    const statuses = ['Leads', 'Sales Calls', 'Follow-up', 'Conversion', 'Sales'];
+    const channels = ['LinkedIn', 'Others', 'Calls', 'Mail'];
+    const industries = ['Tech', 'Finance', 'Healthcare', 'Retail'];
 
-    // Avasyu's Data
-    { person: 'Avasyu', channel: 'LinkedIn', industry: 'Finance', uniqueOutreaches: 25, followUps: 5, replies: 3, meetings: 0, status: 'Under Review' },
-    { person: 'Avasyu', channel: 'Others', industry: 'Tech', uniqueOutreaches: 35, followUps: 7, replies: 4, meetings: 1, status: 'Accepted' },
-    { person: 'Avasyu', channel: 'Calls', industry: 'Healthcare', uniqueOutreaches: 10, followUps: 1, replies: 0, meetings: 0, status: 'Rejected' },
-    { person: 'Avasyu', channel: 'Mail', industry: 'Retail', uniqueOutreaches: 15, followUps: 3, replies: 1, meetings: 0, status: 'Initial Contact' },
+    // Generate a large number of entries to ensure sufficient data for filters
+    for (let i = 0; i < 500; i++) { // Increased number of mock data entries significantly
+      const person = availablePersons[Math.floor(Math.random() * availablePersons.length)];
+      const channel = channels[Math.floor(Math.random() * channels.length)];
+      const industry = industries[Math.floor(Math.random() * industries.length)];
+      const status = statuses[Math.floor(Math.random() * statuses.length)];
 
-    // Kanishk's Data
-    { person: 'Kanishk', channel: 'LinkedIn', industry: 'Healthcare', uniqueOutreaches: 30, followUps: 6, replies: 4, meetings: 0, status: 'Initial Contact' },
-    { person: 'Kanishk', channel: 'Others', industry: 'Retail', uniqueOutreaches: 20, followUps: 3, replies: 1, meetings: 0, status: 'Rejected' },
-    { person: 'Kanishk', channel: 'Calls', industry: 'Tech', uniqueOutreaches: 20, followUps: 4, replies: 2, meetings: 1, status: 'Accepted' },
-    { person: 'Kanishk', channel: 'Mail', industry: 'Finance', uniqueOutreaches: 10, followUps: 2, replies: 1, meetings: 0, status: 'Under Review' },
-
-    // Tanisha's Data
-    { person: 'Tanisha', channel: 'LinkedIn', industry: 'Retail', uniqueOutreaches: 15, followUps: 3, replies: 1, meetings: 0, status: 'Initial Contact' },
-    { person: 'Tanisha', channel: 'Others', industry: 'Tech', uniqueOutreaches: 18, followUps: 2, replies: 0, meetings: 0, status: 'Rejected' },
-    { person: 'Tanisha', channel: 'Calls', industry: 'Finance', uniqueOutreaches: 25, followUps: 5, replies: 3, meetings: 0, status: 'Under Review' },
-    { person: 'Tanisha', channel: 'Mail', industry: 'Healthcare', uniqueOutreaches: 30, followUps: 6, replies: 4, meetings: 1, status: 'Accepted' }
-  ], []);
+      data.push({
+        person,
+        channel,
+        industry,
+        uniqueOutreaches: Math.floor(Math.random() * 50) + 10, // 10-59
+        followUps: Math.floor(Math.random() * 20) + 5, // 5-24
+        replies: Math.floor(Math.random() * 10) + 1, // 1-10
+        meetings: Math.floor(Math.random() * 5) + 1, // 1-5
+        status // This status will be used for the funnel chart
+      });
+    }
+    return data;
+  }, []);
 
 
   // Filtered data based on selected person and industry
   const filteredData = useMemo(() => {
     return allProspectData.filter(item =>
       item.person === selectedPerson &&
-      item.industry === selectedIndustry // Now single selection for industry
+      item.industry === selectedIndustry
     );
-  }, [selectedPerson, selectedIndustry, allProspectData]); // Dependency on selectedIndustry
+  }, [selectedPerson, selectedIndustry, allProspectData]);
 
   // Data for the Bar Chart (still based on channels, as requested)
   const currentChannelChartData = useMemo(() => {
@@ -107,17 +107,31 @@ export function VCDashboard() {
     return Object.values(aggregatedByChannel);
   }, [filteredData]);
 
-  // Data for the Funnel Chart (Prospect Status) - Manually set values for desired scale and design
+  // Data for the Funnel Chart (Prospect Status) - Dynamically calculated from filteredData
   const funnelChartData = useMemo(() => {
-    // Increased values to create more variety and ensure a larger scale
-    return [
-      { name: 'Leads', value: 360 + Math.floor(Math.random() * 40) }, // 360-399
-      { name: 'Sales Calls', value: 290 + Math.floor(Math.random() * 30) }, // 290-319
-      { name: 'Follow-up', value: 190 + Math.floor(Math.random() * 20) }, // 190-209
-      { name: 'Conversion', value: 120 + Math.floor(Math.random() * 15) }, // 120-134
-      { name: 'Sales', value: 60 + Math.floor(Math.random() * 10) }, // 60-69
-    ].filter(item => item.value > 0);
-  }, []);
+    const statusCounts = filteredData.reduce((acc, item) => {
+      acc[item.status] = (acc[item.status] || 0) + 1; // Count occurrences of each status
+      return acc;
+    }, {});
+
+    // Define a consistent order for funnel stages, matching the image labels
+    const orderedStages = ['Leads', 'Sales Calls', 'Follow-up', 'Conversion', 'Sales'];
+    
+    // Map to the ordered stages, ensuring a value exists for each
+    const data = orderedStages.map(stage => ({
+      name: stage,
+      value: statusCounts[stage] || 0
+    }));
+
+    // Ensure values are decreasing for a proper funnel shape
+    // This is a simple way to enforce the funnel shape if counts don't naturally decrease
+    for (let i = 1; i < data.length; i++) {
+      if (data[i].value > data[i-1].value) {
+        data[i].value = Math.max(0, data[i-1].value - (Math.floor(Math.random() * 10) + 5)); // Ensure decrease
+      }
+    }
+    return data.filter(item => item.value > 0); // Only show stages with prospects
+  }, [filteredData]);
 
   // Custom label component for the funnel chart bars
   const CustomFunnelLabel = ({ x, y, width, height, value }) => {
