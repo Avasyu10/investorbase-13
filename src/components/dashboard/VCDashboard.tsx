@@ -64,7 +64,8 @@ export function VCDashboard() {
     const industries = ['Tech', 'Finance', 'Healthcare', 'Retail'];
 
     // Generate a large number of entries to ensure sufficient data for filters
-    for (let i = 0; i < 500; i++) { // Increased number of mock data entries significantly
+    // Increased iterations to ensure more data points for filtering
+    for (let i = 0; i < 2000; i++) { // Increased from 500 to 2000
       const person = availablePersons[Math.floor(Math.random() * availablePersons.length)];
       const channel = channels[Math.floor(Math.random() * channels.length)];
       const industry = industries[Math.floor(Math.random() * industries.length)];
@@ -74,10 +75,10 @@ export function VCDashboard() {
         person,
         channel,
         industry,
-        uniqueOutreaches: Math.floor(Math.random() * 50) + 10, // 10-59
-        followUps: Math.floor(Math.random() * 20) + 5, // 5-24
-        replies: Math.floor(Math.random() * 10) + 1, // 1-10
-        meetings: Math.floor(Math.random() * 5) + 1, // 1-5
+        uniqueOutreaches: Math.floor(Math.random() * 100) + 50, // 50-149
+        followUps: Math.floor(Math.random() * 40) + 20, // 20-59
+        replies: Math.floor(Math.random() * 20) + 10, // 10-29
+        meetings: Math.floor(Math.random() * 10) + 3, // 3-12
         status // This status will be used for the funnel chart
       });
     }
@@ -126,10 +127,21 @@ export function VCDashboard() {
     // Ensure values are decreasing for a proper funnel shape
     // This is a simple way to enforce the funnel shape if counts don't naturally decrease
     for (let i = 1; i < data.length; i++) {
+      // If current stage value is greater than previous, reduce it
       if (data[i].value > data[i-1].value) {
         data[i].value = Math.max(0, data[i-1].value - (Math.floor(Math.random() * 10) + 5)); // Ensure decrease
       }
+      // If current stage value is still too close or equal to previous, ensure a more significant drop
+      if (data[i].value >= data[i-1].value) {
+        data[i].value = Math.max(0, data[i-1].value - (Math.floor(Math.random() * 20) + 10)); // Larger drop
+      }
     }
+
+    // Ensure first stage has a reasonable value if it happens to be 0
+    if (data.length > 0 && data[0].value === 0) {
+      data[0].value = 200 + Math.floor(Math.random() * 100); // Give it a starting value
+    }
+
     return data.filter(item => item.value > 0); // Only show stages with prospects
   }, [filteredData]);
 
