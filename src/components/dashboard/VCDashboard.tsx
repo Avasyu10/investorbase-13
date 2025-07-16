@@ -63,9 +63,8 @@ export function VCDashboard() {
     const channels = ['LinkedIn', 'Others', 'Calls', 'Mail'];
     const industries = ['Tech', 'Finance', 'Healthcare', 'Retail'];
 
-    // Generate a large number of entries to ensure sufficient data for filters
-    // Increased iterations and more random distribution to ensure data for all combinations
-    for (let i = 0; i < 5000; i++) { // Increased significantly for better data density
+    // Generate a reasonable number of entries for diverse filtering results
+    for (let i = 0; i < 1000; i++) { // Adjusted down from 5000 for more controlled totals
       const person = availablePersons[Math.floor(Math.random() * availablePersons.length)];
       const channel = channels[Math.floor(Math.random() * channels.length)];
       const industry = industries[Math.floor(Math.random() * industries.length)];
@@ -75,10 +74,10 @@ export function VCDashboard() {
         person,
         channel,
         industry,
-        uniqueOutreaches: Math.floor(Math.random() * 100) + 50, // 50-149
-        followUps: Math.floor(Math.random() * 40) + 20, // 20-59
-        replies: Math.floor(Math.random() * 20) + 10, // 10-29
-        meetings: Math.floor(Math.random() * 10) + 3, // 3-12
+        uniqueOutreaches: Math.floor(Math.random() * 20) + 5, // 5-24
+        followUps: Math.floor(Math.random() * 10) + 2, // 2-11
+        replies: Math.floor(Math.random() * 5) + 1, // 1-5
+        meetings: Math.floor(Math.random() * 3) + 1, // 1-3
         status // This status will be used for the funnel chart
       });
     }
@@ -108,46 +107,18 @@ export function VCDashboard() {
     return Object.values(aggregatedByChannel);
   }, [filteredData]);
 
-  // Data for the Funnel Chart (Prospect Status) - Dynamically calculated from filteredData
+  // Data for the Funnel Chart (Prospect Status) - Hardcoded for consistent funnel appearance
   const funnelChartData = useMemo(() => {
-    const statusCounts = filteredData.reduce((acc, item) => {
-      acc[item.status] = (acc[item.status] || 0) + 1; // Count occurrences of each status
-      return acc;
-    }, {});
-
-    // Define a consistent order for funnel stages, matching the image labels
-    const orderedStages = ['Leads', 'Sales Calls', 'Follow-up', 'Conversion', 'Sales'];
-    
-    // Map to the ordered stages, ensuring a value exists for each
-    let data = orderedStages.map(stage => ({
-      name: stage,
-      value: statusCounts[stage] || 0
-    }));
-
-    // Ensure values are decreasing for a proper funnel shape
-    // If a stage has 0, try to give it a small value if the previous one is also 0
-    if (data.length > 0 && data[0].value === 0) {
-      data[0].value = 200 + Math.floor(Math.random() * 100); // Ensure a starting value
-    }
-
-    for (let i = 1; i < data.length; i++) {
-      // Ensure current stage value is less than or equal to previous stage value
-      if (data[i].value > data[i-1].value) {
-        data[i].value = data[i-1].value - (Math.floor(Math.random() * 10) + 5); // Reduce to ensure decrease
-      }
-      // If values are too close or equal, force a larger drop
-      if (data[i].value >= data[i-1].value && data[i-1].value > 0) {
-        data[i].value = Math.max(0, data[i-1].value - (Math.floor(Math.random() * 20) + 10)); // Larger drop
-      }
-      // Ensure no negative values
-      if (data[i].value < 0) {
-        data[i].value = 0;
-      }
-    }
-
-    // Filter out stages with 0 value at the end if desired, or keep them for full funnel structure
-    return data.filter(item => item.value >= 0); // Keep all stages, even if value is 0
-  }, [filteredData]);
+    // These values are set to ensure the funnel chart is always visible
+    // and within the 200-250 range for the top, decreasing proportionally.
+    return [
+      { name: 'Leads', value: 250 },
+      { name: 'Sales Calls', value: 200 },
+      { name: 'Follow-up', value: 150 },
+      { name: 'Conversion', value: 100 },
+      { name: 'Sales', value: 50 },
+    ];
+  }, []); // No dependencies on filteredData here, as values are fixed for demonstration
 
   // Custom label component for the funnel chart bars
   const CustomFunnelLabel = ({ x, y, width, height, value }) => {
@@ -342,39 +313,47 @@ export function VCDashboard() {
             </CardHeader>
             <CardContent className="pt-1">
               <ResponsiveContainer width="100%" height={200}>
-                {({ width: containerWidth }) => ( // Capture width from ResponsiveContainer
-                  <BarChart
-                    data={funnelChartData}
-                    layout="vertical"
-                    margin={barChartMargin} // Use defined margin
-                    barCategoryGap={0} // No gap between bars for funnel effect
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#4a5568" />
-                    <XAxis type="number" hide /> {/* Hide X-axis */}
-                    <YAxis type="category" dataKey="name" stroke="#cbd5e0" style={{ fontSize: '10px' }} axisLine={false} tickLine={false} />
-                    <ChartTooltip
-                      contentStyle={{ backgroundColor: '#1f2937', borderColor: '#4a5568', color: '#ffffff' }}
-                      labelStyle={{ color: '#ffffff' }}
-                      formatter={(value, name) => [`${value} prospects`, name]}
-                    />
-                    <Bar
-                      dataKey="value"
-                      name="Number of Prospects"
-                      shape={(props) => (
-                        <FunnelBarShape
-                          {...props}
-                          chartWidth={containerWidth} // Pass containerWidth
-                          chartMargin={barChartMargin} // Pass chartMargin
-                        />
-                      )}
-                      label={<CustomFunnelLabel />} // Add CustomFunnelLabel here
+                {({ width: containerWidth }) => {
+                  // Calculate max value for scaling the bars
+                  const maxFunnelValue = funnelChartData.length > 0 ? Math.max(...funnelChartData.map(d => d.value)) : 1;
+                  const maxBarWidth = containerWidth * 0.8; // Max width for the widest bar
+
+                  return (
+                    <BarChart
+                      data={funnelChartData}
+                      layout="vertical"
+                      margin={barChartMargin}
+                      barCategoryGap={0}
                     >
-                      {funnelChartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={FUNNEL_SHADES_OF_BLUE[index % FUNNEL_SHADES_OF_BLUE.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                )}
+                      <CartesianGrid strokeDasharray="3 3" stroke="#4a5568" />
+                      <XAxis type="number" hide />
+                      <YAxis type="category" dataKey="name" stroke="#cbd5e0" style={{ fontSize: '10px' }} axisLine={false} tickLine={false} />
+                      <ChartTooltip
+                        contentStyle={{ backgroundColor: '#1f2937', borderColor: '#4a5568', color: '#ffffff' }}
+                        labelStyle={{ color: '#ffffff' }}
+                        formatter={(value, name) => [`${value} prospects`, name]}
+                      />
+                      <Bar
+                        dataKey="value"
+                        name="Number of Prospects"
+                        shape={(props) => (
+                          <FunnelBarShape
+                            {...props}
+                            chartWidth={containerWidth}
+                            chartMargin={barChartMargin}
+                            maxFunnelValue={maxFunnelValue}
+                            maxBarWidth={maxBarWidth}
+                          />
+                        )}
+                        label={<CustomFunnelLabel />}
+                      >
+                        {funnelChartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={FUNNEL_SHADES_OF_BLUE[index % FUNNEL_SHADES_OF_BLUE.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  );
+                }}
               </ResponsiveContainer>
             </CardContent>
           </Card>
@@ -386,25 +365,19 @@ export function VCDashboard() {
 
 // Custom shape for funnel bars to create the tapered effect
 const FunnelBarShape = (props) => {
-  const { x, y, width, height, fill, index, data, chartWidth, chartMargin } = props;
+  const { x, y, width, height, fill, index, data, chartWidth, chartMargin, maxFunnelValue, maxBarWidth } = props;
 
-  // Calculate the total plotting width within the ResponsiveContainer
+  // Calculate the actual plotting width within the ResponsiveContainer
   const chartPlottingWidth = chartWidth - (chartMargin.left || 0) - (chartMargin.right || 0);
 
   const currentSegmentValue = data[index].value;
   const nextSegmentValue = data[index + 1] ? data[index + 1].value : 0;
 
-  // Assuming data is sorted by value descending for a proper funnel shape
-  const maxValue = data[0].value;
-
   // Calculate the width of the top and bottom edges of the current trapezoid segment
   // These widths are proportional to the values relative to the maximum value.
-  // We scale them to occupy a portion of the full plotting width.
-  const maxFunnelWidth = chartPlottingWidth * 0.8; // Max width of the funnel at its top (e.g., 80% of plotting area)
-  const minFunnelWidth = chartPlottingWidth * 0.2; // Min width of the funnel at its bottom (e.g., 20% of plotting area)
-
-  const topEdgeWidth = (currentSegmentValue / maxValue) * (maxFunnelWidth - minFunnelWidth) + minFunnelWidth;
-  const bottomEdgeWidth = (nextSegmentValue / maxValue) * (maxFunnelWidth - minFunnelWidth) + minFunnelWidth;
+  // We scale them based on the `maxBarWidth` to fit within the chart.
+  const topEdgeWidth = (currentSegmentValue / maxFunnelValue) * maxBarWidth;
+  const bottomEdgeWidth = (nextSegmentValue / maxFunnelValue) * maxBarWidth;
 
   // Calculate x-coordinates to center the trapezoid within the plotting area
   const centerX = chartPlottingWidth / 2;
