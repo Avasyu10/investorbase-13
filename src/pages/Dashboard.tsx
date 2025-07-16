@@ -1,6 +1,6 @@
 import { ConditionalCompaniesList } from "@/components/companies/ConditionalCompaniesList";
 import { ReportsList } from "@/components/reports/ReportsList";
-import { PublicSubmissionsList } from "@/components/submissions/PublicSubmissionsList"; // Corrected typo here
+import { PublicSubmissionsList } from "@/components/submissions/PublicSubmissionsList";
 import { VCChatInterface } from "@/components/vc/VCChatInterface";
 import { VCDashboard } from "@/components/dashboard/VCDashboard"; // Keep VCDashboard import
 import { useAuth } from "@/hooks/useAuth";
@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { FileUp, Loader2, Newspaper, ShieldCheck, Settings, GraduationCap, BarChart3, MessageSquare, PieChart } from "lucide-react"; // Import PieChart
+import { FileUp, Loader2, Newspaper, ShieldCheck, Settings, GraduationCap, BarChart3, MessageSquare, PieChart } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { EurekaSampleButton } from "@/components/profile/EurekaSampleButton";
@@ -110,9 +110,12 @@ const Dashboard = () => {
     return (
       <div className="animate-fade-in">
         <div className="container mx-auto px-4 py-6">
-          <Button onClick={() => setShowVcDashboard(false)} className="mb-4">
-            Back
-          </Button>
+          <div className="flex items-center mb-4"> {/* Flex container for button and heading */}
+            <Button onClick={() => setShowVcDashboard(false)} className="mr-4"> {/* Added margin-right */}
+              Back
+            </Button>
+            <h1 className="text-2xl font-bold text-white">Business Tracker Dashboard</h1> {/* Added heading */}
+          </div>
           <VCDashboard />
         </div>
       </div>
@@ -133,12 +136,12 @@ const Dashboard = () => {
           {/* New Button for VC Dashboard */}
           {isVC && !isVCAndBits && (
             <Button onClick={() => setShowVcDashboard(true)} variant="outline" className="flex items-center">
-              
+              <BarChart3 className="mr-2 h-4 w-4" /> {/* Changed icon to BarChart3 for business dashboard */}
               Business Dashboard
             </Button>
           )}
           {isVC && !isVCAndBits && <Button onClick={() => navigate("/vc-analysis")} variant="outline" className="flex items-center">
-            <BarChart3 className="mr-2 h-4 w-4" />
+            <FileUp className="mr-2 h-4 w-4" /> {/* Changed icon to FileUp for upload deck */}
             Upload Deck
           </Button>}
           <Button onClick={() => navigate("/news-feed")} variant="outline" className="flex items-center">
@@ -159,7 +162,6 @@ const Dashboard = () => {
               <TabsTrigger value="companies">
                 {isIITBombay ? "Eureka Prospects" : "Prospects"}
               </TabsTrigger>
-              {/* Removed VC Dashboard TabTrigger */}
               <TabsTrigger value="submissions">New Applications</TabsTrigger>
               {!isIITBombay && <TabsTrigger value="reports">Pitch Decks</TabsTrigger>}
             </TabsList>
@@ -169,7 +171,6 @@ const Dashboard = () => {
             <TabsContent value="companies">
               <ConditionalCompaniesList />
             </TabsContent>
-            {/* Removed VC Dashboard TabsContent */}
             <TabsContent value="submissions">
               <PublicSubmissionsList />
             </TabsContent>
