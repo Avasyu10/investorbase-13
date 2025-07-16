@@ -1,17 +1,20 @@
+
 import { ConditionalCompaniesList } from "@/components/companies/ConditionalCompaniesList";
 import { ReportsList } from "@/components/reports/ReportsList";
 import { PublicSubmissionsList } from "@/components/submissions/PublicSubmissionsList";
 import { VCChatInterface } from "@/components/vc/VCChatInterface";
+import { VCDashboard } from "@/components/dashboard/VCDashboard";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { FileUp, Loader2, Newspaper, ShieldCheck, Settings, GraduationCap, BarChart3, MessageSquare } from "lucide-react";
+import { FileUp, Loader2, Newspaper, ShieldCheck, Settings, GraduationCap, BarChart3, MessageSquare, PieChart } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { EurekaSampleButton } from "@/components/profile/EurekaSampleButton";
+
 const Dashboard = () => {
   const {
     user,
@@ -132,6 +135,12 @@ const Dashboard = () => {
                 <TabsTrigger value="companies">
                   {isIITBombay ? "Eureka Prospects" : "Prospects"}
                 </TabsTrigger>
+                {isVC && !isVCAndBits && (
+                  <TabsTrigger value="dashboard">
+                    <PieChart className="mr-2 h-4 w-4" />
+                    Dashboard
+                  </TabsTrigger>
+                )}
                 <TabsTrigger value="submissions">New Applications</TabsTrigger>
                 {!isIITBombay && <TabsTrigger value="reports">Pitch Decks</TabsTrigger>}
               </TabsList>
@@ -143,6 +152,11 @@ const Dashboard = () => {
               <TabsContent value="companies">
                 <ConditionalCompaniesList />
               </TabsContent>
+              {isVC && !isVCAndBits && (
+                <TabsContent value="dashboard">
+                  <VCDashboard />
+                </TabsContent>
+              )}
               <TabsContent value="submissions">
                 <PublicSubmissionsList />
               </TabsContent>
@@ -158,4 +172,5 @@ const Dashboard = () => {
       {isVC && !isVCAndBits && <VCChatInterface open={chatOpen} onOpenChange={setChatOpen} />}
     </div>;
 };
+
 export default Dashboard;
