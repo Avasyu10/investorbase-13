@@ -133,74 +133,75 @@ export function VCDashboard() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    // Reduced vertical padding from space-y-6 to space-y-4, and container padding from py-6 to py-4
+    <div className="space-y-4 animate-fade-in h-screen overflow-hidden"> {/* Added h-screen overflow-hidden */}
       {/* Key Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4"> {/* Reduced gap and mb */}
         <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-          <CardContent className="p-6 text-center">
+          <CardContent className="p-4 text-center"> {/* Reduced padding */}
             <div>
-              <p className="text-sm font-medium opacity-90">Unique Outreaches</p>
-              <p className="text-4xl font-bold mt-2">{uniqueOutreaches}</p>
+              <p className="text-xs font-medium opacity-90">Unique Outreaches</p> {/* Smaller text */}
+              <p className="text-3xl font-bold mt-1">{uniqueOutreaches}</p> {/* Smaller text */}
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-blue-400 to-blue-500 text-white">
-          <CardContent className="p-6 text-center">
+          <CardContent className="p-4 text-center"> {/* Reduced padding */}
             <div>
-              <p className="text-sm font-medium opacity-90">Follow Ups</p>
-              <p className="text-4xl font-bold mt-2">{followUps}</p>
+              <p className="text-xs font-medium opacity-90">Follow Ups</p> {/* Smaller text */}
+              <p className="text-3xl font-bold mt-1">{followUps}</p> {/* Smaller text */}
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-blue-300 to-blue-400 text-white">
-          <CardContent className="p-6 text-center">
+          <CardContent className="p-4 text-center"> {/* Reduced padding */}
             <div>
-              <p className="text-sm font-medium opacity-90">Replies</p>
-              <p className="text-4xl font-bold mt-2">{replies}</p>
+              <p className="text-xs font-medium opacity-90">Replies</p> {/* Smaller text */}
+              <p className="text-3xl font-bold mt-1">{replies}</p> {/* Smaller text */}
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-gray-300 to-gray-400 text-gray-800">
-          <CardContent className="p-6 text-center">
+          <CardContent className="p-4 text-center"> {/* Reduced padding */}
             <div>
-              <p className="text-sm font-medium opacity-90">Meetings</p>
-              <p className="text-4xl font-bold mt-2">{meetings}</p>
+              <p className="text-xs font-medium opacity-90">Meetings</p> {/* Smaller text */}
+              <p className="text-3xl font-bold mt-1">{meetings}</p> {/* Smaller text */}
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Main Content Area: Sidebar + Charts */}
-      <div className="flex flex-col lg:flex-row gap-6">
+      <div className="flex flex-col lg:flex-row gap-4 flex-grow"> {/* Reduced gap, added flex-grow */}
         {/* Left Sidebar for Filters */}
-        <Card className="lg:w-1/4 p-6 space-y-6 flex-shrink-0">
-          <h2 className="text-xl font-bold text-white mb-4">Filters</h2>
+        <Card className="lg:w-1/4 p-4 space-y-4 flex-shrink-0"> {/* Reduced padding and space-y */}
+          <h2 className="text-lg font-bold text-white mb-2">Filters</h2> {/* Smaller text, reduced mb */}
 
           {/* Date Filter */}
           <div>
-            <h3 className="text-lg font-semibold mb-2 text-white">Date</h3>
-            <div className="space-y-2">
+            <h3 className="text-md font-semibold mb-1 text-white">Date</h3> {/* Smaller text, reduced mb */}
+            <div className="space-y-1"> {/* Reduced space-y */}
               <div>
-                <label htmlFor="startDate" className="block text-sm font-medium text-white mb-1">From:</label>
+                <label htmlFor="startDate" className="block text-xs font-medium text-white mb-0.5">From:</label> {/* Smaller text */}
                 <input
                   type="date"
                   id="startDate"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full p-2 border rounded-md bg-gray-700 text-white border-gray-600 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full p-1.5 border rounded-md bg-gray-700 text-white border-gray-600 focus:ring-blue-500 focus:border-blue-500 text-sm" // Reduced padding, smaller text
                 />
               </div>
               <div>
-                <label htmlFor="endDate" className="block text-sm font-medium text-white mb-1">To:</label>
+                <label htmlFor="endDate" className="block text-xs font-medium text-white mb-0.5">To:</label> {/* Smaller text */}
                 <input
                   type="date"
                   id="endDate"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full p-2 border rounded-md bg-gray-700 text-white border-gray-600 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full p-1.5 border rounded-md bg-gray-700 text-white border-gray-600 focus:ring-blue-500 focus:border-blue-500 text-sm" // Reduced padding, smaller text
                 />
               </div>
             </div>
@@ -208,8 +209,8 @@ export function VCDashboard() {
 
           {/* POC Name Filter */}
           <div>
-            <h3 className="text-lg font-semibold mb-2 text-white">POC</h3>
-            <div className="space-y-2">
+            <h3 className="text-md font-semibold mb-1 text-white">POC</h3> {/* Smaller text, reduced mb */}
+            <div className="space-y-1"> {/* Reduced space-y */}
               {availablePersons.map((personName) => (
                 <div key={personName} className="flex items-center">
                   <input
@@ -217,9 +218,9 @@ export function VCDashboard() {
                     id={`person-checkbox-${personName}`}
                     checked={selectedPersons.includes(personName)}
                     onChange={() => handlePersonCheckboxChange(personName)}
-                    className="form-checkbox h-4 w-4 text-blue-600 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:checked:bg-blue-600 dark:focus:ring-blue-600"
+                    className="form-checkbox h-3.5 w-3.5 text-blue-600 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:checked:bg-blue-600 dark:focus:ring-blue-600" // Smaller checkbox
                   />
-                  <label htmlFor={`person-checkbox-${personName}`} className="ml-2 text-sm text-white cursor-pointer">
+                  <label htmlFor={`person-checkbox-${personName}`} className="ml-1.5 text-xs text-white cursor-pointer"> {/* Smaller text, reduced ml */}
                     {personName}
                   </label>
                 </div>
@@ -229,8 +230,8 @@ export function VCDashboard() {
 
           {/* Channel Filter */}
           <div>
-            <h3 className="text-lg font-semibold mb-2 text-white">Channel</h3>
-            <div className="space-y-2">
+            <h3 className="text-md font-semibold mb-1 text-white">Channel</h3> {/* Smaller text, reduced mb */}
+            <div className="space-y-1"> {/* Reduced space-y */}
               {availableChannels.map((channelName) => (
                 <div key={channelName} className="flex items-center">
                   <input
@@ -238,9 +239,9 @@ export function VCDashboard() {
                     id={`channel-checkbox-${channelName}`}
                     checked={selectedChannels.includes(channelName)}
                     onChange={() => handleChannelCheckboxChange(channelName)}
-                    className="form-checkbox h-4 w-4 text-blue-600 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:checked:bg-blue-600 dark:focus:ring-blue-600"
+                    className="form-checkbox h-3.5 w-3.5 text-blue-600 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:checked:bg-blue-600 dark:focus:ring-blue-600" // Smaller checkbox
                   />
-                  <label htmlFor={`channel-checkbox-${channelName}`} className="ml-2 text-sm text-white cursor-pointer">
+                  <label htmlFor={`channel-checkbox-${channelName}`} className="ml-1.5 text-xs text-white cursor-pointer"> {/* Smaller text, reduced ml */}
                     {channelName}
                   </label>
                 </div>
@@ -250,24 +251,23 @@ export function VCDashboard() {
         </Card>
 
         {/* Right Content Area for Charts */}
-        {/* Changed this div to use grid for side-by-side charts */}
-        <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4"> {/* Reduced gap */}
           {/* Unique Outreaches, Follow ups and Replies by Channel */}
           <Card>
-            <CardHeader>
-              <CardTitle>Unique Outreaches, Follow ups and Replies by Channel</CardTitle>
+            <CardHeader className="pb-2"> {/* Reduced padding-bottom */}
+              <CardTitle className="text-base">Unique Outreaches, Follow ups and Replies by Channel</CardTitle> {/* Smaller title */}
             </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
+            <CardContent className="pt-2"> {/* Reduced padding-top */}
+              <ResponsiveContainer width="100%" height={200}> {/* Significantly reduced height */}
                 <BarChart data={currentChannelData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="channel" />
-                  <YAxis />
+                  <XAxis dataKey="channel" style={{ fontSize: '10px' }} /> {/* Smaller font size for axis labels */}
+                  <YAxis style={{ fontSize: '10px' }} /> {/* Smaller font size for axis labels */}
                   <ChartTooltip />
                   <Bar dataKey="uniqueOutreaches" fill={BLUE_SHADES[0]} name="Unique Outreaches" />
                   <Bar dataKey="followUps" fill={BLUE_SHADES[1]} name="Follow Ups" />
                   <Bar dataKey="replies" fill={BLUE_SHADES[2]} name="Replies" />
-                  <Legend />
+                  <Legend wrapperStyle={{ fontSize: '10px' }} /> {/* Smaller font size for legend */}
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -275,19 +275,19 @@ export function VCDashboard() {
 
           {/* Meeting Categories */}
           <Card>
-            <CardHeader>
-              <CardTitle>Meeting Categories</CardTitle>
+            <CardHeader className="pb-2"> {/* Reduced padding-bottom */}
+              <CardTitle className="text-base">Meeting Categories</CardTitle> {/* Smaller title */}
             </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
+            <CardContent className="pt-2"> {/* Reduced padding-top */}
+              <ResponsiveContainer width="100%" height={200}> {/* Significantly reduced height */}
                 <PieChart>
                   <Pie
                     data={meetingCategoriesData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
-                    outerRadius={120}
-                    paddingAngle={5}
+                    innerRadius={40} // Reduced radius
+                    outerRadius={80} // Reduced radius
+                    paddingAngle={3} // Reduced padding angle
                     dataKey="value"
                   >
                     {meetingCategoriesData.map((entry, index) => (
@@ -295,7 +295,7 @@ export function VCDashboard() {
                     ))}
                   </Pie>
                   <ChartTooltip formatter={(value, name) => [`${value}%`, name]} />
-                  <Legend />
+                  <Legend wrapperStyle={{ fontSize: '10px' }} /> {/* Smaller font size for legend */}
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
