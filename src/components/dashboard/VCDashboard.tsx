@@ -40,18 +40,12 @@ const TREEMAP_COLORS = [
   '#64b5f6', // Lighter blue for In Review (was #90caf9) - still light but with better contrast
 ];
 
-// Custom content for treemap, now including ratio display
+// Custom content for treemap, now without direct ratio display on segments
 const CustomizedContent = (props) => {
-  const { root, depth, x, y, width, height, index, payload, colors, name, totalValue } = props; // Added totalValue
+  const { root, depth, x, y, width, height, index, payload, colors, name } = props;
 
   // Determine the fill color based on the payload's fill property
   const fillColor = payload?.fill || (depth < 2 ? colors[Math.floor((index / root.children.length) * colors.length)] : 'none');
-
-  // Calculate ratio only for the actual status nodes (depth === 1)
-  // Ensure totalValue is not zero to prevent division by zero
-  const ratio = totalValue && payload?.value && depth === 1 && totalValue !== 0
-    ? ((payload.value / totalValue) * 100).toFixed(1)
-    : null;
 
   return (
     <g>
@@ -70,19 +64,13 @@ const CustomizedContent = (props) => {
       {depth === 1 ? (
         <>
           {/* Display Name */}
-          <text x={x + width / 2} y={y + height / 2 - (ratio ? 15 : 5)} textAnchor="middle" fill="#FFFFFF" fontSize={12} fontWeight="normal">
+          <text x={x + width / 2} y={y + height / 2 - 5} textAnchor="middle" fill="#FFFFFF" fontSize={12} fontWeight="normal">
             {name}
           </text>
           {/* Display Value */}
-          <text x={x + width / 2} y={y + height / 2 + (ratio ? 0 : 10)} textAnchor="middle" fill="#FFFFFF" fontSize={14} fontWeight="normal">
+          <text x={x + width / 2} y={y + height / 2 + 10} textAnchor="middle" fill="#FFFFFF" fontSize={14} fontWeight="normal">
             {payload?.value}
           </text>
-          {/* Display Ratio */}
-          {ratio && (
-            <text x={x + width / 2} y={y + height / 2 + 15} textAnchor="middle" fill="#FFFFFF" fontSize={10} fontWeight="normal">
-              ({ratio}%)
-            </text>
-          )}
         </>
       ) : null}
     </g>
@@ -96,7 +84,6 @@ export function VCDashboard() {
   const [selectedPerson, setSelectedPerson] = useState('Roohi');
   const [selectedIndustry, setSelectedIndustry] = useState('Tech');
   const [selectedStage, setSelectedStage] = useState('Early');
-  // Changed default dateRangeIndex from 7 to 6 as 'Last 2 Years' is removed.
   const [dateRangeIndex, setDateRangeIndex] = useState(6); 
 
   const availablePersons = ['Roohi', 'Avasyu', 'Kanishk', 'Tanisha'];
@@ -192,11 +179,15 @@ export function VCDashboard() {
     const actualTotal = statusCounts.Accepted + statusCounts.Rejected + statusCounts['In Review'];
     statusCounts.Total = actualTotal;
 
+    // Prepare data for treemap including percentage for legend
     return [
       { name: 'Total', value: statusCounts.Total, fill: TREEMAP_COLORS[0] },
-      { name: 'Accepted', value: statusCounts.Accepted, fill: TREEMAP_COLORS[1] },
-      { name: 'Rejected', value: statusCounts.Rejected, fill: TREEMAP_COLORS[2] },
-      { name: 'In Review', value: statusCounts['In Review'], fill: TREEMAP_COLORS[3] },
+      { name: 'Accepted', value: statusCounts.Accepted, fill: TREEMAP_COLORS[1],
+        percentage: actualTotal > 0 ? ((statusCounts.Accepted / actualTotal) * 100).toFixed(1) : '0.0' },
+      { name: 'Rejected', value: statusCounts.Rejected, fill: TREEMAP_COLORS[2],
+        percentage: actualTotal > 0 ? ((statusCounts.Rejected / actualTotal) * 100).toFixed(1) : '0.0' },
+      { name: 'In Review', value: statusCounts['In Review'], fill: TREEMAP_COLORS[3],
+        percentage: actualTotal > 0 ? ((statusCounts['In Review'] / actualTotal) * 100).toFixed(1) : '0.0' },
     ];
   }, [filteredData]);
 
@@ -239,8 +230,18 @@ export function VCDashboard() {
   const currentStartDate = new Date();
   currentStartDate.setDate(currentStartDate.getDate() - dateRanges[dateRangeIndex].days);
 
-  // Get the total value for ratio calculation in treemap
-  const totalTreemapValue = treemapChartData.find(d => d.name === 'Total')?.value || 0;
+  // Custom formatter for the Treemap Legend
+  const renderTreemapLegend = (value, entry) => {
+    const { payload } = entry;
+    if (payload.name === 'Total') {
+      return <span style={{ color: '#cbd5e0' }}>{payload.name}: {payload.value}</span>;
+    }
+    return (
+      <span style={{ color: '#cbd5e0' }}>
+        {payload.name}: {payload.value} ({payload.percentage}%)
+      </span>
+    );
+  };
 
   return (
     <div className="flex flex-col lg:flex-row space-y-3 lg:space-y-0 lg:space-x-3 p-3 bg-gray-900 text-white font-inter">
@@ -400,8 +401,18 @@ export function VCDashboard() {
                   aspectRatio={4/3}
                   stroke="#fff"
                   content={(props) => (
-                    <CustomizedContent {...props} colors={TREEMAP_COLORS} totalValue={totalTreemapValue} />
+                    <CustomizedContent {...props} colors={TREEMAP_COLORS} /> {/* Removed totalValue prop from here */}
                   )}
+                />
+                {/* Add Legend for Treemap with custom formatter */}
+                <Legend
+                  wrapperStyle={{ fontSize: '10px', color: '#cbd5e0', paddingTop: '10px' }}
+                  payload={treemapChartData.filter(d => d.name !== 'Total').map((entry, index) => ({
+                    id: entry.name,
+                    value: `${entry.name}: ${entry.value} (${entry.percentage}%)`,
+                    type: 'square',
+                    color: entry.fill,
+                  }))}
                 />
               </ResponsiveContainer>
             </CardContent>
