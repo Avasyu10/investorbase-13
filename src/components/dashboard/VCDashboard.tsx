@@ -1,6 +1,7 @@
+
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Cell, PieChart, Pie, RadialBarChart, RadialBar } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Cell, PieChart, Pie } from "recharts";
 import { ChartTooltip } from "@/components/ui/chart";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
@@ -33,13 +34,12 @@ const BLUE_SHADES = [
   '#1e40af', // blue-800
 ];
 
-// New shades of blue for the funnel chart to create a gradient effect, more distinct
-const FUNNEL_SHADES_OF_BLUE = [
-  '#1E3A8A', // Darker blue for top (Leads)
-  '#2563EB', // Medium-dark blue (Sales Calls)
-  '#3B82F6', // Medium blue (Follow-up)
-  '#60A5FA', // Lighter blue (Conversion)
-  '#90CAF9', // Even lighter blue (Sales)
+// Updated funnel chart colors - gradient from dark to light blue
+const FUNNEL_COLORS = [
+  '#1e40af', // Total - darkest blue
+  '#3b82f6', // Accepted - medium blue
+  '#ef4444', // Rejected - red for clarity
+  '#f59e0b', // In Review - amber
 ];
 
 export function VCDashboard() {
@@ -59,9 +59,9 @@ export function VCDashboard() {
   // More granular mock data linking persons, channels, industries, and statuses
   const allProspectData = useMemo(() => {
     const data = [];
-    const statuses = ['Leads', 'Sales Calls', 'Follow-up', 'Conversion', 'Sales'];
     const channels = ['LinkedIn', 'Others', 'Calls', 'Mail'];
     const industries = ['Tech', 'Finance', 'Healthcare', 'Retail'];
+    const statuses = ['Total', 'Accepted', 'Rejected', 'In Review'];
 
     // Generate a reasonable number of entries for diverse filtering results
     for (let i = 0; i < 1500; i++) { // Adjusted for more controlled totals
@@ -106,16 +106,35 @@ export function VCDashboard() {
     return Object.values(aggregatedByChannel);
   }, [filteredData]);
 
-  // Data for the Funnel Chart (Prospect Status) - Fixed to ensure it always shows
+  // Dynamic funnel chart data based on filtered data
   const funnelChartData = useMemo(() => {
+    const statusCounts = { Total: 0, Accepted: 0, Rejected: 0, 'In Review': 0 };
+    
+    filteredData.forEach(item => {
+      if (statusCounts.hasOwnProperty(item.status)) {
+        statusCounts[item.status] += 1;
+      }
+    });
+
+    // Calculate total from all statuses (excluding "Total" to avoid double counting)
+    const actualTotal = statusCounts.Accepted + statusCounts.Rejected + statusCounts['In Review'];
+    statusCounts.Total = actualTotal || 100; // Fallback to 100 if no data
+
+    // Ensure we have some data even when filtered data is small
+    if (actualTotal === 0) {
+      statusCounts.Total = 150;
+      statusCounts.Accepted = 45;
+      statusCounts.Rejected = 60;
+      statusCounts['In Review'] = 45;
+    }
+
     return [
-      { name: 'Leads', value: 250, fill: FUNNEL_SHADES_OF_BLUE[0] },
-      { name: 'Sales Calls', value: 200, fill: FUNNEL_SHADES_OF_BLUE[1] },
-      { name: 'Follow-up', value: 150, fill: FUNNEL_SHADES_OF_BLUE[2] },
-      { name: 'Conversion', value: 100, fill: FUNNEL_SHADES_OF_BLUE[3] },
-      { name: 'Sales', value: 50, fill: FUNNEL_SHADES_OF_BLUE[4] },
+      { name: 'Total', value: statusCounts.Total, fill: FUNNEL_COLORS[0] },
+      { name: 'Accepted', value: statusCounts.Accepted, fill: FUNNEL_COLORS[1] },
+      { name: 'Rejected', value: statusCounts.Rejected, fill: FUNNEL_COLORS[2] },
+      { name: 'In Review', value: statusCounts['In Review'], fill: FUNNEL_COLORS[3] },
     ];
-  }, []); // No dependencies on filteredData here, as values are fixed for demonstration
+  }, [filteredData]);
 
   if (isLoading) {
     return (
@@ -281,7 +300,7 @@ export function VCDashboard() {
             </CardContent>
           </Card>
 
-          {/* Prospect Funnel Chart - Fixed to show properly */}
+          {/* Prospect Status Funnel Chart - Dynamic data that changes with filters */}
           <Card className="bg-gray-800 rounded-lg shadow-lg">
             <CardHeader className="pb-1">
               <CardTitle className="text-base text-white">Prospect Status Funnel</CardTitle>

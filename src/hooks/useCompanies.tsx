@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -53,6 +52,27 @@ function mapDbCompanyToApi(company: any) {
   };
 }
 
+// Helper function to get report IDs the user has access to - optimized version
+async function getUserAccessibleReports(userId: string): Promise<string> {
+  try {
+    const { data: reports, error } = await supabase
+      .from('reports')
+      .select('id')
+      .or(`user_id.eq.${userId},is_public_submission.eq.true`)
+      .limit(1000); // Add reasonable limit to prevent massive queries
+
+    if (error) {
+      console.error('Error fetching accessible reports:', error);
+      return '';
+    }
+
+    return reports?.map(r => r.id).join(',') || '';
+  } catch (err) {
+    console.error('Error in getUserAccessibleReports:', err);
+    return '';
+  }
+}
+
 export function useCompanies(
   page: number = 1, 
   pageSize: number = 20, 
@@ -76,6 +96,8 @@ export function useCompanies(
           return { companies: [], totalCount: 0, potentialStats: { highPotential: 0, mediumPotential: 0, badPotential: 0 } };
         }
 
+        console.log('Fetching companies for user:', user.id, 'Page:', page, 'PageSize:', pageSize);
+        
         // Calculate offset based on page number and page size
         const from = (page - 1) * pageSize;
         const to = from + pageSize - 1;
@@ -86,7 +108,8 @@ export function useCompanies(
           dbSortField = sortBy === 'overall_score' ? 'overall_score' : 'name';
         }
         
-        console.log('Fetching companies for user:', user.id, 'Page:', page, 'PageSize:', pageSize);
+        // Get accessible reports once and reuse - optimization
+        const accessibleReports = await getUserAccessibleReports(user.id);
         
         let query = supabase
           .from('companies')
@@ -100,7 +123,7 @@ export function useCompanies(
             ),
             company_details!left (status, status_date, notes, contact_email, point_of_contact, industry, teammember_name)
           `, { count: 'exact' })
-          .or(`user_id.eq.${user.id},report_id.in.(${await getUserAccessibleReports(user.id)})`);
+          .or(`user_id.eq.${user.id}${accessibleReports ? `,report_id.in.(${accessibleReports})` : ''}`);
 
         // Add search filter if provided
         if (search && search.trim() !== '') {
@@ -119,18 +142,12 @@ export function useCompanies(
         
         console.log(`Retrieved ${data?.length || 0} companies out of ${count || 0} total for page ${page}`);
 
-        // Fetch potential stats across ALL companies (not just current page)
-        let potentialStatsQuery = supabase
+        // Fetch potential stats separately and more efficiently
+        const { data: statsData, error: statsError } = await supabase
           .from('companies')
           .select('overall_score')
-          .or(`user_id.eq.${user.id},report_id.in.(${await getUserAccessibleReports(user.id)})`);
-
-        // Apply the same search filter to stats query if provided
-        if (search && search.trim() !== '') {
-          potentialStatsQuery = potentialStatsQuery.ilike('name', `%${search.trim()}%`);
-        }
-
-        const { data: allCompaniesForStats, error: statsError } = await potentialStatsQuery;
+          .or(`user_id.eq.${user.id}${accessibleReports ? `,report_id.in.(${accessibleReports})` : ''}`)
+          .not('overall_score', 'is', null);
 
         if (statsError) {
           console.error("Error fetching potential stats:", statsError);
@@ -138,42 +155,22 @@ export function useCompanies(
 
         // Calculate potential stats from all companies
         const potentialStats = {
-          highPotential: allCompaniesForStats?.filter(c => c.overall_score > 70).length || 0,
-          mediumPotential: allCompaniesForStats?.filter(c => c.overall_score >= 50 && c.overall_score <= 70).length || 0,
-          badPotential: allCompaniesForStats?.filter(c => c.overall_score < 50).length || 0,
+          highPotential: statsData?.filter(c => c.overall_score > 70).length || 0,
+          mediumPotential: statsData?.filter(c => c.overall_score >= 50 && c.overall_score <= 70).length || 0,
+          badPotential: statsData?.filter(c => c.overall_score < 50).length || 0,
         };
         
-        // For companies that have report_id, fetch additional industry data from public_form_submissions
-        const companiesWithIndustry = await Promise.all((data || []).map(async (company) => {
-          let publicFormIndustry = null;
-          
-          // If company has a report_id, try to get industry from public_form_submissions
-          if (company.report_id) {
-            try {
-              const { data: publicFormData } = await supabase
-                .from('public_form_submissions')
-                .select('industry')
-                .eq('report_id', company.report_id)
-                .maybeSingle();
-              
-              if (publicFormData) {
-                publicFormIndustry = publicFormData.industry;
-              }
-            } catch (err) {
-              console.log('Could not fetch public form industry for company:', company.id);
-            }
-          }
-          
+        // Process companies data - simplified without additional queries for better performance
+        const processedCompanies = (data || []).map(company => {
           return mapDbCompanyToApi({
             ...company,
-            // Use industry from public_form_submissions if available, otherwise fallback to existing industry
-            industry: publicFormIndustry || company.industry,
+            industry: company.industry, // Use existing industry data
             response_received: company.response_received
           });
-        }));
+        });
         
         return {
-          companies: companiesWithIndustry,
+          companies: processedCompanies,
           totalCount: count || 0,
           potentialStats
         };
@@ -183,6 +180,8 @@ export function useCompanies(
       }
     },
     enabled: !!user,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes to reduce unnecessary queries
+    gcTime: 10 * 60 * 1000, // Keep in memory for 10 minutes
     meta: {
       onError: (err: any) => {
         console.error("useCompanies query error:", err);
@@ -203,26 +202,6 @@ export function useCompanies(
     error,
     refetch,
   };
-}
-
-// Helper function to get report IDs the user has access to
-async function getUserAccessibleReports(userId: string): Promise<string> {
-  try {
-    const { data: reports, error } = await supabase
-      .from('reports')
-      .select('id')
-      .or(`user_id.eq.${userId},is_public_submission.eq.true`);
-
-    if (error) {
-      console.error('Error fetching accessible reports:', error);
-      return '';
-    }
-
-    return reports?.map(r => r.id).join(',') || '';
-  } catch (err) {
-    console.error('Error in getUserAccessibleReports:', err);
-    return '';
-  }
 }
 
 export { useCompanyDetails } from './companyHooks/useCompanyDetails';
