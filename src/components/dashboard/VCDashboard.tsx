@@ -32,12 +32,12 @@ const BLUE_SHADES = [
   '#1e40af', // blue-800
 ];
 
-// Treemap colors - different shades of blue, with better distinction for Rejected and In Review
+// Treemap colors - different shades of blue, with better distinction and visibility for text
 const TREEMAP_COLORS = [
-  '#1a237e', // Darker blue for Total (was #1e3a8a)
-  '#42a5f5', // Medium blue for Accepted (was #3b82f6)
-  '#2196f3', // Slightly darker blue for Rejected (was #60a5fa) - more distinct from In Review
-  '#90caf9', // Lighter blue for In Review (was #93c5fd) - more distinct from Rejected
+  '#1a237e', // Darker blue for Total
+  '#3f51b5', // Medium blue for Accepted (slightly darker than previous #42a5f5)
+  '#283593', // Slightly darker blue for Rejected (was #2196f3) - more distinct from In Review
+  '#64b5f6', // Lighter blue for In Review (was #90caf9) - still light but with better contrast
 ];
 
 // Custom content for treemap
