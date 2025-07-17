@@ -129,8 +129,8 @@ const Dashboard = () => {
         <div className="flex items-center gap-3">
           {isIITBombay && <GraduationCap className="h-8 w-8 text-primary" />}
         </div>
+        {/* Moved Business Dashboard button to the start of the button group */}
         <div className="flex flex-col sm:flex-row gap-2 mt-4 sm:mt-0">
-          {/* New Button for VC Dashboard - Moved to the left end */}
           {isVC && !isVCAndBits && (
             <Button onClick={() => setShowVcDashboard(true)} variant="outline" className="flex items-center">
               Business Dashboard
