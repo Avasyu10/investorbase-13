@@ -124,10 +124,11 @@ export function VCDashboard() {
         channel,
         industry,
         // Hardcoded mock data numbers for consistency, adjusted for Unique Outreaches range
-        uniqueOutreaches: 300 + (i % 50), // Varies from 300 to 349
-        followUps: 50 + (i % 30),    // Varies from 50 to 79
-        replies: 20 + (i % 10),      // Varies from 20 to 29
-        meetings: 5 + (i % 3),     // Varies from 5 to 7
+        // Adjusted to generate individual values that sum up to 300-350 for a typical filtered dataset
+        uniqueOutreaches: Math.floor(Math.random() * 2) + 1, // Generates 1 or 2
+        followUps: Math.floor(Math.random() * 1) + 1,    // Generates 1
+        replies: Math.floor(Math.random() * 1) + 1,      // Generates 1
+        meetings: Math.floor(Math.random() * 1) + 1,     // Generates 1
         status,
         stage,
         date: randomDate,
@@ -377,10 +378,10 @@ export function VCDashboard() {
             <div className="p-4 pb-1 flex justify-between items-center"> {/* Adjusted padding and added flex for alignment */}
               <h2 className="text-base text-white font-semibold">Prospect Status Overview</h2>
               {/* Treemap Legend moved here */}
-              <div className="flex space-x-2 text-xs text-white">
+              <div className="flex space-x-1 text-[9px] text-white"> {/* Adjusted text size and spacing */}
                 {treemapChartData.filter(d => d.name !== 'Total').map((entry) => (
                   <div key={entry.name} className="flex items-center">
-                    <span className="inline-block w-2 h-2 rounded-full mr-1" style={{ backgroundColor: entry.fill }}></span>
+                    <span className="inline-block w-1.5 h-1.5 rounded-full mr-0.5" style={{ backgroundColor: entry.fill }}></span> {/* Adjusted circle size and margin */}
                     <span>{entry.name}: {entry.value} ({entry.percentage}%)</span>
                   </div>
                 ))}
