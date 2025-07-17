@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Cell, Treemap, Tooltip } from "recharts"; // Import Tooltip directly from recharts
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Cell, Treemap, Tooltip } from "recharts";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
 // Mocking useCompanies for demonstration purposes if it's not available
@@ -81,30 +81,43 @@ const CustomizedContent = (props) => {
 export function VCDashboard() {
   const { companies, isLoading, potentialStats } = useCompanies(1, 100);
 
-  // Filter States - now single selection for dropdowns
-  const [selectedPerson, setSelectedPerson] = useState('Roohi'); // Default to Roohi for dropdown
-  const [selectedIndustry, setSelectedIndustry] = useState('Tech'); // Default to Tech for dropdown
-
-  // Mock Date States (for future implementation, not currently used in data filtering)
-  const [startDate, setStartDate] = useState('2025-01-01');
-  const [endDate, setEndDate] = useState('2025-12-31');
+  // Filter States
+  const [selectedPerson, setSelectedPerson] = useState('Roohi');
+  const [selectedIndustry, setSelectedIndustry] = useState('Tech');
+  const [selectedStage, setSelectedStage] = useState('Early'); // New state for Stage filter
+  const [dateRangeIndex, setDateRangeIndex] = useState(3); // Default to 'Last Year' (index 3)
 
   const availablePersons = ['Roohi', 'Avasyu', 'Kanishk', 'Tanisha'];
   const availableIndustries = ['Tech', 'Finance', 'Healthcare', 'Retail'];
+  const availableStages = ['Early', 'Growth', 'Mature', 'Seed']; // New stages
 
-  // More granular mock data linking persons, channels, industries, and statuses
+  // Mock date ranges for the slider
+  const dateRanges = useMemo(() => [
+    { label: 'Last 7 Days', days: 7 },
+    { label: 'Last 30 Days', days: 30 },
+    { label: 'Last 90 Days', days: 90 },
+    { label: 'Last Year', days: 365 },
+  ], []);
+
+  // More granular mock data linking persons, channels, industries, statuses, and stages
   const allProspectData = useMemo(() => {
     const data = [];
     const channels = ['LinkedIn', 'Others', 'Calls', 'Mail'];
     const industries = ['Tech', 'Finance', 'Healthcare', 'Retail'];
     const statuses = ['Total', 'Accepted', 'Rejected', 'In Review'];
+    const stages = ['Early', 'Growth', 'Mature', 'Seed']; // Use the new stages
 
     // Generate a reasonable number of entries for diverse filtering results
-    for (let i = 0; i < 1500; i++) { // Adjusted for more controlled totals
+    for (let i = 0; i < 1500; i++) {
       const person = availablePersons[Math.floor(Math.random() * availablePersons.length)];
       const channel = channels[Math.floor(Math.random() * channels.length)];
       const industry = industries[Math.floor(Math.random() * industries.length)];
       const status = statuses[Math.floor(Math.random() * statuses.length)];
+      const stage = stages[Math.floor(Math.random() * stages.length)]; // Assign a random stage
+
+      // Generate a random date within the last year for mock purposes
+      const randomDate = new Date();
+      randomDate.setDate(randomDate.getDate() - Math.floor(Math.random() * 365));
 
       data.push({
         person,
@@ -114,19 +127,27 @@ export function VCDashboard() {
         followUps: Math.floor(Math.random() * 8) + 1, // 1-8
         replies: Math.floor(Math.random() * 4) + 1, // 1-4
         meetings: Math.floor(Math.random() * 2) + 1, // 1-2
-        status // This status will be used for the treemap chart
+        status, // This status will be used for the treemap chart
+        stage, // New stage property
+        date: randomDate, // Date for filtering
       });
     }
     return data;
   }, []);
 
-  // Filtered data based on selected person and industry
+  // Filtered data based on selected person, industry, stage, and date range
   const filteredData = useMemo(() => {
+    const { days } = dateRanges[dateRangeIndex];
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+
     return allProspectData.filter(item =>
       item.person === selectedPerson &&
-      item.industry === selectedIndustry
+      item.industry === selectedIndustry &&
+      item.stage === selectedStage && // Apply stage filter
+      item.date >= cutoffDate // Apply date filter
     );
-  }, [selectedPerson, selectedIndustry, allProspectData]);
+  }, [selectedPerson, selectedIndustry, selectedStage, dateRangeIndex, allProspectData, dateRanges]);
 
   // Data for the Bar Chart (still based on channels, as requested)
   const currentChannelChartData = useMemo(() => {
@@ -199,30 +220,19 @@ export function VCDashboard() {
       <Card className="lg:w-1/4 p-3 space-y-3 flex-shrink-0 bg-gray-800 rounded-lg shadow-lg">
         <h2 className="text-base font-bold text-white mb-3">Filters</h2>
 
-        {/* Date Filter */}
+        {/* Date Filter (Slider) */}
         <div>
-          <h3 className="text-sm font-semibold mb-1 text-white">Date</h3>
-          <div className="space-y-1">
-            <div>
-              <label htmlFor="startDate" className="block text-xs font-medium text-gray-300 mb-1">From:</label>
-              <input
-                type="date"
-                id="startDate"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full p-1.5 border rounded-md bg-gray-700 text-white border-gray-600 focus:ring-blue-500 focus:border-blue-500 text-xs"
-              />
-            </div>
-            <div>
-              <label htmlFor="endDate" className="block text-xs font-medium text-gray-300 mb-1">To:</label>
-              <input
-                type="date"
-                id="endDate"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full p-1.5 border rounded-md bg-gray-700 text-white border-gray-600 focus:ring-blue-500 focus:border-blue-500 text-xs"
-              />
-            </div>
+          <h3 className="text-sm font-semibold mb-1 text-white">Date Range</h3>
+          <input
+            type="range"
+            min="0"
+            max={dateRanges.length - 1}
+            value={dateRangeIndex}
+            onChange={(e) => setDateRangeIndex(parseInt(e.target.value))}
+            className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"
+          />
+          <div className="text-center text-xs text-gray-300 mt-1">
+            {dateRanges[dateRangeIndex].label}
           </div>
         </div>
 
@@ -254,6 +264,23 @@ export function VCDashboard() {
               {availableIndustries.map((industryName) => (
                 <SelectItem key={industryName} value={industryName} className="text-xs">
                   {industryName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Stage Filter (Dropdown) - NEW */}
+        <div>
+          <h3 className="text-sm font-semibold mb-1 text-white">Stage</h3>
+          <Select onValueChange={setSelectedStage} value={selectedStage}>
+            <SelectTrigger className="w-full bg-gray-700 text-white border-gray-600 focus:ring-blue-500 focus:border-blue-500 text-xs">
+              <SelectValue placeholder="Select Stage" />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-700 text-white border-gray-600">
+              {availableStages.map((stageName) => (
+                <SelectItem key={stageName} value={stageName} className="text-xs">
+                  {stageName}
                 </SelectItem>
               ))}
             </SelectContent>
