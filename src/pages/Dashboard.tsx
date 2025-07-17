@@ -147,7 +147,12 @@ const Dashboard = () => {
         <div className="flex items-center gap-4">
           {/* Business Dashboard button positioned at the left end */}
           {isVC && !isVCAndBits && (
-            <Button onClick={() => setShowVcDashboard(true)} variant="outline" className="flex items-center">
+            <Button 
+              onClick={() => setShowVcDashboard(true)} 
+              variant="outline" 
+              className="flex items-center bg-gradient-to-r from-blue-600 to-purple-600 text-white border-none hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-300 font-semibold px-6 py-2.5"
+            >
+              <BarChart3 className="mr-2 h-4 w-4" />
               Business Dashboard
             </Button>
           )}
