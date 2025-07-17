@@ -1,7 +1,7 @@
 
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Cell, PieChart, Pie } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Cell, Treemap } from "recharts";
 import { ChartTooltip } from "@/components/ui/chart";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
@@ -34,13 +34,45 @@ const BLUE_SHADES = [
   '#1e40af', // blue-800
 ];
 
-// Updated funnel chart colors - gradient from dark to light blue
-const FUNNEL_COLORS = [
-  '#1e40af', // Total - darkest blue
-  '#3b82f6', // Accepted - medium blue
-  '#ef4444', // Rejected - red for clarity
-  '#f59e0b', // In Review - amber
+// Treemap colors - different shades of blue
+const TREEMAP_COLORS = [
+  '#1e3a8a', // blue-900 (Total - darkest)
+  '#3b82f6', // blue-500 (Accepted - medium)
+  '#60a5fa', // blue-400 (Rejected - lighter)
+  '#93c5fd', // blue-300 (In Review - lightest)
 ];
+
+// Custom content for treemap
+const CustomizedContent = (props) => {
+  const { root, depth, x, y, width, height, index, payload, colors, rank, name } = props;
+
+  return (
+    <g>
+      <rect
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        style={{
+          fill: depth < 2 ? colors[Math.floor((index / root.children.length) * 6)] : 'none',
+          stroke: '#fff',
+          strokeWidth: 2 / (depth + 1e-10),
+          strokeOpacity: 1 / (depth + 1e-10),
+        }}
+      />
+      {depth === 1 ? (
+        <text x={x + width / 2} y={y + height / 2 + 7} textAnchor="middle" fill="#fff" fontSize={14}>
+          {name}
+        </text>
+      ) : null}
+      {depth === 1 ? (
+        <text x={x + width / 2} y={y + height / 2 - 7} textAnchor="middle" fill="#fff" fontSize={16} fontWeight="bold">
+          {payload.value}
+        </text>
+      ) : null}
+    </g>
+  );
+};
 
 export function VCDashboard() {
   const { companies, isLoading, potentialStats } = useCompanies(1, 100);
@@ -78,7 +110,7 @@ export function VCDashboard() {
         followUps: Math.floor(Math.random() * 8) + 1, // 1-8
         replies: Math.floor(Math.random() * 4) + 1, // 1-4
         meetings: Math.floor(Math.random() * 2) + 1, // 1-2
-        status // This status will be used for the funnel chart
+        status // This status will be used for the treemap chart
       });
     }
     return data;
@@ -106,8 +138,8 @@ export function VCDashboard() {
     return Object.values(aggregatedByChannel);
   }, [filteredData]);
 
-  // Dynamic funnel chart data based on filtered data
-  const funnelChartData = useMemo(() => {
+  // Dynamic treemap chart data based on filtered data
+  const treemapChartData = useMemo(() => {
     const statusCounts = { Total: 0, Accepted: 0, Rejected: 0, 'In Review': 0 };
     
     filteredData.forEach(item => {
@@ -129,10 +161,10 @@ export function VCDashboard() {
     }
 
     return [
-      { name: 'Total', value: statusCounts.Total, fill: FUNNEL_COLORS[0] },
-      { name: 'Accepted', value: statusCounts.Accepted, fill: FUNNEL_COLORS[1] },
-      { name: 'Rejected', value: statusCounts.Rejected, fill: FUNNEL_COLORS[2] },
-      { name: 'In Review', value: statusCounts['In Review'], fill: FUNNEL_COLORS[3] },
+      { name: 'Total', value: statusCounts.Total, fill: TREEMAP_COLORS[0] },
+      { name: 'Accepted', value: statusCounts.Accepted, fill: TREEMAP_COLORS[1] },
+      { name: 'Rejected', value: statusCounts.Rejected, fill: TREEMAP_COLORS[2] },
+      { name: 'In Review', value: statusCounts['In Review'], fill: TREEMAP_COLORS[3] },
     ];
   }, [filteredData]);
 
@@ -300,43 +332,20 @@ export function VCDashboard() {
             </CardContent>
           </Card>
 
-          {/* Prospect Status Funnel Chart - Dynamic data that changes with filters */}
+          {/* Prospect Status Treemap Chart - Dynamic data that changes with filters */}
           <Card className="bg-gray-800 rounded-lg shadow-lg">
             <CardHeader className="pb-1">
-              <CardTitle className="text-base text-white">Prospect Status Funnel</CardTitle>
+              <CardTitle className="text-base text-white">Prospect Status Overview</CardTitle>
             </CardHeader>
             <CardContent className="pt-1">
               <ResponsiveContainer width="100%" height={200}>
-                <BarChart
-                  data={funnelChartData}
-                  layout="vertical"
-                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                  barCategoryGap={0}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#4a5568" />
-                  <XAxis type="number" hide />
-                  <YAxis 
-                    type="category" 
-                    dataKey="name" 
-                    stroke="#cbd5e0" 
-                    style={{ fontSize: '10px' }} 
-                    axisLine={false} 
-                    tickLine={false} 
-                  />
-                  <ChartTooltip
-                    contentStyle={{ backgroundColor: '#1f2937', borderColor: '#4a5568', color: '#ffffff' }}
-                    labelStyle={{ color: '#ffffff' }}
-                    formatter={(value, name) => [`${value} prospects`, name]}
-                  />
-                  <Bar
-                    dataKey="value"
-                    name="Number of Prospects"
-                  >
-                    {funnelChartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Bar>
-                </BarChart>
+                <Treemap
+                  data={treemapChartData}
+                  dataKey="value"
+                  aspectRatio={4/3}
+                  stroke="#fff"
+                  content={<CustomizedContent colors={TREEMAP_COLORS} />}
+                />
               </ResponsiveContainer>
             </CardContent>
           </Card>
