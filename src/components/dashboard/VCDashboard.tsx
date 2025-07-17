@@ -64,8 +64,9 @@ const CustomizedContent = (props) => {
         </text>
       ) : null}
       {depth === 1 ? (
+        // FIX: Safely access payload.value using optional chaining
         <text x={x + width / 2} y={y + height / 2 - 7} textAnchor="middle" fill="#fff" fontSize={16} fontWeight="bold">
-          {payload.value}
+          {payload?.value}
         </text>
       ) : null}
     </g>
