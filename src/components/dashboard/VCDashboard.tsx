@@ -1,7 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Cell, Treemap, Tooltip } from "recharts";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Tooltip, Treemap } from "recharts";
 
 // Mocking useCompanies for demonstration purposes if it's not available
 const useCompanies = (page, limit) => {
@@ -195,11 +193,9 @@ export function VCDashboard() {
     return (
       <div className="space-y-6 animate-fade-in">
         {[...Array(6)].map((_, i) => (
-          <Card key={i} className="animate-pulse">
-            <CardContent className="p-6">
-              <div className="h-32 bg-muted rounded"></div>
-            </CardContent>
-          </Card>
+          <div key={i} className="bg-gray-800 rounded-lg shadow-lg p-6 animate-pulse">
+            <div className="h-32 bg-gray-700 rounded"></div>
+          </div>
         ))}
       </div>
     );
@@ -230,23 +226,10 @@ export function VCDashboard() {
   const currentStartDate = new Date();
   currentStartDate.setDate(currentStartDate.getDate() - dateRanges[dateRangeIndex].days);
 
-  // Custom formatter for the Treemap Legend
-  const renderTreemapLegend = (value, entry) => {
-    const { payload } = entry;
-    if (payload.name === 'Total') {
-      return <span style={{ color: '#cbd5e0' }}>{payload.name}: {payload.value}</span>;
-    }
-    return (
-      <span style={{ color: '#cbd5e0' }}>
-        {payload.name}: {payload.value} ({payload.percentage}%)
-      </span>
-    );
-  };
-
   return (
     <div className="flex flex-col lg:flex-row space-y-3 lg:space-y-0 lg:space-x-3 p-3 bg-gray-900 text-white font-inter">
       {/* Left Sidebar for Filters */}
-      <Card className="lg:w-1/4 p-3 space-y-3 flex-shrink-0 bg-gray-800 rounded-lg shadow-lg">
+      <div className="lg:w-1/4 p-3 space-y-3 flex-shrink-0 bg-gray-800 rounded-lg shadow-lg">
         <h2 className="text-base font-bold text-white mb-3">Filters</h2>
 
         {/* Date Filter (Slider) */}
@@ -272,104 +255,105 @@ export function VCDashboard() {
         {/* POC Name Filter (Dropdown) */}
         <div>
           <h3 className="text-sm font-semibold mb-1 text-white">POC</h3>
-          <Select onValueChange={setSelectedPerson} value={selectedPerson}>
-            <SelectTrigger className="w-full bg-gray-700 text-white border-gray-600 focus:ring-blue-500 focus:border-blue-500 text-xs">
-              <SelectValue placeholder="Select POC" />
-            </SelectTrigger>
-            <SelectContent className="bg-gray-700 text-white border-gray-600">
+          <div className="relative">
+            <select
+              onChange={(e) => setSelectedPerson(e.target.value)}
+              value={selectedPerson}
+              className="w-full p-1.5 border rounded-md bg-gray-700 text-white border-gray-600 focus:ring-blue-500 focus:border-blue-500 text-xs appearance-none pr-8"
+              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='white'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1.5em 1.5em' }}
+            >
+              <option value="" disabled>Select POC</option>
               {availablePersons.map((personName) => (
-                <SelectItem key={personName} value={personName} className="text-xs">
+                <option key={personName} value={personName}>
                   {personName}
-                </SelectItem>
+                </option>
               ))}
-            </SelectContent>
-          </Select>
+            </select>
+          </div>
         </div>
 
         {/* Industry Filter (Dropdown) */}
         <div>
           <h3 className="text-sm font-semibold mb-1 text-white">Industry</h3>
-          <Select onValueChange={setSelectedIndustry} value={selectedIndustry}>
-            <SelectTrigger className="w-full bg-gray-700 text-white border-gray-600 focus:ring-blue-500 focus:border-blue-500 text-xs">
-              <SelectValue placeholder="Select Industry" />
-            </SelectTrigger>
-            <SelectContent className="bg-gray-700 text-white border-gray-600">
+          <div className="relative">
+            <select
+              onChange={(e) => setSelectedIndustry(e.target.value)}
+              value={selectedIndustry}
+              className="w-full p-1.5 border rounded-md bg-gray-700 text-white border-gray-600 focus:ring-blue-500 focus:border-blue-500 text-xs appearance-none pr-8"
+              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='white'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1.5em 1.5em' }}
+            >
+              <option value="" disabled>Select Industry</option>
               {availableIndustries.map((industryName) => (
-                <SelectItem key={industryName} value={industryName} className="text-xs">
+                <option key={industryName} value={industryName}>
                   {industryName}
-                </SelectItem>
+                </option>
               ))}
-            </SelectContent>
-          </Select>
+            </select>
+          </div>
         </div>
 
         {/* Stage Filter (Dropdown) */}
         <div>
           <h3 className="text-sm font-semibold mb-1 text-white">Stage</h3>
-          <Select onValueChange={setSelectedStage} value={selectedStage}>
-            <SelectTrigger className="w-full bg-gray-700 text-white border-gray-600 focus:ring-blue-500 focus:border-blue-500 text-xs">
-              <SelectValue placeholder="Select Stage" />
-            </SelectTrigger>
-            <SelectContent className="bg-gray-700 text-white border-gray-600">
+          <div className="relative">
+            <select
+              onChange={(e) => setSelectedStage(e.target.value)}
+              value={selectedStage}
+              className="w-full p-1.5 border rounded-md bg-gray-700 text-white border-gray-600 focus:ring-blue-500 focus:border-blue-500 text-xs appearance-none pr-8"
+              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='white'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1.5em 1.5em' }}
+            >
+              <option value="" disabled>Select Stage</option>
               {availableStages.map((stageName) => (
-                <SelectItem key={stageName} value={stageName} className="text-xs">
+                <option key={stageName} value={stageName}>
                   {stageName}
-                </SelectItem>
+                </option>
               ))}
-            </SelectContent>
-          </Select>
+            </select>
+          </div>
         </div>
-      </Card>
+      </div>
 
       {/* Right Content Area: Metric Cards + Charts */}
       <div className="flex flex-col space-y-3 flex-grow">
         {/* Key Metrics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg shadow-lg">
-            <CardContent className="p-3 text-center">
-              <div>
-                <p className="text-sm font-medium opacity-90">Unique Outreaches</p>
-                <p className="text-3xl font-bold mt-1">{filteredMetrics.uniqueOutreaches}</p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg shadow-lg p-3 text-center">
+            <div>
+              <p className="text-sm font-medium opacity-90">Unique Outreaches</p>
+              <p className="text-3xl font-bold mt-1">{filteredMetrics.uniqueOutreaches}</p>
+            </div>
+          </div>
 
-          <Card className="bg-gradient-to-br from-blue-400 to-blue-500 text-white rounded-lg shadow-lg">
-            <CardContent className="p-3 text-center">
-              <div>
-                <p className="text-sm font-medium opacity-90">Follow Ups</p>
-                <p className="text-3xl font-bold mt-1">{filteredMetrics.followUps}</p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="bg-gradient-to-br from-blue-400 to-blue-500 text-white rounded-lg shadow-lg p-3 text-center">
+            <div>
+              <p className="text-sm font-medium opacity-90">Follow Ups</p>
+              <p className="text-3xl font-bold mt-1">{filteredMetrics.followUps}</p>
+            </div>
+          </div>
 
-          <Card className="bg-gradient-to-br from-blue-300 to-blue-400 text-white rounded-lg shadow-lg">
-            <CardContent className="p-3 text-center">
-              <div>
-                <p className="text-sm font-medium opacity-90">Replies</p>
-                <p className="text-3xl font-bold mt-1">{filteredMetrics.replies}</p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="bg-gradient-to-br from-blue-300 to-blue-400 text-white rounded-lg shadow-lg p-3 text-center">
+            <div>
+              <p className="text-sm font-medium opacity-90">Replies</p>
+              <p className="text-3xl font-bold mt-1">{filteredMetrics.replies}</p>
+            </div>
+          </div>
 
-          <Card className="bg-gradient-to-br from-blue-200 to-blue-300 text-gray-800 rounded-lg shadow-lg">
-            <CardContent className="p-3 text-center">
-              <div>
-                <p className="text-sm font-medium opacity-90">Meetings</p>
-                <p className="text-3xl font-bold mt-1">{filteredMetrics.meetings}</p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="bg-gradient-to-br from-blue-200 to-blue-300 text-gray-800 rounded-lg shadow-lg p-3 text-center">
+            <div>
+              <p className="text-sm font-medium opacity-90">Meetings</p>
+              <p className="text-3xl font-bold mt-1">{filteredMetrics.meetings}</p>
+            </div>
+          </div>
         </div>
 
         {/* Charts Area */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-grow">
           {/* Unique Outreaches, Follow ups and Replies by Channel (Bar Chart - Channel fixed) */}
-          <Card className="bg-gray-800 rounded-lg shadow-lg">
-            <CardHeader className="pb-1">
-              <CardTitle className="text-base text-white">Unique Outreaches, Follow ups and Replies by Channel</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-1">
+          <div className="bg-gray-800 rounded-lg shadow-lg">
+            <div className="p-4 pb-1"> {/* Adjusted padding for card header */}
+              <h2 className="text-base text-white font-semibold">Unique Outreaches, Follow ups and Replies by Channel</h2>
+            </div>
+            <div className="p-4 pt-1"> {/* Adjusted padding for card content */}
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={currentChannelChartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#4a5568" />
@@ -385,15 +369,15 @@ export function VCDashboard() {
                   <Legend wrapperStyle={{ fontSize: '10px', color: '#cbd5e0' }} />
                 </BarChart>
               </ResponsiveContainer>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Prospect Status Treemap Chart - Dynamic data that changes with filters */}
-          <Card className="bg-gray-800 rounded-lg shadow-lg">
-            <CardHeader className="pb-1">
-              <CardTitle className="text-base text-white">Prospect Status Overview</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-1">
+          <div className="bg-gray-800 rounded-lg shadow-lg">
+            <div className="p-4 pb-1"> {/* Adjusted padding for card header */}
+              <h2 className="text-base text-white font-semibold">Prospect Status Overview</h2>
+            </div>
+            <div className="p-4 pt-1"> {/* Adjusted padding for card content */}
               <ResponsiveContainer width="100%" height={200}>
                 <Treemap
                   data={treemapChartData}
@@ -401,7 +385,7 @@ export function VCDashboard() {
                   aspectRatio={4/3}
                   stroke="#fff"
                   content={(props) => (
-                    <CustomizedContent {...props} colors={TREEMAP_COLORS} /> {/* Removed totalValue prop from here */}
+                    <CustomizedContent {...props} colors={TREEMAP_COLORS} />
                   )}
                 />
                 {/* Add Legend for Treemap with custom formatter */}
@@ -415,8 +399,8 @@ export function VCDashboard() {
                   }))}
                 />
               </ResponsiveContainer>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
     </div>
