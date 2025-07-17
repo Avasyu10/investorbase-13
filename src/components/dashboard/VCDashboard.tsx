@@ -40,13 +40,15 @@ const TREEMAP_COLORS = [
   '#64b5f6', // Lighter blue for In Review (was #90caf9) - still light but with better contrast
 ];
 
-// Custom content for treemap
+// Custom content for treemap, now including ratio display
 const CustomizedContent = (props) => {
-  const { root, depth, x, y, width, height, index, payload, colors, rank, name } = props;
+  const { root, depth, x, y, width, height, index, payload, colors, name, totalValue } = props; // Added totalValue
 
   // Determine the fill color based on the payload's fill property
-  // This ensures the color from treemapChartData is used directly
   const fillColor = payload?.fill || (depth < 2 ? colors[Math.floor((index / root.children.length) * colors.length)] : 'none');
+
+  // Calculate ratio only for the actual status nodes (depth === 1)
+  const ratio = totalValue && payload?.value && depth === 1 ? ((payload.value / totalValue) * 100).toFixed(1) : null;
 
   return (
     <g>
@@ -56,23 +58,29 @@ const CustomizedContent = (props) => {
         width={width}
         height={height}
         style={{
-          fill: fillColor, // Use the determined fill color
+          fill: fillColor,
           stroke: '#fff',
           strokeWidth: 2 / (depth + 1e-10),
           strokeOpacity: 1 / (depth + 1e-10),
         }}
       />
       {depth === 1 ? (
-        // Adjusted font size and vertical position for name, removed bold, and changed fill to black
-        <text x={x + width / 2} y={y + height / 2 + 5} textAnchor="middle" fill="#000" fontSize={12} fontWeight="normal">
-          {name}
-        </text>
-      ) : null}
-      {depth === 1 ? (
-        // Adjusted font size, ensured normal font weight, adjusted vertical position for value, and changed fill to black
-        <text x={x + width / 2} y={y + height / 2 - 10} textAnchor="middle" fill="#000" fontSize={14} fontWeight="normal">
-          {payload?.value}
-        </text>
+        <>
+          {/* Display Name */}
+          <text x={x + width / 2} y={y + height / 2 - (ratio ? 15 : 5)} textAnchor="middle" fill="#000" fontSize={12} fontWeight="normal">
+            {name}
+          </text>
+          {/* Display Value */}
+          <text x={x + width / 2} y={y + height / 2 + (ratio ? 0 : 10)} textAnchor="middle" fill="#000" fontSize={14} fontWeight="normal">
+            {payload?.value}
+          </text>
+          {/* Display Ratio */}
+          {ratio && (
+            <text x={x + width / 2} y={y + height / 2 + 15} textAnchor="middle" fill="#000" fontSize={10} fontWeight="normal">
+              ({ratio}%)
+            </text>
+          )}
+        </>
       ) : null}
     </g>
   );
@@ -84,19 +92,24 @@ export function VCDashboard() {
   // Filter States
   const [selectedPerson, setSelectedPerson] = useState('Roohi');
   const [selectedIndustry, setSelectedIndustry] = useState('Tech');
-  const [selectedStage, setSelectedStage] = useState('Early'); // New state for Stage filter
-  const [dateRangeIndex, setDateRangeIndex] = useState(3); // Default to 'Last Year' (index 3)
+  const [selectedStage, setSelectedStage] = useState('Early');
+  const [dateRangeIndex, setDateRangeIndex] = useState(7); // Default to 'Last Year' (updated index for new array)
 
   const availablePersons = ['Roohi', 'Avasyu', 'Kanishk', 'Tanisha'];
   const availableIndustries = ['Tech', 'Finance', 'Healthcare', 'Retail'];
-  const availableStages = ['Early', 'Growth', 'Mature', 'Seed']; // New stages
+  const availableStages = ['Early', 'Growth', 'Mature', 'Seed'];
 
-  // Mock date ranges for the slider
+  // Expanded mock date ranges for the slider
   const dateRanges = useMemo(() => [
     { label: 'Last 7 Days', days: 7 },
+    { label: 'Last 14 Days', days: 14 },
     { label: 'Last 30 Days', days: 30 },
+    { label: 'Last 60 Days', days: 60 },
     { label: 'Last 90 Days', days: 90 },
+    { label: 'Last 6 Months', days: 180 },
     { label: 'Last Year', days: 365 },
+    { label: 'Last 2 Years', days: 730 },
+    { label: 'All Time', days: 365 * 10 }, // A large number for "All Time"
   ], []);
 
   // More granular mock data linking persons, channels, industries, statuses, and stages
@@ -105,31 +118,30 @@ export function VCDashboard() {
     const channels = ['LinkedIn', 'Others', 'Calls', 'Mail'];
     const industries = ['Tech', 'Finance', 'Healthcare', 'Retail'];
     const statuses = ['Total', 'Accepted', 'Rejected', 'In Review'];
-    const stages = ['Early', 'Growth', 'Mature', 'Seed']; // Use the new stages
+    const stages = ['Early', 'Growth', 'Mature', 'Seed'];
 
-    // Generate a reasonable number of entries for diverse filtering results
     for (let i = 0; i < 1500; i++) {
       const person = availablePersons[Math.floor(Math.random() * availablePersons.length)];
       const channel = channels[Math.floor(Math.random() * channels.length)];
       const industry = industries[Math.floor(Math.random() * industries.length)];
       const status = statuses[Math.floor(Math.random() * statuses.length)];
-      const stage = stages[Math.floor(Math.random() * stages.length)]; // Assign a random stage
+      const stage = stages[Math.floor(Math.random() * stages.length)];
 
-      // Generate a random date within the last year for mock purposes
+      // Generate a random date within the last 2 years for mock purposes
       const randomDate = new Date();
-      randomDate.setDate(randomDate.getDate() - Math.floor(Math.random() * 365));
+      randomDate.setDate(randomDate.getDate() - Math.floor(Math.random() * (365 * 2)));
 
       data.push({
         person,
         channel,
         industry,
-        uniqueOutreaches: Math.floor(Math.random() * 15) + 3, // 3-17
-        followUps: Math.floor(Math.random() * 8) + 1, // 1-8
-        replies: Math.floor(Math.random() * 4) + 1, // 1-4
-        meetings: Math.floor(Math.random() * 2) + 1, // 1-2
-        status, // This status will be used for the treemap chart
-        stage, // New stage property
-        date: randomDate, // Date for filtering
+        uniqueOutreaches: Math.floor(Math.random() * 15) + 3,
+        followUps: Math.floor(Math.random() * 8) + 1,
+        replies: Math.floor(Math.random() * 4) + 1,
+        meetings: Math.floor(Math.random() * 2) + 1,
+        status,
+        stage,
+        date: randomDate,
       });
     }
     return data;
@@ -144,8 +156,8 @@ export function VCDashboard() {
     return allProspectData.filter(item =>
       item.person === selectedPerson &&
       item.industry === selectedIndustry &&
-      item.stage === selectedStage && // Apply stage filter
-      item.date >= cutoffDate // Apply date filter
+      item.stage === selectedStage &&
+      item.date >= cutoffDate
     );
   }, [selectedPerson, selectedIndustry, selectedStage, dateRangeIndex, allProspectData, dateRanges]);
 
@@ -173,9 +185,8 @@ export function VCDashboard() {
       }
     });
 
-    // Calculate total from all statuses (excluding "Total" to avoid double counting)
     const actualTotal = statusCounts.Accepted + statusCounts.Rejected + statusCounts['In Review'];
-    statusCounts.Total = actualTotal; // Removed fallback to 100, now it's truly dynamic
+    statusCounts.Total = actualTotal;
 
     return [
       { name: 'Total', value: statusCounts.Total, fill: TREEMAP_COLORS[0] },
@@ -223,6 +234,9 @@ export function VCDashboard() {
   const currentEndDate = new Date();
   const currentStartDate = new Date();
   currentStartDate.setDate(currentStartDate.getDate() - dateRanges[dateRangeIndex].days);
+
+  // Get the total value for ratio calculation in treemap
+  const totalTreemapValue = treemapChartData.find(d => d.name === 'Total')?.value || 0;
 
   return (
     <div className="flex flex-col lg:flex-row space-y-3 lg:space-y-0 lg:space-x-3 p-3 bg-gray-900 text-white font-inter">
@@ -284,7 +298,7 @@ export function VCDashboard() {
           </Select>
         </div>
 
-        {/* Stage Filter (Dropdown) - NEW */}
+        {/* Stage Filter (Dropdown) */}
         <div>
           <h3 className="text-sm font-semibold mb-1 text-white">Stage</h3>
           <Select onValueChange={setSelectedStage} value={selectedStage}>
@@ -356,7 +370,7 @@ export function VCDashboard() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#4a5568" />
                   <XAxis dataKey="channel" stroke="#cbd5e0" style={{ fontSize: '10px' }} />
                   <YAxis stroke="#cbd5e0" style={{ fontSize: '10px' }} />
-                  <Tooltip // Using Recharts' Tooltip directly
+                  <Tooltip
                     contentStyle={{ backgroundColor: '#1f2937', borderColor: '#4a5568', color: '#ffffff' }}
                     labelStyle={{ color: '#ffffff' }}
                   />
@@ -381,7 +395,7 @@ export function VCDashboard() {
                   dataKey="value"
                   aspectRatio={4/3}
                   stroke="#fff"
-                  content={<CustomizedContent colors={TREEMAP_COLORS} />}
+                  content={<CustomizedContent colors={TREEMAP_COLORS} totalValue={totalTreemapValue} />}
                 />
               </ResponsiveContainer>
             </CardContent>
