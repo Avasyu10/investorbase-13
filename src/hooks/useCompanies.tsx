@@ -52,8 +52,16 @@ function mapDbCompanyToApi(company: any) {
   };
 }
 
-// Helper function to get report IDs the user has access to - optimized version
+// Cached helper function to get report IDs the user has access to
+const reportCache = new Map();
 async function getUserAccessibleReports(userId: string): Promise<string> {
+  // Check cache first
+  const cacheKey = `reports_${userId}`;
+  const cached = reportCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < 60000) { // 1 minute cache
+    return cached.data;
+  }
+
   try {
     const { data: reports, error } = await supabase
       .from('reports')
@@ -66,10 +74,44 @@ async function getUserAccessibleReports(userId: string): Promise<string> {
       return '';
     }
 
-    return reports?.map(r => r.id).join(',') || '';
+    const result = reports?.map(r => r.id).join(',') || '';
+    
+    // Cache the result
+    reportCache.set(cacheKey, {
+      data: result,
+      timestamp: Date.now()
+    });
+    
+    return result;
   } catch (err) {
     console.error('Error in getUserAccessibleReports:', err);
     return '';
+  }
+}
+
+// Separate query for potential stats to avoid blocking main query
+async function getPotentialStats(userId: string, accessibleReports: string) {
+  try {
+    const { data: statsData, error: statsError } = await supabase
+      .from('companies')
+      .select('overall_score')
+      .or(`user_id.eq.${userId}${accessibleReports ? `,report_id.in.(${accessibleReports})` : ''}`)
+      .not('overall_score', 'is', null);
+
+    if (statsError) {
+      console.error("Error fetching potential stats:", statsError);
+      return { highPotential: 0, mediumPotential: 0, badPotential: 0 };
+    }
+
+    // Calculate potential stats from all companies
+    return {
+      highPotential: statsData?.filter(c => c.overall_score > 70).length || 0,
+      mediumPotential: statsData?.filter(c => c.overall_score >= 50 && c.overall_score <= 70).length || 0,
+      badPotential: statsData?.filter(c => c.overall_score < 50).length || 0,
+    };
+  } catch (err) {
+    console.error("Error in getPotentialStats:", err);
+    return { highPotential: 0, mediumPotential: 0, badPotential: 0 };
   }
 }
 
@@ -108,9 +150,10 @@ export function useCompanies(
           dbSortField = sortBy === 'overall_score' ? 'overall_score' : 'name';
         }
         
-        // Get accessible reports once and reuse - optimization
+        // Get accessible reports once and reuse - optimization with caching
         const accessibleReports = await getUserAccessibleReports(user.id);
         
+        // Build the main query with optimized select
         let query = supabase
           .from('companies')
           .select(`
@@ -130,10 +173,21 @@ export function useCompanies(
           query = query.ilike('name', `%${search.trim()}%`);
         }
 
-        // Add sorting and pagination
-        const { data, error, count } = await query
-          .order(dbSortField, { ascending: sortOrder === 'asc' })
-          .range(from, to);
+        // Execute main query with timeout and retry logic
+        const startTime = Date.now();
+        console.log('Starting companies query...');
+        
+        const { data, error, count } = await Promise.race([
+          query
+            .order(dbSortField, { ascending: sortOrder === 'asc' })
+            .range(from, to),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Query timeout after 30 seconds')), 30000)
+          )
+        ]);
+
+        const queryTime = Date.now() - startTime;
+        console.log(`Companies query completed in ${queryTime}ms`);
 
         if (error) {
           console.error("Error fetching companies:", error);
@@ -142,23 +196,8 @@ export function useCompanies(
         
         console.log(`Retrieved ${data?.length || 0} companies out of ${count || 0} total for page ${page}`);
 
-        // Fetch potential stats separately and more efficiently
-        const { data: statsData, error: statsError } = await supabase
-          .from('companies')
-          .select('overall_score')
-          .or(`user_id.eq.${user.id}${accessibleReports ? `,report_id.in.(${accessibleReports})` : ''}`)
-          .not('overall_score', 'is', null);
-
-        if (statsError) {
-          console.error("Error fetching potential stats:", statsError);
-        }
-
-        // Calculate potential stats from all companies
-        const potentialStats = {
-          highPotential: statsData?.filter(c => c.overall_score > 70).length || 0,
-          mediumPotential: statsData?.filter(c => c.overall_score >= 50 && c.overall_score <= 70).length || 0,
-          badPotential: statsData?.filter(c => c.overall_score < 50).length || 0,
-        };
+        // Fetch potential stats in background (don't block main query)
+        const potentialStatsPromise = getPotentialStats(user.id, accessibleReports);
         
         // Process companies data - simplified without additional queries for better performance
         const processedCompanies = (data || []).map(company => {
@@ -168,6 +207,20 @@ export function useCompanies(
             response_received: company.response_received
           });
         });
+        
+        // Wait for potential stats (with fallback)
+        let potentialStats;
+        try {
+          potentialStats = await Promise.race([
+            potentialStatsPromise,
+            new Promise((resolve) => 
+              setTimeout(() => resolve({ highPotential: 0, mediumPotential: 0, badPotential: 0 }), 5000)
+            )
+          ]);
+        } catch (statsError) {
+          console.error('Error fetching potential stats:', statsError);
+          potentialStats = { highPotential: 0, mediumPotential: 0, badPotential: 0 };
+        }
         
         return {
           companies: processedCompanies,
@@ -180,14 +233,18 @@ export function useCompanies(
       }
     },
     enabled: !!user,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes to reduce unnecessary queries
-    gcTime: 10 * 60 * 1000, // Keep in memory for 10 minutes
+    staleTime: 2 * 60 * 1000, // Cache for 2 minutes to reduce unnecessary queries
+    gcTime: 5 * 60 * 1000, // Keep in memory for 5 minutes
+    retry: 3, // Retry failed queries up to 3 times
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+    refetchOnWindowFocus: false, // Don't refetch when window regains focus
+    refetchOnReconnect: true, // Refetch when connection is restored
     meta: {
       onError: (err: any) => {
         console.error("useCompanies query error:", err);
         toast({
           title: 'Error loading companies',
-          description: err.message || 'Failed to load companies data',
+          description: err.message || 'Failed to load companies data. Please try refreshing the page.',
           variant: 'destructive',
         });
       },
