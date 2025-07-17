@@ -395,7 +395,9 @@ export function VCDashboard() {
                   dataKey="value"
                   aspectRatio={4/3}
                   stroke="#fff"
-                  content={<CustomizedContent colors={TREEMAP_COLORS} totalValue={totalTreemapValue} />}
+                  content={(props) => (
+                    <CustomizedContent {...props} colors={TREEMAP_COLORS} totalValue={totalTreemapValue} />
+                  )}
                 />
               </ResponsiveContainer>
             </CardContent>
