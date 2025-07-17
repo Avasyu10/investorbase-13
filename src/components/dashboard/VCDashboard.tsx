@@ -44,6 +44,10 @@ const TREEMAP_COLORS = [
 const CustomizedContent = (props) => {
   const { root, depth, x, y, width, height, index, payload, colors, rank, name } = props;
 
+  // Determine the fill color based on the payload's fill property
+  // This ensures the color from treemapChartData is used directly
+  const fillColor = payload?.fill || (depth < 2 ? colors[Math.floor((index / root.children.length) * colors.length)] : 'none');
+
   return (
     <g>
       <rect
@@ -52,20 +56,21 @@ const CustomizedContent = (props) => {
         width={width}
         height={height}
         style={{
-          fill: depth < 2 ? colors[Math.floor((index / root.children.length) * 6)] : 'none',
+          fill: fillColor, // Use the determined fill color
           stroke: '#fff',
           strokeWidth: 2 / (depth + 1e-10),
           strokeOpacity: 1 / (depth + 1e-10),
         }}
       />
       {depth === 1 ? (
-        <text x={x + width / 2} y={y + height / 2 + 7} textAnchor="middle" fill="#fff" fontSize={14}>
+        // Adjusted font size and vertical position for name
+        <text x={x + width / 2} y={y + height / 2 + 5} textAnchor="middle" fill="#fff" fontSize={12}>
           {name}
         </text>
       ) : null}
       {depth === 1 ? (
-        // FIX: Safely access payload.value using optional chaining
-        <text x={x + width / 2} y={y + height / 2 - 7} textAnchor="middle" fill="#fff" fontSize={16} fontWeight="bold">
+        // Adjusted font size, removed bold, and adjusted vertical position for value
+        <text x={x + width / 2} y={y + height / 2 - 10} textAnchor="middle" fill="#fff" fontSize={14} fontWeight="normal">
           {payload?.value}
         </text>
       ) : null}
@@ -149,15 +154,7 @@ export function VCDashboard() {
 
     // Calculate total from all statuses (excluding "Total" to avoid double counting)
     const actualTotal = statusCounts.Accepted + statusCounts.Rejected + statusCounts['In Review'];
-    statusCounts.Total = actualTotal || 100; // Fallback to 100 if no data
-
-    // Ensure we have some data even when filtered data is small
-    if (actualTotal === 0) {
-      statusCounts.Total = 150;
-      statusCounts.Accepted = 45;
-      statusCounts.Rejected = 60;
-      statusCounts['In Review'] = 45;
-    }
+    statusCounts.Total = actualTotal; // Removed fallback to 100, now it's truly dynamic
 
     return [
       { name: 'Total', value: statusCounts.Total, fill: TREEMAP_COLORS[0] },
