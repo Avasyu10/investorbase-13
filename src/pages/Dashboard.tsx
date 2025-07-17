@@ -129,25 +129,12 @@ const Dashboard = () => {
         <div className="flex items-center gap-3">
           {isIITBombay && <GraduationCap className="h-8 w-8 text-primary" />}
         </div>
-        {/* Moved Business Dashboard button to the start of the button group */}
+        {/* Moved only Admin Panel button here, removed Business Dashboard */}
         <div className="flex flex-col sm:flex-row gap-2 mt-4 sm:mt-0">
-          {isVC && !isVCAndBits && (
-            <Button onClick={() => setShowVcDashboard(true)} variant="outline" className="flex items-center">
-              Business Dashboard
-            </Button>
-          )}
           {isAdmin && <Button onClick={() => navigate("/admin")} variant="outline" className="flex items-center">
             <ShieldCheck className="mr-2 h-4 w-4" />
             Admin Panel
           </Button>}
-          {isVC && !isVCAndBits && <Button onClick={() => navigate("/vc-analysis")} variant="outline" className="flex items-center">
-            <FileUp className="mr-2 h-4 w-4" /> {/* Changed icon to FileUp for upload deck */}
-            Upload Deck
-          </Button>}
-          <Button onClick={() => navigate("/news-feed")} variant="outline" className="flex items-center">
-            <Newspaper className="mr-2 h-4 w-4" />
-            News Feed
-          </Button>
           {!isIITBombay && !isVC && <Button onClick={() => navigate("/upload")}>
             <FileUp className="mr-2 h-4 w-4" />
             Upload New Deck
@@ -157,14 +144,34 @@ const Dashboard = () => {
 
       <div className="flex items-center justify-between mb-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="flex items-center gap-4">
-            <TabsList>
-              <TabsTrigger value="companies">
-                {isIITBombay ? "Eureka Prospects" : "Prospects"}
-              </TabsTrigger>
-              <TabsTrigger value="submissions">New Applications</TabsTrigger>
-              {!isIITBombay && <TabsTrigger value="reports">Pitch Decks</TabsTrigger>}
-            </TabsList>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              {/* Business Dashboard button positioned at the left end */}
+              {isVC && !isVCAndBits && (
+                <Button onClick={() => setShowVcDashboard(true)} variant="outline" className="flex items-center">
+                  Business Dashboard
+                </Button>
+              )}
+              <TabsList>
+                <TabsTrigger value="companies">
+                  {isIITBombay ? "Eureka Prospects" : "Prospects"}
+                </TabsTrigger>
+                <TabsTrigger value="submissions">New Applications</TabsTrigger>
+                {!isIITBombay && <TabsTrigger value="reports">Pitch Decks</TabsTrigger>}
+              </TabsList>
+            </div>
+            
+            {/* Upload Deck and News Feed buttons on the right */}
+            <div className="flex gap-2">
+              {isVC && !isVCAndBits && <Button onClick={() => navigate("/vc-analysis")} variant="outline" className="flex items-center">
+                <FileUp className="mr-2 h-4 w-4" />
+                Upload Deck
+              </Button>}
+              <Button onClick={() => navigate("/news-feed")} variant="outline" className="flex items-center">
+                <Newspaper className="mr-2 h-4 w-4" />
+                News Feed
+              </Button>
+            </div>
           </div>
 
           <div className="mt-6">
