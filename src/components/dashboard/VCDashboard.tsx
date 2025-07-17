@@ -194,8 +194,7 @@ export function VCDashboard() {
   }, [filteredData]);
 
   return (
-    // Added min-h-screen to ensure the dashboard extends vertically
-    <div className="flex flex-col lg:flex-row space-y-3 lg:space-y-0 lg:space-x-3 p-3 bg-gray-900 text-white font-inter min-h-screen">
+    <div className="flex flex-col lg:flex-row space-y-3 lg:space-y-0 lg:space-x-3 p-3 bg-gray-900 text-white font-inter">
       {/* Left Sidebar for Filters */}
       <Card className="lg:w-1/4 p-3 space-y-3 flex-shrink-0 bg-gray-800 rounded-lg shadow-lg">
         <h2 className="text-base font-bold text-white mb-3">Filters</h2>
