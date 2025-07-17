@@ -63,14 +63,14 @@ const CustomizedContent = (props) => {
         }}
       />
       {depth === 1 ? (
-        // Adjusted font size and vertical position for name, removed bold
-        <text x={x + width / 2} y={y + height / 2 + 5} textAnchor="middle" fill="#fff" fontSize={12} fontWeight="normal">
+        // Adjusted font size and vertical position for name, removed bold, and changed fill to black
+        <text x={x + width / 2} y={y + height / 2 + 5} textAnchor="middle" fill="#000" fontSize={12} fontWeight="normal">
           {name}
         </text>
       ) : null}
       {depth === 1 ? (
-        // Adjusted font size, ensured normal font weight, and adjusted vertical position for value
-        <text x={x + width / 2} y={y + height / 2 - 10} textAnchor="middle" fill="#fff" fontSize={14} fontWeight="normal">
+        // Adjusted font size, ensured normal font weight, adjusted vertical position for value, and changed fill to black
+        <text x={x + width / 2} y={y + height / 2 - 10} textAnchor="middle" fill="#000" fontSize={14} fontWeight="normal">
           {payload?.value}
         </text>
       ) : null}
