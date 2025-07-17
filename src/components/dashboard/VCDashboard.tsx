@@ -123,12 +123,11 @@ export function VCDashboard() {
         person,
         channel,
         industry,
-        // Hardcoded mock data numbers for consistency, adjusted for Unique Outreaches range
-        // Adjusted to generate individual values that sum up to 300-350 for a typical filtered dataset
-        uniqueOutreaches: Math.floor(Math.random() * 2) + 1, // Generates 1 or 2
-        followUps: Math.floor(Math.random() * 1) + 1,    // Generates 1
-        replies: Math.floor(Math.random() * 1) + 1,      // Generates 1
-        meetings: Math.floor(Math.random() * 1) + 1,     // Generates 1
+        // Adjusted mock data numbers for consistency and target ranges
+        uniqueOutreaches: Math.floor(Math.random() * 50) + 100, // Generates 100-149 per item
+        followUps: Math.floor(Math.random() * 20) + 30,    // Generates 30-49 per item
+        replies: Math.floor(Math.random() * 10) + 15,      // Generates 15-24 per item
+        meetings: Math.floor(Math.random() * 5) + 5,     // Generates 5-9 per item
         status,
         stage,
         date: randomDate,
