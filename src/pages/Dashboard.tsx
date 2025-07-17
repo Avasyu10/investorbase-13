@@ -115,7 +115,7 @@ const Dashboard = () => {
               Back
             </Button>
             {/* Adjusted heading to be larger and shifted to the right */}
-            <h1 className="text-3xl font-bold text-white ml-auto pr-4">Venture Analytics Dashboard</h1>
+            <h1 className="text-3xl font-bold text-white ml-auto pr-4">Venture Insights Dashboard</h1>
           </div>
           <VCDashboard />
         </div>
