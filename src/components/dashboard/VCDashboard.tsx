@@ -214,6 +214,16 @@ export function VCDashboard() {
     };
   }, [filteredData]);
 
+  // Helper to format dates
+  const formatDate = (date) => {
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' });
+  };
+
+  // Calculate the current start and end dates based on the slider
+  const currentEndDate = new Date();
+  const currentStartDate = new Date();
+  currentStartDate.setDate(currentStartDate.getDate() - dateRanges[dateRangeIndex].days);
+
   return (
     <div className="flex flex-col lg:flex-row space-y-3 lg:space-y-0 lg:space-x-3 p-3 bg-gray-900 text-white font-inter">
       {/* Left Sidebar for Filters */}
@@ -223,6 +233,10 @@ export function VCDashboard() {
         {/* Date Filter (Slider) */}
         <div>
           <h3 className="text-sm font-semibold mb-1 text-white">Date Range</h3>
+          <div className="flex justify-between text-xs text-gray-300 mb-1">
+            <span>From: {formatDate(currentStartDate)}</span>
+            <span>To: {formatDate(currentEndDate)}</span>
+          </div>
           <input
             type="range"
             min="0"
