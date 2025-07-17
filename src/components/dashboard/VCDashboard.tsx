@@ -108,8 +108,8 @@ export function VCDashboard() {
     const statuses = ['Total', 'Accepted', 'Rejected', 'In Review'];
     const stages = ['Early', 'Growth', 'Mature', 'Seed'];
 
-    // Reduced number of mock data entries to better control total sums
-    for (let i = 0; i < 100; i++) { // Changed from 1500 to 100
+    // Increased number of mock data entries to ensure sufficient data after filtering
+    for (let i = 0; i < 2000; i++) { 
       const person = availablePersons[Math.floor(Math.random() * availablePersons.length)];
       const channel = channels[Math.floor(Math.random() * channels.length)];
       const industry = industries[Math.floor(Math.random() * industries.length)];
@@ -124,11 +124,11 @@ export function VCDashboard() {
         person,
         channel,
         industry,
-        // Adjusted mock data numbers for consistency and target ranges
-        uniqueOutreaches: Math.floor(Math.random() * 2) + 2, // Generates 2 or 3 per item -> total 200-300
-        followUps: Math.floor(Math.random() * 1) + 1,    // Generates 1 or 2 per item -> total 100-200
-        replies: Math.floor(Math.random() * 1) + 0,      // Generates 0 or 1 per item -> total 0-100
-        meetings: Math.floor(Math.random() * 1) + 0,     // Generates 0 or 1 per item -> total 0-100
+        // Adjusted mock data generation to target desired ranges for filtered data
+        uniqueOutreaches: Math.floor(Math.random() * 2) + 1, // Generates 1 or 2 per item
+        followUps: Math.random() < 0.7 ? 1 : 0,    // ~70% chance of 1, ~30% chance of 0
+        replies: Math.random() < 0.5 ? 1 : 0,      // ~50% chance of 1, ~50% chance of 0
+        meetings: Math.random() < 0.4 ? 1 : 0,     // ~40% chance of 1, ~60% chance of 0
         status,
         stage,
         date: randomDate,
