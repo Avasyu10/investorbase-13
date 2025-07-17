@@ -108,7 +108,8 @@ export function VCDashboard() {
     const statuses = ['Total', 'Accepted', 'Rejected', 'In Review'];
     const stages = ['Early', 'Growth', 'Mature', 'Seed'];
 
-    for (let i = 0; i < 1500; i++) {
+    // Reduced number of mock data entries to better control total sums
+    for (let i = 0; i < 100; i++) { // Changed from 1500 to 100
       const person = availablePersons[Math.floor(Math.random() * availablePersons.length)];
       const channel = channels[Math.floor(Math.random() * channels.length)];
       const industry = industries[Math.floor(Math.random() * industries.length)];
@@ -124,10 +125,10 @@ export function VCDashboard() {
         channel,
         industry,
         // Adjusted mock data numbers for consistency and target ranges
-        uniqueOutreaches: Math.floor(Math.random() * 50) + 100, // Generates 100-149 per item
-        followUps: Math.floor(Math.random() * 20) + 30,    // Generates 30-49 per item
-        replies: Math.floor(Math.random() * 10) + 15,      // Generates 15-24 per item
-        meetings: Math.floor(Math.random() * 5) + 5,     // Generates 5-9 per item
+        uniqueOutreaches: Math.floor(Math.random() * 2) + 2, // Generates 2 or 3 per item -> total 200-300
+        followUps: Math.floor(Math.random() * 1) + 1,    // Generates 1 or 2 per item -> total 100-200
+        replies: Math.floor(Math.random() * 1) + 0,      // Generates 0 or 1 per item -> total 0-100
+        meetings: Math.floor(Math.random() * 1) + 0,     // Generates 0 or 1 per item -> total 0-100
         status,
         stage,
         date: randomDate,
@@ -377,7 +378,7 @@ export function VCDashboard() {
             <div className="p-4 pb-1 flex justify-between items-center"> {/* Adjusted padding and added flex for alignment */}
               <h2 className="text-base text-white font-semibold">Prospect Status Overview</h2>
               {/* Treemap Legend moved here */}
-              <div className="flex space-x-1 text-[9px] text-white"> {/* Adjusted text size and spacing */}
+              <div className="flex space-x-1 text-[10px] text-white"> {/* Adjusted text size and spacing to 10px */}
                 {treemapChartData.filter(d => d.name !== 'Total').map((entry) => (
                   <div key={entry.name} className="flex items-center">
                     <span className="inline-block w-1.5 h-1.5 rounded-full mr-0.5" style={{ backgroundColor: entry.fill }}></span> {/* Adjusted circle size and margin */}
