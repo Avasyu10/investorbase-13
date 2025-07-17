@@ -130,16 +130,16 @@ const Dashboard = () => {
           {isIITBombay && <GraduationCap className="h-8 w-8 text-primary" />}
         </div>
         <div className="flex flex-col sm:flex-row gap-2 mt-4 sm:mt-0">
-          {isAdmin && <Button onClick={() => navigate("/admin")} variant="outline" className="flex items-center">
-            <ShieldCheck className="mr-2 h-4 w-4" />
-            Admin Panel
-          </Button>}
-          {/* New Button for VC Dashboard */}
+          {/* New Button for VC Dashboard - Moved to the left end */}
           {isVC && !isVCAndBits && (
             <Button onClick={() => setShowVcDashboard(true)} variant="outline" className="flex items-center">
               Business Dashboard
             </Button>
           )}
+          {isAdmin && <Button onClick={() => navigate("/admin")} variant="outline" className="flex items-center">
+            <ShieldCheck className="mr-2 h-4 w-4" />
+            Admin Panel
+          </Button>}
           {isVC && !isVCAndBits && <Button onClick={() => navigate("/vc-analysis")} variant="outline" className="flex items-center">
             <FileUp className="mr-2 h-4 w-4" /> {/* Changed icon to FileUp for upload deck */}
             Upload Deck
