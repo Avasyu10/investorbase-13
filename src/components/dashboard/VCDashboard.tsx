@@ -48,7 +48,10 @@ const CustomizedContent = (props) => {
   const fillColor = payload?.fill || (depth < 2 ? colors[Math.floor((index / root.children.length) * colors.length)] : 'none');
 
   // Calculate ratio only for the actual status nodes (depth === 1)
-  const ratio = totalValue && payload?.value && depth === 1 ? ((payload.value / totalValue) * 100).toFixed(1) : null;
+  // Ensure totalValue is not zero to prevent division by zero
+  const ratio = totalValue && payload?.value && depth === 1 && totalValue !== 0
+    ? ((payload.value / totalValue) * 100).toFixed(1)
+    : null;
 
   return (
     <g>
@@ -135,10 +138,11 @@ export function VCDashboard() {
         person,
         channel,
         industry,
-        uniqueOutreaches: Math.floor(Math.random() * 15) + 3,
-        followUps: Math.floor(Math.random() * 8) + 1,
-        replies: Math.floor(Math.random() * 4) + 1,
-        meetings: Math.floor(Math.random() * 2) + 1,
+        // Hardcoded mock data numbers for consistency
+        uniqueOutreaches: 10 + (i % 5), // Varies from 10 to 14
+        followUps: 5 + (i % 3),    // Varies from 5 to 7
+        replies: 2 + (i % 2),      // Varies from 2 to 3
+        meetings: 1 + (i % 1),     // Varies from 1 to 1
         status,
         stage,
         date: randomDate,
