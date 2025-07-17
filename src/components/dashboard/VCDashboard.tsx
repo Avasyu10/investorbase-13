@@ -67,16 +67,16 @@ const CustomizedContent = (props) => {
       {depth === 1 ? (
         <>
           {/* Display Name */}
-          <text x={x + width / 2} y={y + height / 2 - (ratio ? 15 : 5)} textAnchor="middle" fill="#000" fontSize={12} fontWeight="normal">
+          <text x={x + width / 2} y={y + height / 2 - (ratio ? 15 : 5)} textAnchor="middle" fill="#FFFFFF" fontSize={12} fontWeight="normal">
             {name}
           </text>
           {/* Display Value */}
-          <text x={x + width / 2} y={y + height / 2 + (ratio ? 0 : 10)} textAnchor="middle" fill="#000" fontSize={14} fontWeight="normal">
+          <text x={x + width / 2} y={y + height / 2 + (ratio ? 0 : 10)} textAnchor="middle" fill="#FFFFFF" fontSize={14} fontWeight="normal">
             {payload?.value}
           </text>
           {/* Display Ratio */}
           {ratio && (
-            <text x={x + width / 2} y={y + height / 2 + 15} textAnchor="middle" fill="#000" fontSize={10} fontWeight="normal">
+            <text x={x + width / 2} y={y + height / 2 + 15} textAnchor="middle" fill="#FFFFFF" fontSize={10} fontWeight="normal">
               ({ratio}%)
             </text>
           )}
@@ -93,13 +93,14 @@ export function VCDashboard() {
   const [selectedPerson, setSelectedPerson] = useState('Roohi');
   const [selectedIndustry, setSelectedIndustry] = useState('Tech');
   const [selectedStage, setSelectedStage] = useState('Early');
-  const [dateRangeIndex, setDateRangeIndex] = useState(7); // Default to 'Last Year' (updated index for new array)
+  // Changed default dateRangeIndex from 7 to 6 as 'Last 2 Years' is removed.
+  const [dateRangeIndex, setDateRangeIndex] = useState(6); 
 
   const availablePersons = ['Roohi', 'Avasyu', 'Kanishk', 'Tanisha'];
   const availableIndustries = ['Tech', 'Finance', 'Healthcare', 'Retail'];
   const availableStages = ['Early', 'Growth', 'Mature', 'Seed'];
 
-  // Expanded mock date ranges for the slider
+  // Expanded mock date ranges for the slider - 'Last 2 Years' removed
   const dateRanges = useMemo(() => [
     { label: 'Last 7 Days', days: 7 },
     { label: 'Last 14 Days', days: 14 },
@@ -108,7 +109,6 @@ export function VCDashboard() {
     { label: 'Last 90 Days', days: 90 },
     { label: 'Last 6 Months', days: 180 },
     { label: 'Last Year', days: 365 },
-    { label: 'Last 2 Years', days: 730 },
     { label: 'All Time', days: 365 * 10 }, // A large number for "All Time"
   ], []);
 
