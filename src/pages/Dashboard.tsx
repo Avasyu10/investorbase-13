@@ -144,8 +144,8 @@ const Dashboard = () => {
 
       {/* Tabs, Business Dashboard, and Upload/News Feed buttons on the same line */}
       <div className="flex items-center justify-between mb-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
-          <div className="flex items-center justify-between w-full">
+        <div className="flex items-center gap-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList>
               <TabsTrigger value="companies">
                 {isIITBombay ? "Eureka Prospects" : "Prospects"}
@@ -153,47 +153,48 @@ const Dashboard = () => {
               <TabsTrigger value="submissions">New Applications</TabsTrigger>
               {!isIITBombay && <TabsTrigger value="reports">Pitch Decks</TabsTrigger>}
             </TabsList>
-            
-            {/* Business Dashboard button in the middle */}
-            <div className="flex items-center mx-4">
-              {isVC && !isVCAndBits && (
-                <Button 
-                  onClick={() => setShowVcDashboard(true)} 
-                  variant="outline" 
-                  className="flex items-center bg-gradient-to-r from-blue-500 to-blue-700 text-white border-none hover:from-blue-600 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-300 font-semibold px-6 py-2.5"
-                >
-                  <BarChart3 className="mr-2 h-4 w-4" />
-                   Dashboard
-                </Button>
-              )}
-            </div>
-            
-            {/* Upload Deck and News Feed buttons on the right */}
-            <div className="flex gap-2">
-              {isVC && !isVCAndBits && <Button onClick={() => navigate("/vc-analysis")} variant="outline" className="flex items-center">
-                <FileUp className="mr-2 h-4 w-4" />
-                Upload Deck
-              </Button>}
-              <Button onClick={() => navigate("/news-feed")} variant="outline" className="flex items-center">
-                <Newspaper className="mr-2 h-4 w-4" />
-                News Feed
-              </Button>
-            </div>
-          </div>
-
-          <div className="mt-6">
-            <TabsContent value="companies">
-              <ConditionalCompaniesList />
-            </TabsContent>
-            <TabsContent value="submissions">
-              <PublicSubmissionsList />
-            </TabsContent>
-            {!isIITBombay && <TabsContent value="reports">
-              <ReportsList />
-            </TabsContent>}
-          </div>
-        </Tabs>
+          </Tabs>
+          
+          {/* Business Dashboard button right after tabs */}
+          {isVC && !isVCAndBits && (
+            <Button 
+              onClick={() => setShowVcDashboard(true)} 
+              variant="outline" 
+              className="flex items-center bg-gradient-to-r from-blue-500 to-blue-700 text-white border-none hover:from-blue-600 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-300 font-semibold px-6 py-2.5"
+            >
+              <BarChart3 className="mr-2 h-4 w-4" />
+              Business Dashboard
+            </Button>
+          )}
+        </div>
+        
+        {/* Upload Deck and News Feed buttons on the right */}
+        <div className="flex gap-2">
+          {isVC && !isVCAndBits && <Button onClick={() => navigate("/vc-analysis")} variant="outline" className="flex items-center">
+            <FileUp className="mr-2 h-4 w-4" />
+            Upload Deck
+          </Button>}
+          <Button onClick={() => navigate("/news-feed")} variant="outline" className="flex items-center">
+            <Newspaper className="mr-2 h-4 w-4" />
+            News Feed
+          </Button>
+        </div>
       </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <div className="mt-6">
+          <TabsContent value="companies">
+            <ConditionalCompaniesList />
+          </TabsContent>
+          <TabsContent value="submissions">
+            <PublicSubmissionsList />
+          </TabsContent>
+          {!isIITBombay && <TabsContent value="reports">
+            <ReportsList />
+          </TabsContent>}
+        </div>
+      </Tabs>
+
     </div>
 
     {/* VC Chat Interface */}
