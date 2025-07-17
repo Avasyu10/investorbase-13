@@ -123,11 +123,11 @@ export function VCDashboard() {
         person,
         channel,
         industry,
-        // Hardcoded mock data numbers for consistency
-        uniqueOutreaches: 10 + (i % 5), // Varies from 10 to 14
-        followUps: 5 + (i % 3),    // Varies from 5 to 7
-        replies: 2 + (i % 2),      // Varies from 2 to 3
-        meetings: 1 + (i % 1),     // Varies from 1 to 1
+        // Hardcoded mock data numbers for consistency, adjusted for Unique Outreaches range
+        uniqueOutreaches: 300 + (i % 50), // Varies from 300 to 349
+        followUps: 50 + (i % 30),    // Varies from 50 to 79
+        replies: 20 + (i % 10),      // Varies from 20 to 29
+        meetings: 5 + (i % 3),     // Varies from 5 to 7
         status,
         stage,
         date: randomDate,
@@ -374,8 +374,17 @@ export function VCDashboard() {
 
           {/* Prospect Status Treemap Chart - Dynamic data that changes with filters */}
           <div className="bg-gray-800 rounded-lg shadow-lg">
-            <div className="p-4 pb-1"> {/* Adjusted padding for card header */}
+            <div className="p-4 pb-1 flex justify-between items-center"> {/* Adjusted padding and added flex for alignment */}
               <h2 className="text-base text-white font-semibold">Prospect Status Overview</h2>
+              {/* Treemap Legend moved here */}
+              <div className="flex space-x-2 text-xs text-white">
+                {treemapChartData.filter(d => d.name !== 'Total').map((entry) => (
+                  <div key={entry.name} className="flex items-center">
+                    <span className="inline-block w-2 h-2 rounded-full mr-1" style={{ backgroundColor: entry.fill }}></span>
+                    <span>{entry.name}: {entry.value} ({entry.percentage}%)</span>
+                  </div>
+                ))}
+              </div>
             </div>
             <div className="p-4 pt-1"> {/* Adjusted padding for card content */}
               <ResponsiveContainer width="100%" height={200}>
@@ -387,16 +396,6 @@ export function VCDashboard() {
                   content={(props) => (
                     <CustomizedContent {...props} colors={TREEMAP_COLORS} />
                   )}
-                />
-                {/* Add Legend for Treemap with custom formatter */}
-                <Legend
-                  wrapperStyle={{ fontSize: '10px', color: '#cbd5e0', paddingTop: '10px' }}
-                  payload={treemapChartData.filter(d => d.name !== 'Total').map((entry, index) => ({
-                    id: entry.name,
-                    value: `${entry.name}: ${entry.value} (${entry.percentage}%)`,
-                    type: 'square',
-                    color: entry.fill,
-                  }))}
                 />
               </ResponsiveContainer>
             </div>
