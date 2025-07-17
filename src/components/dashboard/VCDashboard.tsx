@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Cell, PieChart, Pie, Treemap } from "recharts";
@@ -162,6 +163,33 @@ export function VCDashboard() {
           fill: CHART_COLORS[index % CHART_COLORS.length]
         }))
       }
+    ];
+  }, [filteredData]);
+
+  // Data for the Funnel Chart - Dynamic data that changes with filters
+  const funnelChartData = useMemo(() => {
+    const statusCounts = {
+      Total: 0,
+      Accepted: 0,
+      Rejected: 0,
+      'In Review': 0
+    };
+
+    // Count statuses from filtered data
+    filteredData.forEach(item => {
+      if (statusCounts.hasOwnProperty(item.status)) {
+        statusCounts[item.status]++;
+      }
+    });
+
+    // Calculate total as sum of all prospects
+    statusCounts.Total = filteredData.length;
+
+    return [
+      { name: 'Total', value: statusCounts.Total, fill: FUNNEL_COLORS[0] },
+      { name: 'Accepted', value: statusCounts.Accepted, fill: FUNNEL_COLORS[1] },
+      { name: 'Rejected', value: statusCounts.Rejected, fill: FUNNEL_COLORS[2] },
+      { name: 'In Review', value: statusCounts['In Review'], fill: FUNNEL_COLORS[3] }
     ];
   }, [filteredData]);
 
