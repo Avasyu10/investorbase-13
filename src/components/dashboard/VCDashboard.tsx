@@ -1,8 +1,7 @@
-
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Cell, Treemap } from "recharts";
-import { ChartTooltip } from "@/components/ui/chart";
+import { Tooltip as ChartTooltip } from "@/components/ui/chart"; // Fixed import
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
 // Mocking useCompanies for demonstration purposes if it's not available
