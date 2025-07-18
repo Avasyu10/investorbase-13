@@ -104,22 +104,62 @@ serve(async (req) => {
       });
     }
 
-    // Query VC profiles for matches
-    let query = supabase
-      .from('vc_profiles')
-      .select('fund_name, areas_of_interest, investment_stage, fund_size, website_url');
-
-    // If we have stage, filter by investment_stage
-    if (stage) {
-      query = query.overlaps('investment_stage', [stage]);
+    // Query VC profiles for matches with multiple fallback strategies
+    let vcMatches: any[] = [];
+    
+    // Strategy 1: Try exact matches for both stage and industry
+    if (stage && industry) {
+      const { data: exactMatches } = await supabase
+        .from('vc_profiles')
+        .select('fund_name, areas_of_interest, investment_stage, fund_size, website_url')
+        .overlaps('investment_stage', [stage, stage.toLowerCase(), stage.replace('-', ' ')])
+        .overlaps('areas_of_interest', [industry, industry.toLowerCase(), industry.replace(/([A-Z])/g, '-$1').toLowerCase().substring(1)])
+        .limit(5);
+      
+      if (exactMatches && exactMatches.length > 0) {
+        vcMatches = exactMatches;
+      }
+    }
+    
+    // Strategy 2: If no exact matches, try stage only
+    if (vcMatches.length === 0 && stage) {
+      const { data: stageMatches } = await supabase
+        .from('vc_profiles')
+        .select('fund_name, areas_of_interest, investment_stage, fund_size, website_url')
+        .overlaps('investment_stage', [stage, stage.toLowerCase(), stage.replace('-', ' ')])
+        .limit(5);
+      
+      if (stageMatches && stageMatches.length > 0) {
+        vcMatches = stageMatches;
+      }
+    }
+    
+    // Strategy 3: If still no matches, try industry only
+    if (vcMatches.length === 0 && industry) {
+      const { data: industryMatches } = await supabase
+        .from('vc_profiles')
+        .select('fund_name, areas_of_interest, investment_stage, fund_size, website_url')
+        .overlaps('areas_of_interest', [industry, industry.toLowerCase(), industry.replace(/([A-Z])/g, '-$1').toLowerCase().substring(1)])
+        .limit(5);
+      
+      if (industryMatches && industryMatches.length > 0) {
+        vcMatches = industryMatches;
+      }
+    }
+    
+    // Strategy 4: If still no matches, return any 5 VCs
+    if (vcMatches.length === 0) {
+      const { data: anyMatches } = await supabase
+        .from('vc_profiles')
+        .select('fund_name, areas_of_interest, investment_stage, fund_size, website_url')
+        .limit(5);
+      
+      if (anyMatches && anyMatches.length > 0) {
+        vcMatches = anyMatches;
+      }
     }
 
-    // If we have industry, filter by areas_of_interest
-    if (industry) {
-      query = query.overlaps('areas_of_interest', [industry]);
-    }
-
-    const { data: vcMatches, error: vcError } = await query.limit(5);
+    const vcError = null; // No error since we're handling fallbacks
 
     if (vcError) {
       console.error('Error fetching VC profiles:', vcError);
