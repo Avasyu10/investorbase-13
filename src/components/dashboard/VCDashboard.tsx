@@ -143,10 +143,10 @@ export function VCDashboard() {
         person,
         channel,
         industry,
-        uniqueOutreaches: Math.floor(Math.random() * 11) + 20, // 20-30 range
-        followUps: Math.floor(Math.random() * 5) + 10,       // 10-15 range
-        replies: Math.floor(Math.random() * 3) + 5,          // 5-8 range
-        meetings: Math.floor(Math.random() * 2) + 1,         // 1-3 range
+        uniqueOutreaches: Math.floor(Math.random() * 31) + 50, // 50-80 range
+        followUps: Math.floor(Math.random() * 15) + 20,       // 20-35 range
+        replies: Math.floor(Math.random() * 10) + 10,          // 10-20 range
+        meetings: Math.floor(Math.random() * 3) + 2,         // 2-5 range
         status,
         stage,
         date: randomDate,
@@ -251,19 +251,19 @@ export function VCDashboard() {
   endRangeDate.setDate(currentEndDate.getDate() - dateRanges[dateRange[0]].days);
 
   return (
-    <div className="flex flex-col lg:flex-row space-y-2 lg:space-y-0 lg:space-x-4 p-2 bg-gray-900 text-white font-inter h-screen overflow-hidden"> {/* Reduced padding and space-y */}
+    <div className="flex flex-col lg:flex-row space-y-4 lg:space-y-0 lg:space-x-4 p-4 bg-gray-900 text-white font-inter h-screen overflow-hidden">
       {/* Left Sidebar for Filters */}
-      <div className="lg:w-1/4 p-3 space-y-3 flex-shrink-0 bg-gray-800 rounded-lg shadow-lg"> {/* Reduced padding and space-y */}
-        <h2 className="text-base font-bold text-white mb-2">Filters</h2> {/* Reduced font size and margin */}
+      <div className="lg:w-1/4 p-4 space-y-4 flex-shrink-0 bg-gray-800 rounded-lg shadow-lg">
+        <h2 className="text-lg font-bold text-white mb-4">Filters</h2>
 
         {/* Date Filter (Range Slider) */}
         <div>
-          <h3 className="text-xs font-semibold mb-1 text-white">Date Range</h3> {/* Reduced font size and margin */}
-          <div className="flex justify-between text-xs text-gray-300 mb-2"> {/* Reduced margin */}
+          <h3 className="text-sm font-semibold mb-2 text-white">Date Range</h3>
+          <div className="flex justify-between text-xs text-gray-300 mb-3">
             <span>From: {formatDate(startRangeDate)}</span>
             <span>To: {formatDate(endRangeDate)}</span>
           </div>
-          <div className="px-1 py-2"> {/* Reduced padding */}
+          <div className="px-2 py-4">
             <Slider
               value={dateRange}
               onValueChange={setDateRange}
@@ -273,7 +273,7 @@ export function VCDashboard() {
               className="w-full [&.slider-track]:bg-blue-600 [&.slider-range]:bg-violet-500 [&.slider-thumb]:bg-white [&.slider-thumb]:border-2 [&.slider-thumb]:border-violet-500 [&.slider-thumb]:shadow-lg"
             />
           </div>
-          <div className="flex justify-between text-xs text-gray-400 mt-1"> {/* Reduced margin */}
+          <div className="flex justify-between text-xs text-gray-400 mt-2">
             <span>{dateRanges[dateRange[0]].label}</span>
             <span>{dateRanges[dateRange[1]].label}</span>
           </div>
@@ -281,13 +281,13 @@ export function VCDashboard() {
 
         {/* POC Name Filter */}
         <div>
-          <h3 className="text-xs font-semibold mb-1 text-white">POC</h3> {/* Reduced font size and margin */}
+          <h3 className="text-sm font-semibold mb-2 text-white">POC</h3>
           <div className="relative">
             <select
               onChange={(e) => setSelectedPerson(e.target.value)}
               value={selectedPerson}
-              className="w-full p-1 border rounded-md bg-gray-700 text-white border-gray-600 focus:ring-blue-500 focus:border-blue-500 text-xs appearance-none pr-6" {/* Reduced padding and font size */}
-              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='white'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.3rem center', backgroundSize: '1.2em 1.2em' }} {/* Adjusted background size and position */}
+              className="w-full p-2 border rounded-md bg-gray-700 text-white border-gray-600 focus:ring-blue-500 focus:border-blue-500 text-sm appearance-none pr-8"
+              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='white'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1.5em 1.5em' }}
             >
               <option value="" disabled>Select POC</option>
               {availablePersons.map((personName) => (
@@ -301,13 +301,13 @@ export function VCDashboard() {
 
         {/* Industry Filter */}
         <div>
-          <h3 className="text-xs font-semibold mb-1 text-white">Industry</h3> {/* Reduced font size and margin */}
+          <h3 className="text-sm font-semibold mb-2 text-white">Industry</h3>
           <div className="relative">
             <select
               onChange={(e) => setSelectedIndustry(e.target.value)}
               value={selectedIndustry}
-              className="w-full p-1 border rounded-md bg-gray-700 text-white border-gray-600 focus:ring-blue-500 focus:border-blue-500 text-xs appearance-none pr-6" {/* Reduced padding and font size */}
-              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='white'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.3rem center', backgroundSize: '1.2em 1.2em' }} {/* Adjusted background size and position */}
+              className="w-full p-2 border rounded-md bg-gray-700 text-white border-gray-600 focus:ring-blue-500 focus:border-blue-500 text-sm appearance-none pr-8"
+              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='white'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1.5em 1.5em' }}
             >
               <option value="" disabled>Select Industry</option>
               {availableIndustries.map((industryName) => (
@@ -321,13 +321,13 @@ export function VCDashboard() {
 
         {/* Stage Filter */}
         <div>
-          <h3 className="text-xs font-semibold mb-1 text-white">Stage</h3> {/* Reduced font size and margin */}
+          <h3 className="text-sm font-semibold mb-2 text-white">Stage</h3>
           <div className="relative">
             <select
               onChange={(e) => setSelectedStage(e.target.value)}
               value={selectedStage}
-              className="w-full p-1 border rounded-md bg-gray-700 text-white border-gray-600 focus:ring-blue-500 focus:border-blue-500 text-xs appearance-none pr-6" {/* Reduced padding and font size */}
-              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='white'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.3rem center', backgroundSize: '1.2em 1.2em' }} {/* Adjusted background size and position */}
+              className="w-full p-2 border rounded-md bg-gray-700 text-white border-gray-600 focus:ring-blue-500 focus:border-blue-500 text-sm appearance-none pr-8"
+              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='white'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1.5em 1.5em' }}
             >
               <option value="" disabled>Select Stage</option>
               {availableStages.map((stageName) => (
@@ -341,50 +341,50 @@ export function VCDashboard() {
       </div>
 
       {/* Right Content Area: Metric Cards + Charts */}
-      <div className="flex flex-col space-y-2 flex-grow h-full"> {/* Reduced space-y */}
+      <div className="flex flex-col space-y-4 flex-grow h-full">
         {/* Key Metrics Cards - All using the same gradient color */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2"> {/* Reduced gap */}
-          <div className="bg-gradient-to-br from-blue-200 to-blue-300 text-gray-800 rounded-lg shadow-lg p-3 text-center"> {/* Reduced padding */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-gradient-to-br from-blue-200 to-blue-300 text-gray-800 rounded-lg shadow-lg p-4 text-center">
             <div>
-              <p className="text-xs font-medium opacity-90">Unique Outreaches</p> {/* Reduced font size */}
-              <p className="text-2xl font-bold mt-0.5">{filteredMetrics.uniqueOutreaches}</p> {/* Reduced font size and margin */}
+              <p className="text-sm font-medium opacity-90">Unique Outreaches</p>
+              <p className="text-3xl font-bold mt-1">{filteredMetrics.uniqueOutreaches}</p>
             </div>
           </div>
-          <div className="bg-gradient-to-br from-blue-200 to-blue-300 text-gray-800 rounded-lg shadow-lg p-3 text-center"> {/* Reduced padding */}
+          <div className="bg-gradient-to-br from-blue-200 to-blue-300 text-gray-800 rounded-lg shadow-lg p-4 text-center">
             <div>
-              <p className="text-xs font-medium opacity-90">Follow Ups</p> {/* Reduced font size */}
-              <p className="text-2xl font-bold mt-0.5">{filteredMetrics.followUps}</p> {/* Reduced font size and margin */}
+              <p className="text-sm font-medium opacity-90">Follow Ups</p>
+              <p className="text-3xl font-bold mt-1">{filteredMetrics.followUps}</p>
             </div>
           </div>
-          <div className="bg-gradient-to-br from-blue-200 to-blue-300 text-gray-800 rounded-lg shadow-lg p-3 text-center"> {/* Reduced padding */}
+          <div className="bg-gradient-to-br from-blue-200 to-blue-300 text-gray-800 rounded-lg shadow-lg p-4 text-center">
             <div>
-              <p className="text-xs font-medium opacity-90">Replies</p> {/* Reduced font size */}
-              <p className="text-2xl font-bold mt-0.5">{filteredMetrics.replies}</p> {/* Reduced font size and margin */}
+              <p className="text-sm font-medium opacity-90">Replies</p>
+              <p className="text-3xl font-bold mt-1">{filteredMetrics.replies}</p>
             </div>
           </div>
-          <div className="bg-gradient-to-br from-blue-200 to-blue-300 text-gray-800 rounded-lg shadow-lg p-3 text-center"> {/* Reduced padding */}
+          <div className="bg-gradient-to-br from-blue-200 to-blue-300 text-gray-800 rounded-lg shadow-lg p-4 text-center">
             <div>
-              <p className="text-xs font-medium opacity-90">Meetings</p> {/* Reduced font size */}
-              <p className="text-2xl font-bold mt-0.5">{filteredMetrics.meetings}</p> {/* Reduced font size and margin */}
+              <p className="text-sm font-medium opacity-90">Meetings</p>
+              <p className="text-3xl font-bold mt-1">{filteredMetrics.meetings}</p>
             </div>
           </div>
         </div>
 
         {/* Charts Area */}
         {/* Adjusted flex-grow to distribute vertical space for charts */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 flex-grow"> {/* Reduced gap */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow">
           {/* Bar Chart */}
           <div className="bg-gray-800 rounded-lg shadow-lg flex flex-col">
-            <div className="p-3 pb-1"> {/* Reduced padding */}
-              <h2 className="text-base text-white font-semibold">Unique Outreaches, Follow ups and Replies by Channel</h2> {/* Reduced font size */}
+            <div className="p-4 pb-2">
+              <h2 className="text-lg text-white font-semibold">Unique Outreaches, Follow ups and Replies by Channel</h2>
             </div>
-            <div className="p-3 pt-1 flex-grow"> {/* Reduced padding */}
+            <div className="p-4 pt-2 flex-grow">
               {/* Set a fixed height for ResponsiveContainer to control vertical space */}
-              <ResponsiveContainer width="100%" height={150}> {/* Further decreased height */}
+              <ResponsiveContainer width="100%" height={180}> {/* Further decreased height */}
                 <BarChart data={currentChannelChartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#4a5568" />
-                  <XAxis dataKey="channel" stroke="#cbd5e0" style={{ fontSize: '10px' }} /> {/* Reduced font size */}
-                  <YAxis stroke="#cbd5e0" style={{ fontSize: '10px' }} /> {/* Reduced font size */}
+                  <XAxis dataKey="channel" stroke="#cbd5e0" style={{ fontSize: '12px' }} />
+                  <YAxis stroke="#cbd5e0" style={{ fontSize: '12px' }} />
                   <Tooltip
                     contentStyle={{ backgroundColor: '#1f2937', borderColor: '#4a5568', color: '#ffffff' }}
                     labelStyle={{ color: '#ffffff' }}
@@ -392,7 +392,7 @@ export function VCDashboard() {
                   <Bar dataKey="uniqueOutreaches" fill={BLUE_VIOLET_SHADES[0]} name="Unique Outreaches" stackId="a" />
                   <Bar dataKey="followUps" fill={BLUE_VIOLET_SHADES[1]} name="Follow Ups" stackId="a" />
                   <Bar dataKey="replies" fill={BLUE_VIOLET_SHADES[2]} name="Replies" stackId="a" />
-                  <Legend wrapperStyle={{ fontSize: '10px', color: '#cbd5e0' }} /> {/* Reduced font size */}
+                  <Legend wrapperStyle={{ fontSize: '12px', color: '#cbd5e0' }} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -400,20 +400,20 @@ export function VCDashboard() {
 
           {/* Treemap Chart */}
           <div className="bg-gray-800 rounded-lg shadow-lg flex flex-col">
-            <div className="p-3 pb-1 flex justify-between items-center"> {/* Reduced padding */}
-              <h2 className="text-base text-white font-semibold">Prospect Status Overview</h2> {/* Reduced font size */}
-              <div className="flex space-x-1 text-xs text-white"> {/* Reduced space-x and font size */}
+            <div className="p-4 pb-2 flex justify-between items-center">
+              <h2 className="text-lg text-white font-semibold">Prospect Status Overview</h2>
+              <div className="flex space-x-2 text-xs text-white">
                 {treemapChartData.filter(d => d.name !== 'Total').map((entry) => (
                   <div key={entry.name} className="flex items-center">
-                    <span className="inline-block w-1.5 h-1.5 rounded-full mr-0.5" style={{ backgroundColor: entry.fill }}></span> {/* Reduced size and margin */}
+                    <span className="inline-block w-2 h-2 rounded-full mr-1" style={{ backgroundColor: entry.fill }}></span>
                     <span>{entry.name}: {entry.value} ({entry.percentage}%)</span>
                   </div>
                 ))}
               </div>
             </div>
-            <div className="p-3 pt-1 flex-grow"> {/* Reduced padding */}
+            <div className="p-4 pt-2 flex-grow">
               {/* Set a fixed height for ResponsiveContainer to control vertical space */}
-              <ResponsiveContainer width="100%" height={150}> {/* Further decreased height */}
+              <ResponsiveContainer width="100%" height={180}> {/* Further decreased height */}
                 <Treemap
                   data={treemapChartData}
                   dataKey="value"
