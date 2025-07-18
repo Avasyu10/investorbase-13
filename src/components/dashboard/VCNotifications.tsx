@@ -303,9 +303,11 @@ export const VCNotifications = () => {
                         )}
                       </div>
                       {notification.overall_score && (
-                        <div className="flex items-center gap-1 text-sm font-medium">
-                          <Star className="h-3 w-3 text-yellow-500" />
-                          <span>{Math.round(notification.overall_score * 10)}/100</span>
+                        <div className="flex items-center gap-1 px-2 py-1 bg-yellow-50 dark:bg-yellow-900/20 rounded-md">
+                          <Star className="h-3 w-3 text-yellow-600 dark:text-yellow-400" />
+                          <span className="text-sm font-semibold text-yellow-700 dark:text-yellow-300">
+                            {Math.round(notification.overall_score)}/100
+                          </span>
                         </div>
                       )}
                     </div>
@@ -359,10 +361,16 @@ export const VCNotifications = () => {
                           variant="outline" 
                           size="sm" 
                           className="flex items-center gap-1"
-                          onClick={() => window.open(notification.deck_url, '_blank')}
+                          onClick={() => {
+                            // Handle both direct URLs and storage bucket paths
+                            const url = notification.deck_url?.startsWith('http') 
+                              ? notification.deck_url 
+                              : `https://jhtnruktmtjqrfoiyrep.supabase.co/storage/v1/object/public/Report%20PDFs/${notification.deck_url}`;
+                            window.open(url, '_blank');
+                          }}
                         >
                           <FileText className="h-3 w-3" />
-                          Pitch Deck
+                          View Pitch Deck
                         </Button>
                       )}
                     </div>
