@@ -1,1 +1,4 @@
 project_id = "jhtnruktmtjqrfoiyrep"
+
+[functions.vc-matchmaking]
+verify_jwt = true

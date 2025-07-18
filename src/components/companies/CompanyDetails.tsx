@@ -18,6 +18,7 @@ import FormResponsesDialog from "./FormResponsesDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { InvestmentMemo } from "./InvestmentMemo";
+import { VCMatchmakingDialog } from "./VCMatchmakingDialog";
 
 const CompanyDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -361,6 +362,13 @@ const CompanyDetails = () => {
                   {/* Investment Memo button for non-IIT Bombay users */}
                   {!isIITBombayUser && company && (
                     <InvestmentMemo company={company} />
+                  )}
+                  {/* VC Matchmaking button for general users with score > 65 */}
+                  {!isIITBombayUser && company && rawScore > 65 && id && (
+                    <VCMatchmakingDialog 
+                      companyId={id} 
+                      companyName={company.name} 
+                    />
                   )}
                   {/* Only show chatbot button for non-IIT Bombay users */}
                   {!isIITBombayUser && (
