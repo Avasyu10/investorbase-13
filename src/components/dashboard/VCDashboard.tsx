@@ -370,9 +370,8 @@ export function VCDashboard() {
           </div>
         </div>
 
-        {/* Charts Area */}
-        {/* Adjusted flex-grow to distribute vertical space for charts */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow mt-4">
+        {/* Charts Area with small top margin */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow mt-3">
           {/* Bar Chart */}
           <div className="bg-gray-800 rounded-lg shadow-lg flex flex-col">
             <div className="p-4 pb-2">
