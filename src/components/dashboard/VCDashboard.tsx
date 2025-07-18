@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Tooltip, Treemap } from "recharts";
 import { Slider } from "@/components/ui/slider";
@@ -44,9 +43,7 @@ const TREEMAP_COLORS = [
 // Custom content for treemap with improved text positioning and visibility
 const CustomizedContent = (props) => {
   const { root, depth, x, y, width, height, index, payload, colors, name } = props;
-
   const fillColor = payload?.fill || (depth < 2 ? colors[Math.floor((index / root.children.length) * colors.length)] : 'none');
-
   // Only show text if the rectangle is large enough
   const showText = width > 60 && height > 40;
   const showValue = width > 80 && height > 60;
@@ -67,12 +64,12 @@ const CustomizedContent = (props) => {
       />
       {depth === 1 && showText ? (
         <>
-          <text 
-            x={x + width / 2} 
-            y={y + height / 2 - (showValue ? 8 : 0)} 
-            textAnchor="middle" 
-            fill="#FFFFFF" 
-            fontSize={Math.min(14, width / 6, height / 8)} 
+          <text
+            x={x + width / 2}
+            y={y + height / 2 - (showValue ? 8 : 0)}
+            textAnchor="middle"
+            fill="#FFFFFF"
+            fontSize={Math.min(14, width / 6, height / 8)}
             fontWeight="500"
             dominantBaseline="middle"
             style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}
@@ -80,12 +77,12 @@ const CustomizedContent = (props) => {
             {name}
           </text>
           {showValue && (
-            <text 
-              x={x + width / 2} 
-              y={y + height / 2 + 12} 
-              textAnchor="middle" 
-              fill="#FFFFFF" 
-              fontSize={Math.min(16, width / 5, height / 6)} 
+            <text
+              x={x + width / 2}
+              y={y + height / 2 + 12}
+              textAnchor="middle"
+              fill="#FFFFFF"
+              fontSize={Math.min(16, width / 5, height / 6)}
               fontWeight="600"
               dominantBaseline="middle"
               style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}
@@ -106,7 +103,6 @@ export function VCDashboard() {
   const [selectedPerson, setSelectedPerson] = useState('Roohi');
   const [selectedIndustry, setSelectedIndustry] = useState('Tech');
   const [selectedStage, setSelectedStage] = useState('Early');
-  
   // Date range states for range slider - array with two values [start, end]
   const [dateRange, setDateRange] = useState([0, 6]);
 
@@ -126,7 +122,7 @@ export function VCDashboard() {
     { label: 'All Time', days: 365 * 10 },
   ], []);
 
-  // Mock data with 300-350 range
+  // Mock data with adjusted ranges (max 400-500, then decreasing)
   const allProspectData = useMemo(() => {
     const data = [];
     const channels = ['LinkedIn', 'Others', 'Calls', 'Mail'];
@@ -140,7 +136,6 @@ export function VCDashboard() {
       const industry = industries[Math.floor(Math.random() * industries.length)];
       const status = statuses[Math.floor(Math.random() * statuses.length)];
       const stage = stages[Math.floor(Math.random() * stages.length)];
-
       const randomDate = new Date();
       randomDate.setDate(randomDate.getDate() - Math.floor(Math.random() * (365 * 2)));
 
@@ -148,10 +143,10 @@ export function VCDashboard() {
         person,
         channel,
         industry,
-        uniqueOutreaches: Math.floor(Math.random() * 50) + 300, // 300-350 range
-        followUps: Math.floor(Math.random() * 20) + 30,
-        replies: Math.floor(Math.random() * 10) + 15,
-        meetings: Math.floor(Math.random() * 5) + 5,
+        uniqueOutreaches: Math.floor(Math.random() * 101) + 400, // 400-500 range
+        followUps: Math.floor(Math.random() * 50) + 100,       // 100-150 range
+        replies: Math.floor(Math.random() * 30) + 40,          // 40-70 range
+        meetings: Math.floor(Math.random() * 10) + 10,         // 10-20 range
         status,
         stage,
         date: randomDate,
@@ -167,7 +162,7 @@ export function VCDashboard() {
     const currentDate = new Date();
     const startCutoffDate = new Date();
     const endCutoffDate = new Date();
-    
+
     startCutoffDate.setDate(currentDate.getDate() - startDays);
     endCutoffDate.setDate(currentDate.getDate() - endDays);
 
@@ -197,7 +192,6 @@ export function VCDashboard() {
   // Treemap data
   const treemapChartData = useMemo(() => {
     const statusCounts = { Total: 0, Accepted: 0, Rejected: 0, 'In Review': 0 };
-    
     filteredData.forEach(item => {
       if (statusCounts.hasOwnProperty(item.status)) {
         statusCounts[item.status] += 1;
@@ -205,7 +199,7 @@ export function VCDashboard() {
     });
 
     const actualTotal = statusCounts.Accepted + statusCounts.Rejected + statusCounts['In Review'];
-    statusCounts.Total = actualTotal;
+    statusCounts.Total = actualTotal; // Ensure Total reflects sum of its parts
 
     return [
       { name: 'Total', value: statusCounts.Total, fill: TREEMAP_COLORS[0] },
@@ -236,7 +230,6 @@ export function VCDashboard() {
     const totalFollowUps = filteredData.reduce((sum, item) => sum + item.followUps, 0);
     const totalReplies = filteredData.reduce((sum, item) => sum + item.replies, 0);
     const totalMeetings = filteredData.reduce((sum, item) => sum + item.meetings, 0);
-
     return {
       uniqueOutreaches: totalUniqueOutreaches,
       followUps: totalFollowUps,
@@ -254,7 +247,6 @@ export function VCDashboard() {
   const currentEndDate = new Date();
   const startRangeDate = new Date();
   const endRangeDate = new Date();
-  
   startRangeDate.setDate(currentEndDate.getDate() - dateRanges[dateRange[1]].days);
   endRangeDate.setDate(currentEndDate.getDate() - dateRanges[dateRange[0]].days);
 
@@ -271,7 +263,6 @@ export function VCDashboard() {
             <span>From: {formatDate(startRangeDate)}</span>
             <span>To: {formatDate(endRangeDate)}</span>
           </div>
-          
           <div className="px-2 py-4">
             <Slider
               value={dateRange}
@@ -279,10 +270,9 @@ export function VCDashboard() {
               max={dateRanges.length - 1}
               min={0}
               step={1}
-              className="w-full [&_.slider-track]:bg-blue-600 [&_.slider-range]:bg-violet-500 [&_.slider-thumb]:bg-white [&_.slider-thumb]:border-2 [&_.slider-thumb]:border-violet-500 [&_.slider-thumb]:shadow-lg"
+              className="w-full [&.slider-track]:bg-blue-600 [&.slider-range]:bg-violet-500 [&.slider-thumb]:bg-white [&.slider-thumb]:border-2 [&.slider-thumb]:border-violet-500 [&.slider-thumb]:shadow-lg"
             />
           </div>
-          
           <div className="flex justify-between text-xs text-gray-400 mt-2">
             <span>{dateRanges[dateRange[0]].label}</span>
             <span>{dateRanges[dateRange[1]].label}</span>
@@ -360,21 +350,18 @@ export function VCDashboard() {
               <p className="text-3xl font-bold mt-1">{filteredMetrics.uniqueOutreaches}</p>
             </div>
           </div>
-
           <div className="bg-gradient-to-br from-blue-200 to-blue-300 text-gray-800 rounded-lg shadow-lg p-4 text-center">
             <div>
               <p className="text-sm font-medium opacity-90">Follow Ups</p>
               <p className="text-3xl font-bold mt-1">{filteredMetrics.followUps}</p>
             </div>
           </div>
-
           <div className="bg-gradient-to-br from-blue-200 to-blue-300 text-gray-800 rounded-lg shadow-lg p-4 text-center">
             <div>
               <p className="text-sm font-medium opacity-90">Replies</p>
               <p className="text-3xl font-bold mt-1">{filteredMetrics.replies}</p>
             </div>
           </div>
-
           <div className="bg-gradient-to-br from-blue-200 to-blue-300 text-gray-800 rounded-lg shadow-lg p-4 text-center">
             <div>
               <p className="text-sm font-medium opacity-90">Meetings</p>
@@ -384,6 +371,7 @@ export function VCDashboard() {
         </div>
 
         {/* Charts Area */}
+        {/* Adjusted flex-grow to distribute vertical space for charts */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow">
           {/* Bar Chart */}
           <div className="bg-gray-800 rounded-lg shadow-lg flex flex-col">
@@ -391,7 +379,8 @@ export function VCDashboard() {
               <h2 className="text-lg text-white font-semibold">Unique Outreaches, Follow ups and Replies by Channel</h2>
             </div>
             <div className="p-4 pt-2 flex-grow">
-              <ResponsiveContainer width="100%" height="100%">
+              {/* Set a fixed height for ResponsiveContainer to control vertical space */}
+              <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={currentChannelChartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#4a5568" />
                   <XAxis dataKey="channel" stroke="#cbd5e0" style={{ fontSize: '12px' }} />
@@ -423,7 +412,8 @@ export function VCDashboard() {
               </div>
             </div>
             <div className="p-4 pt-2 flex-grow">
-              <ResponsiveContainer width="100%" height="100%">
+              {/* Set a fixed height for ResponsiveContainer to control vertical space */}
+              <ResponsiveContainer width="100%" height={300}>
                 <Treemap
                   data={treemapChartData}
                   dataKey="value"
