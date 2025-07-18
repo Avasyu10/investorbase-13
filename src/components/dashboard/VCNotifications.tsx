@@ -12,97 +12,269 @@ import { FounderVCChatInterface } from "@/components/chat/FounderVCChatInterface
 // Component to display company analysis in an organized format
 const CompanyAnalysisDialog = ({ analysisResult }: { analysisResult: any }) => {
   if (!analysisResult) {
-    return <div className="text-muted-foreground">No analysis data available.</div>;
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+          <h3 className="text-lg font-medium mb-2">No Analysis Available</h3>
+          <p className="text-muted-foreground">Analysis data is not available for this company.</p>
+        </div>
+      </div>
+    );
   }
 
-  const sections = [
-    { key: 'executive_summary', title: 'Executive Summary', icon: <TrendingUp className="h-4 w-4" /> },
-    { key: 'market_opportunity', title: 'Market Opportunity', icon: <Building2 className="h-4 w-4" /> },
-    { key: 'business_model', title: 'Business Model', icon: <Star className="h-4 w-4" /> },
-    { key: 'team_assessment', title: 'Team Assessment', icon: <Eye className="h-4 w-4" /> },
-    { key: 'financial_projections', title: 'Financial Projections', icon: <TrendingUp className="h-4 w-4" /> },
-    { key: 'competitive_analysis', title: 'Competitive Analysis', icon: <Building2 className="h-4 w-4" /> },
-    { key: 'risk_assessment', title: 'Risk Assessment', icon: <Star className="h-4 w-4" /> },
-    { key: 'investment_recommendation', title: 'Investment Recommendation', icon: <CheckCircle className="h-4 w-4" /> }
+  // First, let's check if it's the sectioned format (like in the screenshot)
+  const isSectionedFormat = analysisResult.sections || 
+    (typeof analysisResult === 'object' && 
+     Object.values(analysisResult).some((item: any) => 
+       item && typeof item === 'object' && ('type' in item || 'score' in item || 'title' in item)
+     ));
+
+  if (isSectionedFormat) {
+    // Handle the sectioned format from the screenshot
+    const sections = analysisResult.sections || Object.values(analysisResult).filter((item: any) => 
+      item && typeof item === 'object' && ('type' in item || 'title' in item)
+    );
+
+    const getScoreColor = (score: number) => {
+      if (score >= 80) return "text-green-600 bg-green-50 dark:bg-green-900/20";
+      if (score >= 60) return "text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20";
+      return "text-red-600 bg-red-50 dark:bg-red-900/20";
+    };
+
+    const getTypeIcon = (type: string) => {
+      switch (type?.toUpperCase()) {
+        case 'PROBLEM':
+          return <Eye className="h-5 w-5" />;
+        case 'MARKET':
+          return <TrendingUp className="h-5 w-5" />;
+        case 'SOLUTION':
+          return <Star className="h-5 w-5" />;
+        case 'COMPETITIVE_LANDSCAPE':
+          return <Building2 className="h-5 w-5" />;
+        case 'TEAM':
+          return <MessageCircle className="h-5 w-5" />;
+        default:
+          return <FileText className="h-5 w-5" />;
+      }
+    };
+
+    const getTypeColor = (type: string) => {
+      switch (type?.toUpperCase()) {
+        case 'PROBLEM':
+          return "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800";
+        case 'MARKET':
+          return "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800";
+        case 'SOLUTION':
+          return "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800";
+        case 'COMPETITIVE_LANDSCAPE':
+          return "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800";
+        case 'TEAM':
+          return "bg-pink-50 text-pink-700 border-pink-200 dark:bg-pink-900/20 dark:text-pink-300 dark:border-pink-800";
+        default:
+          return "bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300 dark:border-gray-800";
+      }
+    };
+
+    return (
+      <div className="space-y-6">
+        <div className="grid gap-6">
+          {sections.map((section: any, index: number) => (
+            <Card key={index} className="overflow-hidden">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${getTypeColor(section.type)}`}>
+                      {getTypeIcon(section.type)}
+                    </div>
+                    <div>
+                      <Badge variant="outline" className={`mb-2 ${getTypeColor(section.type)}`}>
+                        {section.type?.replace(/_/g, ' ') || 'Section'}
+                      </Badge>
+                      <CardTitle className="text-xl">
+                        {section.title || section.type?.replace(/_/g, ' ') || 'Untitled Section'}
+                      </CardTitle>
+                    </div>
+                  </div>
+                  
+                  {section.score !== undefined && (
+                    <div className={`px-4 py-2 rounded-full font-semibold ${getScoreColor(section.score)}`}>
+                      {section.score}/100
+                    </div>
+                  )}
+                </div>
+                
+                {section.status && (
+                  <div className="flex items-center gap-2 mt-3">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-sm font-medium text-green-700 dark:text-green-300">
+                      Status: {section.status}
+                    </span>
+                  </div>
+                )}
+              </CardHeader>
+              
+              <CardContent>
+                {section.description && (
+                  <div className="prose prose-sm max-w-none dark:prose-invert">
+                    <p className="text-muted-foreground leading-relaxed">
+                      {section.description}
+                    </p>
+                  </div>
+                )}
+                
+                {/* Display any additional fields */}
+                {Object.entries(section).map(([key, value]) => {
+                  if (['type', 'title', 'score', 'status', 'description'].includes(key) || !value) {
+                    return null;
+                  }
+                  
+                  return (
+                    <div key={key} className="mt-4 p-3 bg-muted/50 rounded-lg">
+                      <div className="font-medium text-sm text-foreground/80 mb-1">
+                        {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Display overall metrics if available */}
+        {analysisResult.overall_score && (
+          <Card className="bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-primary/10 rounded-full">
+                    <Star className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg">Overall Score</h3>
+                    <p className="text-sm text-muted-foreground">Investment recommendation score</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-3xl font-bold text-primary">
+                    {Math.round(analysisResult.overall_score)}/100
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    );
+  }
+
+  // Fallback to the original structured format
+  const predefinedSections = [
+    { key: 'executive_summary', title: 'Executive Summary', icon: <TrendingUp className="h-5 w-5" />, color: 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300' },
+    { key: 'market_opportunity', title: 'Market Opportunity', icon: <Building2 className="h-5 w-5" />, color: 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300' },
+    { key: 'business_model', title: 'Business Model', icon: <Star className="h-5 w-5" />, color: 'bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-300' },
+    { key: 'team_assessment', title: 'Team Assessment', icon: <MessageCircle className="h-5 w-5" />, color: 'bg-pink-50 text-pink-700 dark:bg-pink-900/20 dark:text-pink-300' },
+    { key: 'financial_projections', title: 'Financial Projections', icon: <TrendingUp className="h-5 w-5" />, color: 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300' },
+    { key: 'competitive_analysis', title: 'Competitive Analysis', icon: <Building2 className="h-5 w-5" />, color: 'bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-300' },
+    { key: 'risk_assessment', title: 'Risk Assessment', icon: <Eye className="h-5 w-5" />, color: 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300' },
+    { key: 'investment_recommendation', title: 'Investment Recommendation', icon: <CheckCircle className="h-5 w-5" />, color: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300' }
   ];
 
   const formatContent = (content: any) => {
     if (typeof content === 'string') {
-      return content;
+      return <p className="leading-relaxed">{content}</p>;
     }
     
     if (typeof content === 'object' && content !== null) {
-      // Handle arrays
       if (Array.isArray(content)) {
-        return content.map((item, index) => (
-          <div key={index} className="mb-2">
-            {typeof item === 'object' ? 
-              Object.entries(item).map(([k, v]) => (
-                <div key={k} className="ml-2">
-                  <span className="font-medium">{k.replace(/_/g, ' ')}:</span> {String(v)}
-                </div>
-              )) : 
-              <span>• {String(item)}</span>
-            }
-          </div>
-        ));
+        return (
+          <ul className="space-y-2">
+            {content.map((item, index) => (
+              <li key={index} className="flex items-start gap-2">
+                <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0" />
+                <span>{typeof item === 'object' ? JSON.stringify(item, null, 2) : String(item)}</span>
+              </li>
+            ))}
+          </ul>
+        );
       }
       
-      // Handle objects - extract relevant information only
-      return Object.entries(content).map(([key, value]) => {
-        // Skip slide-by-slide notes and other irrelevant data
-        if (key.includes('slide') || key.includes('note') || key.includes('_notes')) {
-          return null;
-        }
-        
-        return (
-          <div key={key} className="mb-2">
-            <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span>{' '}
-            <span>{String(value)}</span>
-          </div>
-        );
-      }).filter(Boolean);
+      return (
+        <div className="space-y-3">
+          {Object.entries(content).map(([key, value]) => {
+            if (key.includes('slide') || key.includes('note') || key.includes('_notes')) {
+              return null;
+            }
+            
+            return (
+              <div key={key} className="flex flex-col gap-1">
+                <span className="font-medium text-sm text-foreground/80">
+                  {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                </span>
+                <span className="text-muted-foreground">{String(value)}</span>
+              </div>
+            );
+          }).filter(Boolean)}
+        </div>
+      );
     }
     
-    return String(content);
+    return <p className="leading-relaxed">{String(content)}</p>;
   };
 
   return (
     <div className="space-y-6">
-      {sections.map((section) => {
+      {predefinedSections.map((section) => {
         const content = analysisResult[section.key];
         if (!content) return null;
 
         return (
-          <div key={section.key} className="border rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-3">
-              {section.icon}
-              <h3 className="font-semibold text-lg">{section.title}</h3>
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {formatContent(content)}
-            </div>
-          </div>
+          <Card key={section.key} className="overflow-hidden">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-lg ${section.color}`}>
+                  {section.icon}
+                </div>
+                <CardTitle className="text-lg">{section.title}</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="prose prose-sm max-w-none dark:prose-invert">
+                {formatContent(content)}
+              </div>
+            </CardContent>
+          </Card>
         );
       })}
       
       {/* Display any other relevant fields */}
       {Object.entries(analysisResult).map(([key, value]) => {
-        if (sections.some(s => s.key === key) || !value || 
-            key.includes('slide') || key.includes('note') || key.includes('_notes')) {
+        if (predefinedSections.some(s => s.key === key) || !value || 
+            key.includes('slide') || key.includes('note') || key.includes('_notes') ||
+            key === 'overall_score') {
           return null;
         }
         
         return (
-          <div key={key} className="border rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Star className="h-4 w-4" />
-              <h3 className="font-semibold text-lg capitalize">{key.replace(/_/g, ' ')}</h3>
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {formatContent(value)}
-            </div>
-          </div>
+          <Card key={key} className="overflow-hidden">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-gray-50 text-gray-700 dark:bg-gray-900/20 dark:text-gray-300">
+                  <FileText className="h-5 w-5" />
+                </div>
+                <CardTitle className="text-lg capitalize">{key.replace(/_/g, ' ')}</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="prose prose-sm max-w-none dark:prose-invert">
+                {formatContent(value)}
+              </div>
+            </CardContent>
+          </Card>
         );
       })}
     </div>
