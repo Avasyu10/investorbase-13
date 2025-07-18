@@ -184,22 +184,29 @@ export const VCNotifications = () => {
           // Get report analysis if company has a report
           let analysisResult = null;
           let reportScore = null;
+          let pitchDeckUrl = companyData?.deck_url; // Use company deck_url first
+          
           if (companyData?.report_id) {
             const { data: reportData } = await supabase
               .from('reports')
-              .select('analysis_result, overall_score')
+              .select('analysis_result, overall_score, pdf_url')
               .eq('id', companyData.report_id)
               .maybeSingle();
             
             analysisResult = reportData?.analysis_result;
             reportScore = reportData?.overall_score;
+            
+            // If no direct deck_url, use the report's pdf_url as the pitch deck
+            if (!pitchDeckUrl && reportData?.pdf_url) {
+              pitchDeckUrl = reportData.pdf_url;
+            }
           }
 
           return {
             ...notification,
             overall_score: companyData?.overall_score || reportScore,
             analysis_result: analysisResult,
-            deck_url: companyData?.deck_url
+            deck_url: pitchDeckUrl
           };
         })
       );
