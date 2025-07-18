@@ -10,6 +10,7 @@ import { CompanyChatbotDialog } from "./CompanyChatbotDialog";
 import { VCEvaluationBot } from "./VCEvaluationBot";
 import { useProfile } from "@/hooks/useProfile";
 import { InvestmentMemo } from "./InvestmentMemo"; // Import the InvestmentMemo component
+import { VCMatchmakingDialog } from "./VCMatchmakingDialog";
 
 type CompanyInfoProps = {
   website?: string;
@@ -253,6 +254,28 @@ export function CompanyInfoCard({
 
   // Determine if the general Chatbot should be visible based on user roles
   const shouldShowChatbot = companyData?.id && (isBits || isVCAndBits || isIITBombayUser || isVC);
+
+  // Fetch company overall score to determine if VC Matchmaking should be shown
+  const { data: companyWithScore } = useQuery({
+    queryKey: ['company-score', companyData?.id],
+    queryFn: async () => {
+      if (!companyData?.id) return null;
+      const { data, error } = await supabase
+        .from('companies')
+        .select('overall_score')
+        .eq('id', companyData.id)
+        .single();
+      if (error) {
+        console.error('Error fetching company score:', error);
+        return null;
+      }
+      return data;
+    },
+    enabled: !!companyData?.id
+  });
+
+  // Determine if VC Matchmaking button should be shown (non-IIT Bombay users with score > 65)
+  const shouldShowVCMatchmaking = companyData?.id && !isIITBombayUser && companyWithScore?.overall_score > 65;
   return <div className="mb-7">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-xl font-semibold flex items-center gap-2">
@@ -276,6 +299,14 @@ export function CompanyInfoCard({
         // Pass the company data to the InvestmentMemo component
         // The InvestmentMemo component will render its own button/logic
         <InvestmentMemo company={companyData} />}
+
+          {/* VC Matchmaking button for non-IIT Bombay users with score > 65 */}
+          {shouldShowVCMatchmaking && (
+            <VCMatchmakingDialog 
+              companyId={companyData.id} 
+              companyName={companyData.name || companyName} 
+            />
+          )}
         </div>
       </div>
 
