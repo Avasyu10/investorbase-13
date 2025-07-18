@@ -4,6 +4,7 @@ import { PublicSubmissionsList } from "@/components/submissions/PublicSubmission
 import { VCChatInterface } from "@/components/vc/VCChatInterface";
 import { VCDashboard } from "@/components/dashboard/VCDashboard"; // Keep VCDashboard import
 import { VCNotifications } from "@/components/dashboard/VCNotifications";
+import { FounderChatDashboard } from "@/components/chat/FounderChatDashboard";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useEffect, useState } from "react";
@@ -50,11 +51,12 @@ const Dashboard = () => {
     } else if (user && !profileLoading) {
       // Check if this is a general user (not any special user type)
       const isGeneralUser = !isIITBombay && !isVC && !isVCAndBits && !isViewOnly && !isBitsQuestion;
-      if (isGeneralUser) {
-        console.log("General user detected, redirecting to upload page");
-        navigate('/upload');
-        return;
-      }
+      // Remove the redirect for general users so they can see the dashboard with chat
+      // if (isGeneralUser) {
+      //   console.log("General user detected, redirecting to upload page");
+      //   navigate('/upload');
+      //   return;
+      // }
 
       // Redirect view-only users to the view-only dashboard
       if (isViewOnly) {
@@ -154,6 +156,9 @@ const Dashboard = () => {
               <TabsTrigger value="submissions">New Applications</TabsTrigger>
               {!isIITBombay && <TabsTrigger value="reports">Pitch Decks</TabsTrigger>}
               {isVC && !isVCAndBits && <TabsTrigger value="notifications">Notifications</TabsTrigger>}
+              {!isIITBombay && !isVC && !isVCAndBits && !isViewOnly && !isBitsQuestion && (
+                <TabsTrigger value="chat">VC Messages</TabsTrigger>
+              )}
             </TabsList>
           </Tabs>
           
@@ -197,6 +202,11 @@ const Dashboard = () => {
           {isVC && !isVCAndBits && <TabsContent value="notifications">
             <VCNotifications />
           </TabsContent>}
+          {!isIITBombay && !isVC && !isVCAndBits && !isViewOnly && !isBitsQuestion && (
+            <TabsContent value="chat">
+              <FounderChatDashboard />
+            </TabsContent>
+          )}
         </div>
       </Tabs>
 

@@ -1232,6 +1232,7 @@ export type Database = {
       }
       vc_chat_messages: {
         Row: {
+          conversation_type: string | null
           created_at: string
           id: string
           message: string
@@ -1242,6 +1243,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          conversation_type?: string | null
           created_at?: string
           id?: string
           message: string
@@ -1252,6 +1254,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          conversation_type?: string | null
           created_at?: string
           id?: string
           message?: string

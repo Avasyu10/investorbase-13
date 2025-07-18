@@ -3,10 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Bell, Building2, Calendar, CheckCircle, Eye, FileText, Star, TrendingUp } from "lucide-react";
+import { Bell, Building2, Calendar, CheckCircle, Eye, FileText, Star, TrendingUp, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
+import { FounderVCChatInterface } from "@/components/chat/FounderVCChatInterface";
 
 // Component to display company analysis in an organized format
 const CompanyAnalysisDialog = ({ analysisResult }: { analysisResult: any }) => {
@@ -126,6 +127,11 @@ interface VCNotification {
 export const VCNotifications = () => {
   const [notifications, setNotifications] = useState<VCNotification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedChatFounder, setSelectedChatFounder] = useState<{
+    userId: string;
+    name: string;
+    companyName: string;
+  } | null>(null);
 
   useEffect(() => {
     fetchNotifications();
@@ -465,8 +471,8 @@ export const VCNotifications = () => {
                       </div>
                     </div>
                     
-                    {notification.analysis_result && (
-                      <div className="mb-2">
+                    <div className="flex items-center gap-2 mb-2">
+                      {notification.analysis_result && (
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button variant="outline" size="sm" className="flex items-center gap-1">
@@ -484,8 +490,22 @@ export const VCNotifications = () => {
                             <CompanyAnalysisDialog analysisResult={notification.analysis_result} />
                           </DialogContent>
                         </Dialog>
-                      </div>
-                    )}
+                      )}
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-1"
+                        onClick={() => setSelectedChatFounder({
+                          userId: notification.founder_user_id,
+                          name: 'Founder',
+                          companyName: notification.company_name
+                        })}
+                      >
+                        <MessageCircle className="h-3 w-3" />
+                        Connect with Founder
+                      </Button>
+                    </div>
                   </div>
                   
                   {!notification.is_read && (
@@ -505,6 +525,17 @@ export const VCNotifications = () => {
           </div>
         )}
       </CardContent>
+      
+      {/* Founder-VC Chat Interface */}
+      {selectedChatFounder && (
+        <FounderVCChatInterface
+          open={!!selectedChatFounder}
+          onOpenChange={(open) => !open && setSelectedChatFounder(null)}
+          founderUserId={selectedChatFounder.userId}
+          founderName={selectedChatFounder.name}
+          companyName={selectedChatFounder.companyName}
+        />
+      )}
     </Card>
   );
 };
