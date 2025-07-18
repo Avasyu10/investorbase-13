@@ -327,7 +327,6 @@ export const VCNotifications = () => {
                               try {
                                 console.log('Pitch deck button clicked for notification:', notification.id);
                                 console.log('Company ID:', notification.company_id);
-                                console.log('Current deck_url:', notification.deck_url);
                                 
                                 // Handle direct URLs (if deck_url is a full URL)
                                 if (notification.deck_url?.startsWith('http')) {
@@ -335,82 +334,97 @@ export const VCNotifications = () => {
                                   return;
                                 }
                                 
-                                // Get the report to access user_id for the correct path
+                                // Get the company and report data
                                 const { data: companyData } = await supabase
                                   .from('companies')
                                   .select('report_id')
                                   .eq('id', notification.company_id)
                                   .maybeSingle();
                                 
-                                console.log('Company data:', companyData);
-                                
-                                if (companyData?.report_id) {
-                                  const { data: reportData } = await supabase
-                                    .from('reports')
-                                    .select('user_id, pdf_url')
-                                    .eq('id', companyData.report_id)
-                                    .maybeSingle();
-                                  
-                                  console.log('Report data:', reportData);
-                                  
-                                  if (reportData?.user_id && reportData?.pdf_url) {
-                                    const bucketName = 'report-pdfs';
-                                    const filePath = `${reportData.user_id}/${reportData.pdf_url}`;
-                                    
-                                    console.log('Trying to access file:', { bucketName, filePath });
-                                    
-                                    // First, let's check if the file exists by listing the user's folder
-                                    const { data: filesList, error: listError } = await supabase.storage
-                                      .from(bucketName)
-                                      .list(reportData.user_id);
-                                    
-                                    console.log('Files in user folder:', filesList, 'List error:', listError);
-                                    
-                                    // Also try listing the root bucket
-                                    const { data: rootFiles, error: rootError } = await supabase.storage
-                                      .from(bucketName)
-                                      .list('');
-                                    
-                                    console.log('Files in root bucket:', rootFiles, 'Root error:', rootError);
-                                    
-                                    // Try the direct path first
-                                    let signedUrlData, error;
-                                    
-                                    try {
-                                      const result = await supabase.storage
-                                        .from(bucketName)
-                                        .createSignedUrl(filePath, 300);
-                                      signedUrlData = result.data;
-                                      error = result.error;
-                                    } catch (e) {
-                                      console.log('Error with user path, trying direct path');
-                                      // Try direct path without user_id
-                                      const result = await supabase.storage
-                                        .from(bucketName)
-                                        .createSignedUrl(reportData.pdf_url, 300);
-                                      signedUrlData = result.data;
-                                      error = result.error;
-                                    }
-                                    
-                                    if (error) {
-                                      console.error('Error creating signed URL:', error);
-                                      toast({
-                                        title: "Error",
-                                        description: "Failed to access pitch deck.",
-                                        variant: "destructive"
-                                      });
-                                      return;
-                                    }
-                                    
-                                    if (signedUrlData?.signedUrl) {
-                                      window.open(signedUrlData.signedUrl, '_blank');
-                                    }
-                                  } else {
-                                    console.log('Missing report data:', reportData);
-                                  }
-                                } else {
-                                  console.log('No report_id found for company');
+                                if (!companyData?.report_id) {
+                                  toast({
+                                    title: "Error",
+                                    description: "No pitch deck available for this company.",
+                                    variant: "destructive"
+                                  });
+                                  return;
                                 }
+                                
+                                // Fetch the report to get the pdf_url and user_id
+                                const { data: report } = await supabase
+                                  .from('reports')
+                                  .select('pdf_url, user_id, is_public_submission')
+                                  .eq('id', companyData.report_id)
+                                  .maybeSingle();
+
+                                if (!report || !report.pdf_url) {
+                                  toast({
+                                    title: "Error",
+                                    description: "No pitch deck available for this company.",
+                                    variant: "destructive"
+                                  });
+                                  return;
+                                }
+
+                                console.log('Report found, downloading PDF:', report.pdf_url);
+
+                                // Download PDF using the same logic as ViewOnlyCompaniesTable
+                                const bucketName = 'report-pdfs';
+                                let pdfData = null;
+
+                                // Try with user_id path first (this is the correct format)
+                                if (report.user_id) {
+                                  const userPath = `${report.user_id}/${report.pdf_url}`;
+                                  console.log('Trying user path:', userPath);
+                                  const { data: userData, error: userError } = await supabase.storage
+                                    .from(bucketName)
+                                    .download(userPath);
+
+                                  if (!userError && userData) {
+                                    pdfData = userData;
+                                    console.log('PDF downloaded successfully (user path):', userPath);
+                                  } else {
+                                    console.log('Failed to download from user path:', userPath, userError);
+                                  }
+                                }
+
+                                // Fallback to direct path if user path fails
+                                if (!pdfData) {
+                                  console.log('Trying direct path:', report.pdf_url);
+                                  const { data: directData, error: directError } = await supabase.storage
+                                    .from(bucketName)
+                                    .download(report.pdf_url);
+
+                                  if (!directError && directData) {
+                                    pdfData = directData;
+                                    console.log('PDF downloaded successfully (direct path)');
+                                  } else {
+                                    console.log('Failed to download from direct path:', report.pdf_url, directError);
+                                  }
+                                }
+
+                                if (!pdfData) {
+                                  toast({
+                                    title: "Error",
+                                    description: "Failed to access pitch deck.",
+                                    variant: "destructive"
+                                  });
+                                  return;
+                                }
+
+                                // Create blob URL and open in new tab
+                                const blobUrl = URL.createObjectURL(new Blob([pdfData], { type: 'application/pdf' }));
+                                window.open(blobUrl, '_blank');
+                                toast({
+                                  title: "Success",
+                                  description: "Opening pitch deck...",
+                                });
+
+                                // Clean up the blob URL after a delay
+                                setTimeout(() => {
+                                  URL.revokeObjectURL(blobUrl);
+                                }, 1000);
+                                
                               } catch (error) {
                                 console.error('Error accessing pitch deck:', error);
                                 toast({
