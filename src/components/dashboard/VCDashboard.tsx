@@ -380,7 +380,7 @@ export function VCDashboard() {
             </div>
             <div className="p-4 pt-2 flex-grow">
               {/* Set a fixed height for ResponsiveContainer to control vertical space */}
-              <ResponsiveContainer width="100%" height={250}> {/* Decreased height */}
+              <ResponsiveContainer width="100%" height={200}> {/* Decreased height */}
                 <BarChart data={currentChannelChartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#4a5568" />
                   <XAxis dataKey="channel" stroke="#cbd5e0" style={{ fontSize: '12px' }} />
@@ -413,7 +413,7 @@ export function VCDashboard() {
             </div>
             <div className="p-4 pt-2 flex-grow">
               {/* Set a fixed height for ResponsiveContainer to control vertical space */}
-              <ResponsiveContainer width="100%" height={250}> {/* Decreased height */}
+              <ResponsiveContainer width="100%" height={200}> {/* Decreased height */}
                 <Treemap
                   data={treemapChartData}
                   dataKey="value"
