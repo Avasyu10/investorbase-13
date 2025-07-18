@@ -111,7 +111,7 @@ serve(async (req) => {
     if (stage && industry) {
       const { data: exactMatches } = await supabase
         .from('vc_profiles')
-        .select('fund_name, areas_of_interest, investment_stage, fund_size, website_url')
+        .select('id, fund_name, areas_of_interest, investment_stage, fund_size, website_url')
         .overlaps('investment_stage', [stage, stage.toLowerCase(), stage.replace('-', ' ')])
         .overlaps('areas_of_interest', [industry, industry.toLowerCase(), industry.replace(/([A-Z])/g, '-$1').toLowerCase().substring(1)])
         .limit(5);
@@ -125,7 +125,7 @@ serve(async (req) => {
     if (vcMatches.length === 0 && stage) {
       const { data: stageMatches } = await supabase
         .from('vc_profiles')
-        .select('fund_name, areas_of_interest, investment_stage, fund_size, website_url')
+        .select('id, fund_name, areas_of_interest, investment_stage, fund_size, website_url')
         .overlaps('investment_stage', [stage, stage.toLowerCase(), stage.replace('-', ' ')])
         .limit(5);
       
@@ -138,7 +138,7 @@ serve(async (req) => {
     if (vcMatches.length === 0 && industry) {
       const { data: industryMatches } = await supabase
         .from('vc_profiles')
-        .select('fund_name, areas_of_interest, investment_stage, fund_size, website_url')
+        .select('id, fund_name, areas_of_interest, investment_stage, fund_size, website_url')
         .overlaps('areas_of_interest', [industry, industry.toLowerCase(), industry.replace(/([A-Z])/g, '-$1').toLowerCase().substring(1)])
         .limit(5);
       
@@ -151,7 +151,7 @@ serve(async (req) => {
     if (vcMatches.length === 0) {
       const { data: anyMatches } = await supabase
         .from('vc_profiles')
-        .select('fund_name, areas_of_interest, investment_stage, fund_size, website_url')
+        .select('id, fund_name, areas_of_interest, investment_stage, fund_size, website_url')
         .limit(5);
       
       if (anyMatches && anyMatches.length > 0) {

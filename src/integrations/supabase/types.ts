@@ -1263,6 +1263,48 @@ export type Database = {
         }
         Relationships: []
       }
+      vc_notifications: {
+        Row: {
+          company_id: string
+          company_industry: string | null
+          company_name: string
+          company_stage: string | null
+          created_at: string
+          founder_user_id: string
+          id: string
+          is_read: boolean
+          message: string | null
+          read_at: string | null
+          vc_profile_id: string
+        }
+        Insert: {
+          company_id: string
+          company_industry?: string | null
+          company_name: string
+          company_stage?: string | null
+          created_at?: string
+          founder_user_id: string
+          id?: string
+          is_read?: boolean
+          message?: string | null
+          read_at?: string | null
+          vc_profile_id: string
+        }
+        Update: {
+          company_id?: string
+          company_industry?: string | null
+          company_name?: string
+          company_stage?: string | null
+          created_at?: string
+          founder_user_id?: string
+          id?: string
+          is_read?: boolean
+          message?: string | null
+          read_at?: string | null
+          vc_profile_id?: string
+        }
+        Relationships: []
+      }
       vc_profiles: {
         Row: {
           areas_of_interest: string[] | null

@@ -3,11 +3,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Handshake, ExternalLink, Building2, DollarSign, Users, Loader2 } from "lucide-react";
+import { Handshake, Bell, Building2, DollarSign, Users, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
 interface VCMatch {
+  id: string;
   fund_name: string;
   areas_of_interest: string[];
   investment_stage: string[];
@@ -34,6 +35,7 @@ export const VCMatchmakingDialog = ({ companyId, companyName }: VCMatchmakingDia
   const [isLoading, setIsLoading] = useState(false);
   const [matches, setMatches] = useState<VCMatch[]>([]);
   const [companyInfo, setCompanyInfo] = useState<{ stage: string; industry: string } | null>(null);
+  const [sendingNotifications, setSendingNotifications] = useState<Set<string>>(new Set());
 
   const handleVCMatchmaking = async () => {
     setIsLoading(true);
@@ -76,6 +78,48 @@ export const VCMatchmakingDialog = ({ companyId, companyName }: VCMatchmakingDia
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSendNotification = async (vcProfileId: string, fundName: string) => {
+    setSendingNotifications(prev => new Set(prev).add(vcProfileId));
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('send-vc-notification', {
+        body: { 
+          vcProfileId, 
+          companyId,
+          message: `${companyName} is interested in connecting with you!` 
+        }
+      });
+
+      if (error) {
+        console.error('Error sending notification:', error);
+        toast({
+          title: "Error",
+          description: "Failed to send notification. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Notification Sent!",
+        description: `Your interest has been sent to ${fundName}.`,
+      });
+    } catch (error) {
+      console.error('Error sending notification:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setSendingNotifications(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(vcProfileId);
+        return newSet;
+      });
     }
   };
 
@@ -138,15 +182,20 @@ export const VCMatchmakingDialog = ({ companyId, companyName }: VCMatchmakingDia
                       <CardHeader>
                         <CardTitle className="text-lg flex items-center justify-between">
                           <span>{match.fund_name}</span>
-                          {match.website_url && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => window.open(match.website_url, '_blank')}
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                            </Button>
-                          )}
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => handleSendNotification(match.id, match.fund_name)}
+                            disabled={sendingNotifications.has(match.id)}
+                            className="flex items-center gap-1"
+                          >
+                            {sendingNotifications.has(match.id) ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Bell className="h-3 w-3" />
+                            )}
+                            {sendingNotifications.has(match.id) ? 'Sending...' : 'Notify'}
+                          </Button>
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-3">

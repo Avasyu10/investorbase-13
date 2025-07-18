@@ -3,6 +3,7 @@ import { ReportsList } from "@/components/reports/ReportsList";
 import { PublicSubmissionsList } from "@/components/submissions/PublicSubmissionsList";
 import { VCChatInterface } from "@/components/vc/VCChatInterface";
 import { VCDashboard } from "@/components/dashboard/VCDashboard"; // Keep VCDashboard import
+import { VCNotifications } from "@/components/dashboard/VCNotifications";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useEffect, useState } from "react";
@@ -152,6 +153,7 @@ const Dashboard = () => {
               </TabsTrigger>
               <TabsTrigger value="submissions">New Applications</TabsTrigger>
               {!isIITBombay && <TabsTrigger value="reports">Pitch Decks</TabsTrigger>}
+              {isVC && !isVCAndBits && <TabsTrigger value="notifications">Notifications</TabsTrigger>}
             </TabsList>
           </Tabs>
           
@@ -191,6 +193,9 @@ const Dashboard = () => {
           </TabsContent>
           {!isIITBombay && <TabsContent value="reports">
             <ReportsList />
+          </TabsContent>}
+          {isVC && !isVCAndBits && <TabsContent value="notifications">
+            <VCNotifications />
           </TabsContent>}
         </div>
       </Tabs>
