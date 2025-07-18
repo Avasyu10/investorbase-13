@@ -2,10 +2,67 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Bell, Building2, Calendar, CheckCircle, Eye } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Bell, Building2, Calendar, CheckCircle, Eye, Star, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
+
+// Component to display company analysis in an organized format
+const CompanyAnalysisDialog = ({ analysisResult }: { analysisResult: any }) => {
+  if (!analysisResult) {
+    return <div className="text-muted-foreground">No analysis data available.</div>;
+  }
+
+  const sections = [
+    { key: 'executive_summary', title: 'Executive Summary', icon: <TrendingUp className="h-4 w-4" /> },
+    { key: 'market_opportunity', title: 'Market Opportunity', icon: <Building2 className="h-4 w-4" /> },
+    { key: 'business_model', title: 'Business Model', icon: <Star className="h-4 w-4" /> },
+    { key: 'team_assessment', title: 'Team Assessment', icon: <Eye className="h-4 w-4" /> },
+    { key: 'financial_projections', title: 'Financial Projections', icon: <TrendingUp className="h-4 w-4" /> },
+    { key: 'competitive_analysis', title: 'Competitive Analysis', icon: <Building2 className="h-4 w-4" /> },
+    { key: 'risk_assessment', title: 'Risk Assessment', icon: <Star className="h-4 w-4" /> },
+    { key: 'investment_recommendation', title: 'Investment Recommendation', icon: <CheckCircle className="h-4 w-4" /> }
+  ];
+
+  return (
+    <div className="space-y-6">
+      {sections.map((section) => {
+        const content = analysisResult[section.key];
+        if (!content) return null;
+
+        return (
+          <div key={section.key} className="border rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-3">
+              {section.icon}
+              <h3 className="font-semibold text-lg">{section.title}</h3>
+            </div>
+            <div className="text-sm text-muted-foreground whitespace-pre-wrap">
+              {typeof content === 'string' ? content : JSON.stringify(content, null, 2)}
+            </div>
+          </div>
+        );
+      })}
+      
+      {/* Display any other fields that weren't covered */}
+      {Object.entries(analysisResult).map(([key, value]) => {
+        if (sections.some(s => s.key === key) || !value) return null;
+        
+        return (
+          <div key={key} className="border rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Star className="h-4 w-4" />
+              <h3 className="font-semibold text-lg capitalize">{key.replace(/_/g, ' ')}</h3>
+            </div>
+            <div className="text-sm text-muted-foreground whitespace-pre-wrap">
+              {typeof value === 'string' ? value : JSON.stringify(value, null, 2)}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 interface VCNotification {
   id: string;
@@ -16,6 +73,9 @@ interface VCNotification {
   created_at: string;
   is_read: boolean;
   founder_user_id: string;
+  company_id: string;
+  overall_score?: number;
+  analysis_result?: any;
 }
 
 export const VCNotifications = () => {
@@ -49,14 +109,15 @@ export const VCNotifications = () => {
 
   const fetchNotifications = async () => {
     try {
-      const { data, error } = await supabase
+      // First get the basic notifications
+      const { data: notificationsData, error: notificationsError } = await supabase
         .from('vc_notifications')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(50);
 
-      if (error) {
-        console.error('Error fetching notifications:', error);
+      if (notificationsError) {
+        console.error('Error fetching notifications:', notificationsError);
         toast({
           title: "Error",
           description: "Failed to load notifications.",
@@ -65,7 +126,39 @@ export const VCNotifications = () => {
         return;
       }
 
-      setNotifications(data || []);
+      // Enrich with company and report data
+      const enrichedNotifications = await Promise.all(
+        (notificationsData || []).map(async (notification) => {
+          // Get company data
+          const { data: companyData } = await supabase
+            .from('companies')
+            .select('overall_score, report_id')
+            .eq('id', notification.company_id)
+            .single();
+
+          // Get report analysis if company has a report
+          let analysisResult = null;
+          let reportScore = null;
+          if (companyData?.report_id) {
+            const { data: reportData } = await supabase
+              .from('reports')
+              .select('analysis_result, overall_score')
+              .eq('id', companyData.report_id)
+              .single();
+            
+            analysisResult = reportData?.analysis_result;
+            reportScore = reportData?.overall_score;
+          }
+
+          return {
+            ...notification,
+            overall_score: companyData?.overall_score || reportScore,
+            analysis_result: analysisResult
+          };
+        })
+      );
+
+      setNotifications(enrichedNotifications);
     } catch (error) {
       console.error('Error in fetchNotifications:', error);
     } finally {
@@ -180,11 +273,39 @@ export const VCNotifications = () => {
                           <span>Industry: {notification.company_industry}</span>
                         </div>
                       )}
+                      {notification.overall_score && (
+                        <div className="flex items-center gap-1">
+                          <Star className="h-3 w-3" />
+                          <span>Score: {notification.overall_score}/10</span>
+                        </div>
+                      )}
                       <div className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
                         <span>{formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}</span>
                       </div>
                     </div>
+                    
+                    {notification.analysis_result && (
+                      <div className="mt-3">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="sm" className="flex items-center gap-1">
+                              <TrendingUp className="h-3 w-3" />
+                              View Analysis
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                            <DialogHeader>
+                              <DialogTitle className="flex items-center gap-2">
+                                <Building2 className="h-5 w-5" />
+                                {notification.company_name} - Detailed Analysis
+                              </DialogTitle>
+                            </DialogHeader>
+                            <CompanyAnalysisDialog analysisResult={notification.analysis_result} />
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                    )}
                   </div>
                   
                   {!notification.is_read && (
