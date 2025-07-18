@@ -126,6 +126,39 @@ const Dashboard = () => {
     );
   }
 
+  // Check if this is a general user (founder)
+  const isGeneralUser = !isIITBombay && !isVC && !isVCAndBits && !isViewOnly && !isBitsQuestion;
+
+  // Simplified dashboard for general users (founders)
+  if (isGeneralUser) {
+    return (
+      <div className="animate-fade-in">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold">Founder Dashboard</h1>
+            </div>
+            <div className="flex gap-2 mt-4 sm:mt-0">
+              {isAdmin && (
+                <Button onClick={() => navigate("/admin")} variant="outline" className="flex items-center">
+                  <ShieldCheck className="mr-2 h-4 w-4" />
+                  Admin Panel
+                </Button>
+              )}
+              <Button onClick={() => navigate("/upload")} className="flex items-center">
+                <FileUp className="mr-2 h-4 w-4" />
+                Upload New Deck
+              </Button>
+            </div>
+          </div>
+
+          {/* VC Messages for Founders */}
+          <FounderChatDashboard />
+        </div>
+      </div>
+    );
+  }
+
   return <div className="animate-fade-in">
     <div className="container mx-auto px-4 py-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
@@ -156,9 +189,6 @@ const Dashboard = () => {
               <TabsTrigger value="submissions">New Applications</TabsTrigger>
               {!isIITBombay && <TabsTrigger value="reports">Pitch Decks</TabsTrigger>}
               {isVC && !isVCAndBits && <TabsTrigger value="notifications">Notifications</TabsTrigger>}
-              {!isIITBombay && !isVC && !isVCAndBits && !isViewOnly && !isBitsQuestion && (
-                <TabsTrigger value="chat">VC Messages</TabsTrigger>
-              )}
             </TabsList>
           </Tabs>
           
@@ -202,11 +232,6 @@ const Dashboard = () => {
           {isVC && !isVCAndBits && <TabsContent value="notifications">
             <VCNotifications />
           </TabsContent>}
-          {!isIITBombay && !isVC && !isVCAndBits && !isViewOnly && !isBitsQuestion && (
-            <TabsContent value="chat">
-              <FounderChatDashboard />
-            </TabsContent>
-          )}
         </div>
       </Tabs>
 
