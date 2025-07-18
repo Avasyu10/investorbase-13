@@ -323,12 +323,60 @@ export const VCNotifications = () => {
                             variant="outline" 
                             size="sm" 
                             className="flex items-center gap-1 text-xs"
-                            onClick={() => {
-                              // Handle both direct URLs and storage bucket paths
-                              const url = notification.deck_url?.startsWith('http') 
-                                ? notification.deck_url 
-                                : `https://jhtnruktmtjqrfoiyrep.supabase.co/storage/v1/object/public/Report%20PDFs/${notification.deck_url}`;
-                              window.open(url, '_blank');
+                            onClick={async () => {
+                              try {
+                                // Handle direct URLs (if deck_url is a full URL)
+                                if (notification.deck_url?.startsWith('http')) {
+                                  window.open(notification.deck_url, '_blank');
+                                  return;
+                                }
+                                
+                                // Get the report to access user_id for the correct path
+                                const { data: companyData } = await supabase
+                                  .from('companies')
+                                  .select('report_id')
+                                  .eq('id', notification.company_id)
+                                  .maybeSingle();
+                                
+                                if (companyData?.report_id) {
+                                  const { data: reportData } = await supabase
+                                    .from('reports')
+                                    .select('user_id, pdf_url')
+                                    .eq('id', companyData.report_id)
+                                    .maybeSingle();
+                                  
+                                  if (reportData?.user_id && reportData?.pdf_url) {
+                                    // Use the correct bucket and path structure
+                                    const bucketName = 'report-pdfs';
+                                    const filePath = `${reportData.user_id}/${reportData.pdf_url}`;
+                                    
+                                    const { data: signedUrlData, error } = await supabase.storage
+                                      .from(bucketName)
+                                      .createSignedUrl(filePath, 300); // 5 minutes expiry
+                                    
+                                    if (error) {
+                                      console.error('Error creating signed URL:', error);
+                                      toast({
+                                        title: "Error",
+                                        description: "Failed to access pitch deck.",
+                                        variant: "destructive"
+                                      });
+                                      return;
+                                    }
+                                    
+                                    if (signedUrlData?.signedUrl) {
+                                      window.open(signedUrlData.signedUrl, '_blank');
+                                    }
+                                  }
+                                }
+                              } catch (error) {
+                                console.error('Error accessing pitch deck:', error);
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to access pitch deck.",
+                                  variant: "destructive"
+                                });
+                              }
                             }}
                           >
                             <FileText className="h-3 w-3" />
