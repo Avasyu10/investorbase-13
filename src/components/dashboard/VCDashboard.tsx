@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Tooltip, Treemap } from "recharts";
 
@@ -23,19 +24,20 @@ const CHART_COLORS = [
   '#f97316', // orange-500
 ];
 
-const BLUE_SHADES = [
-  '#3b82f6', // blue-500 (Unique Outreaches)
-  '#2563eb', // blue-600 (Follow Ups)
-  '#1d4ed8', // blue-700 (Replies)
+// Updated blue-violet color palette for better visual distinction
+const BLUE_VIOLET_SHADES = [
+  '#4f46e5', // indigo-600 (Unique Outreaches)
+  '#7c3aed', // violet-600 (Follow Ups)
+  '#2563eb', // blue-600 (Replies)
   '#1e40af', // blue-800
 ];
 
-// Treemap colors - different shades of blue, with better distinction and visibility for text
+// Treemap colors - blue-violet combinations with better distinction
 const TREEMAP_COLORS = [
-  '#1a237e', // Darker blue for Total
-  '#3f51b5', // Medium blue for Accepted (slightly darker than previous #42a5f5)
-  '#283593', // Slightly darker blue for Rejected (was #2196f3) - more distinct from In Review
-  '#64b5f6', // Lighter blue for In Review (was #90caf9) - still light but with better contrast
+  '#1e1b4b', // Darker indigo for Total
+  '#4338ca', // Indigo-700 for Accepted
+  '#7c2d92', // Purple-700 for Rejected
+  '#8b5cf6', // Violet-500 for In Review (lighter for better contrast)
 ];
 
 // Custom content for treemap, now without direct ratio display on segments
@@ -315,23 +317,23 @@ export function VCDashboard() {
 
       {/* Right Content Area: Metric Cards + Charts */}
       <div className="flex flex-col space-y-3 flex-grow">
-        {/* Key Metrics Cards */}
+        {/* Key Metrics Cards - All using the same gradient color */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg shadow-lg p-3 text-center">
+          <div className="bg-gradient-to-br from-blue-200 to-blue-300 text-gray-800 rounded-lg shadow-lg p-3 text-center">
             <div>
               <p className="text-sm font-medium opacity-90">Unique Outreaches</p>
               <p className="text-3xl font-bold mt-1">{filteredMetrics.uniqueOutreaches}</p>
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-blue-400 to-blue-500 text-white rounded-lg shadow-lg p-3 text-center">
+          <div className="bg-gradient-to-br from-blue-200 to-blue-300 text-gray-800 rounded-lg shadow-lg p-3 text-center">
             <div>
               <p className="text-sm font-medium opacity-90">Follow Ups</p>
               <p className="text-3xl font-bold mt-1">{filteredMetrics.followUps}</p>
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-blue-300 to-blue-400 text-white rounded-lg shadow-lg p-3 text-center">
+          <div className="bg-gradient-to-br from-blue-200 to-blue-300 text-gray-800 rounded-lg shadow-lg p-3 text-center">
             <div>
               <p className="text-sm font-medium opacity-90">Replies</p>
               <p className="text-3xl font-bold mt-1">{filteredMetrics.replies}</p>
@@ -363,9 +365,9 @@ export function VCDashboard() {
                     contentStyle={{ backgroundColor: '#1f2937', borderColor: '#4a5568', color: '#ffffff' }}
                     labelStyle={{ color: '#ffffff' }}
                   />
-                  <Bar dataKey="uniqueOutreaches" fill={BLUE_SHADES[0]} name="Unique Outreaches" stackId="a" />
-                  <Bar dataKey="followUps" fill={BLUE_SHADES[1]} name="Follow Ups" stackId="a" />
-                  <Bar dataKey="replies" fill={BLUE_SHADES[2]} name="Replies" stackId="a" />
+                  <Bar dataKey="uniqueOutreaches" fill={BLUE_VIOLET_SHADES[0]} name="Unique Outreaches" stackId="a" />
+                  <Bar dataKey="followUps" fill={BLUE_VIOLET_SHADES[1]} name="Follow Ups" stackId="a" />
+                  <Bar dataKey="replies" fill={BLUE_VIOLET_SHADES[2]} name="Replies" stackId="a" />
                   <Legend wrapperStyle={{ fontSize: '10px', color: '#cbd5e0' }} />
                 </BarChart>
               </ResponsiveContainer>
