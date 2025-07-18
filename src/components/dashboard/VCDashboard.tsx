@@ -41,11 +41,15 @@ const TREEMAP_COLORS = [
   '#a855f7', // Purple-500 for In Review (lighter purple for contrast)
 ];
 
-// Custom content for treemap
+// Custom content for treemap with improved text positioning
 const CustomizedContent = (props) => {
   const { root, depth, x, y, width, height, index, payload, colors, name } = props;
 
   const fillColor = payload?.fill || (depth < 2 ? colors[Math.floor((index / root.children.length) * colors.length)] : 'none');
+
+  // Only show text if the rectangle is large enough
+  const showText = width > 60 && height > 40;
+  const showValue = width > 80 && height > 60;
 
   return (
     <g>
@@ -61,14 +65,32 @@ const CustomizedContent = (props) => {
           strokeOpacity: 1 / (depth + 1e-10),
         }}
       />
-      {depth === 1 ? (
+      {depth === 1 && showText ? (
         <>
-          <text x={x + width / 2} y={y + height / 2 - 5} textAnchor="middle" fill="#FFFFFF" fontSize={12} fontWeight="normal">
+          <text 
+            x={x + width / 2} 
+            y={y + height / 2 - (showValue ? 8 : 0)} 
+            textAnchor="middle" 
+            fill="#FFFFFF" 
+            fontSize={Math.min(12, width / 8, height / 6)} 
+            fontWeight="600"
+            dominantBaseline="middle"
+          >
             {name}
           </text>
-          <text x={x + width / 2} y={y + height / 2 + 10} textAnchor="middle" fill="#FFFFFF" fontSize={14} fontWeight="normal">
-            {payload?.value}
-          </text>
+          {showValue && (
+            <text 
+              x={x + width / 2} 
+              y={y + height / 2 + 12} 
+              textAnchor="middle" 
+              fill="#FFFFFF" 
+              fontSize={Math.min(14, width / 6, height / 4)} 
+              fontWeight="700"
+              dominantBaseline="middle"
+            >
+              {payload?.value}
+            </text>
+          )}
         </>
       ) : null}
     </g>
@@ -255,7 +277,7 @@ export function VCDashboard() {
               max={dateRanges.length - 1}
               min={0}
               step={1}
-              className="w-full"
+              className="w-full [&_.slider-track]:bg-blue-600 [&_.slider-range]:bg-violet-500 [&_.slider-thumb]:bg-white [&_.slider-thumb]:border-2 [&_.slider-thumb]:border-violet-500 [&_.slider-thumb]:shadow-lg"
             />
           </div>
           
