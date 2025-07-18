@@ -1,6 +1,7 @@
 
 import { useState, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, Tooltip, Treemap } from "recharts";
+import { Slider } from "@/components/ui/slider";
 
 // Mocking useCompanies for demonstration purposes if it's not available
 const useCompanies = (page, limit) => {
@@ -24,19 +25,19 @@ const CHART_COLORS = [
   '#f97316', // orange-500
 ];
 
-// Attractive blue-violet gradient colors for better visual appeal
+// Enhanced blue-violet gradient colors for better visual appeal
 const BLUE_VIOLET_SHADES = [
-  '#6366f1', // indigo-500 (Unique Outreaches) - brighter
+  '#7c3aed', // violet-600 (Unique Outreaches) - more vibrant
   '#8b5cf6', // violet-500 (Follow Ups) - vibrant violet
-  '#3b82f6', // blue-500 (Replies) - bright blue
-  '#1e40af', // blue-800 - for accent
+  '#6366f1', // indigo-500 (Replies) - bright indigo
+  '#3b82f6', // blue-500 - bright blue
 ];
 
 // Treemap colors - attractive blue-violet combinations with better contrast
 const TREEMAP_COLORS = [
-  '#312e81', // Indigo-900 for Total (dark but not too dark)
-  '#6366f1', // Indigo-500 for Accepted (bright and attractive)
-  '#8b5cf6', // Violet-500 for Rejected (vibrant violet)
+  '#4338ca', // Indigo-700 for Total (strong but not too dark)
+  '#7c3aed', // Violet-600 for Accepted (vibrant and attractive)
+  '#8b5cf6', // Violet-500 for Rejected (lighter violet)
   '#a855f7', // Purple-500 for In Review (lighter purple for contrast)
 ];
 
@@ -82,9 +83,8 @@ export function VCDashboard() {
   const [selectedIndustry, setSelectedIndustry] = useState('Tech');
   const [selectedStage, setSelectedStage] = useState('Early');
   
-  // Date range states for dual slider
-  const [startDateIndex, setStartDateIndex] = useState(0);
-  const [endDateIndex, setEndDateIndex] = useState(6);
+  // Date range states for range slider - array with two values [start, end]
+  const [dateRange, setDateRange] = useState([0, 6]);
 
   const availablePersons = ['Roohi', 'Avasyu', 'Kanishk', 'Tanisha'];
   const availableIndustries = ['Tech', 'Finance', 'Healthcare', 'Retail'];
@@ -102,7 +102,7 @@ export function VCDashboard() {
     { label: 'All Time', days: 365 * 10 },
   ], []);
 
-  // Mock data
+  // Mock data with 300-350 range
   const allProspectData = useMemo(() => {
     const data = [];
     const channels = ['LinkedIn', 'Others', 'Calls', 'Mail'];
@@ -124,7 +124,7 @@ export function VCDashboard() {
         person,
         channel,
         industry,
-        uniqueOutreaches: Math.floor(Math.random() * 50) + 100,
+        uniqueOutreaches: Math.floor(Math.random() * 50) + 300, // 300-350 range
         followUps: Math.floor(Math.random() * 20) + 30,
         replies: Math.floor(Math.random() * 10) + 15,
         meetings: Math.floor(Math.random() * 5) + 5,
@@ -138,8 +138,8 @@ export function VCDashboard() {
 
   // Filtered data based on date range
   const filteredData = useMemo(() => {
-    const startDays = dateRanges[startDateIndex].days;
-    const endDays = dateRanges[endDateIndex].days;
+    const startDays = dateRanges[dateRange[1]].days; // End of range (larger value)
+    const endDays = dateRanges[dateRange[0]].days;   // Start of range (smaller value)
     const currentDate = new Date();
     const startCutoffDate = new Date();
     const endCutoffDate = new Date();
@@ -151,10 +151,10 @@ export function VCDashboard() {
       item.person === selectedPerson &&
       item.industry === selectedIndustry &&
       item.stage === selectedStage &&
-      item.date >= endCutoffDate &&
-      item.date <= startCutoffDate
+      item.date >= startCutoffDate &&
+      item.date <= endCutoffDate
     );
-  }, [selectedPerson, selectedIndustry, selectedStage, startDateIndex, endDateIndex, allProspectData, dateRanges]);
+  }, [selectedPerson, selectedIndustry, selectedStage, dateRange, allProspectData, dateRanges]);
 
   // Bar chart data
   const currentChannelChartData = useMemo(() => {
@@ -228,12 +228,11 @@ export function VCDashboard() {
 
   // Calculate current date range
   const currentEndDate = new Date();
-  const currentStartDate = new Date();
   const startRangeDate = new Date();
   const endRangeDate = new Date();
   
-  startRangeDate.setDate(currentEndDate.getDate() - dateRanges[startDateIndex].days);
-  endRangeDate.setDate(currentEndDate.getDate() - dateRanges[endDateIndex].days);
+  startRangeDate.setDate(currentEndDate.getDate() - dateRanges[dateRange[1]].days);
+  endRangeDate.setDate(currentEndDate.getDate() - dateRanges[dateRange[0]].days);
 
   return (
     <div className="flex flex-col lg:flex-row space-y-3 lg:space-y-0 lg:space-x-3 p-3 bg-gray-900 text-white font-inter">
@@ -241,44 +240,28 @@ export function VCDashboard() {
       <div className="lg:w-1/4 p-3 space-y-3 flex-shrink-0 bg-gray-800 rounded-lg shadow-lg">
         <h2 className="text-base font-bold text-white mb-3">Filters</h2>
 
-        {/* Date Filter (Dual Range Slider) */}
+        {/* Date Filter (Range Slider) */}
         <div>
           <h3 className="text-sm font-semibold mb-1 text-white">Date Range</h3>
-          <div className="flex justify-between text-xs text-gray-300 mb-1">
-            <span>From: {formatDate(endRangeDate)}</span>
-            <span>To: {formatDate(startRangeDate)}</span>
+          <div className="flex justify-between text-xs text-gray-300 mb-2">
+            <span>From: {formatDate(startRangeDate)}</span>
+            <span>To: {formatDate(endRangeDate)}</span>
           </div>
           
-          {/* Start Date Slider */}
-          <div className="mb-2">
-            <label className="text-xs text-gray-400 mb-1 block">Start Period</label>
-            <input
-              type="range"
-              min="0"
+          <div className="px-2 py-4">
+            <Slider
+              value={dateRange}
+              onValueChange={setDateRange}
               max={dateRanges.length - 1}
-              value={startDateIndex}
-              onChange={(e) => setStartDateIndex(parseInt(e.target.value))}
-              className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+              min={0}
+              step={1}
+              className="w-full"
             />
-            <div className="text-center text-xs text-gray-300 mt-1">
-              {dateRanges[startDateIndex].label}
-            </div>
           </div>
-
-          {/* End Date Slider */}
-          <div>
-            <label className="text-xs text-gray-400 mb-1 block">End Period</label>
-            <input
-              type="range"
-              min="0"
-              max={dateRanges.length - 1}
-              value={endDateIndex}
-              onChange={(e) => setEndDateIndex(parseInt(e.target.value))}
-              className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-violet-500"
-            />
-            <div className="text-center text-xs text-gray-300 mt-1">
-              {dateRanges[endDateIndex].label}
-            </div>
+          
+          <div className="flex justify-between text-xs text-gray-400 mt-2">
+            <span>{dateRanges[dateRange[0]].label}</span>
+            <span>{dateRanges[dateRange[1]].label}</span>
           </div>
         </div>
 

@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -177,15 +178,16 @@ export function useCompanies(
         const startTime = Date.now();
         console.log('Starting companies query...');
         
-        const { data, error, count } = await Promise.race([
+        const result = await Promise.race([
           query
             .order(dbSortField, { ascending: sortOrder === 'asc' })
             .range(from, to),
           new Promise((_, reject) => 
             setTimeout(() => reject(new Error('Query timeout after 30 seconds')), 30000)
           )
-        ]);
+        ]) as { data: any[] | null; error: any; count: number | null };
 
+        const { data, error, count } = result;
         const queryTime = Date.now() - startTime;
         console.log(`Companies query completed in ${queryTime}ms`);
 
