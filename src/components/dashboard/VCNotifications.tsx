@@ -325,6 +325,10 @@ export const VCNotifications = () => {
                             className="flex items-center gap-1 text-xs"
                             onClick={async () => {
                               try {
+                                console.log('Pitch deck button clicked for notification:', notification.id);
+                                console.log('Company ID:', notification.company_id);
+                                console.log('Current deck_url:', notification.deck_url);
+                                
                                 // Handle direct URLs (if deck_url is a full URL)
                                 if (notification.deck_url?.startsWith('http')) {
                                   window.open(notification.deck_url, '_blank');
@@ -338,6 +342,8 @@ export const VCNotifications = () => {
                                   .eq('id', notification.company_id)
                                   .maybeSingle();
                                 
+                                console.log('Company data:', companyData);
+                                
                                 if (companyData?.report_id) {
                                   const { data: reportData } = await supabase
                                     .from('reports')
@@ -345,14 +351,46 @@ export const VCNotifications = () => {
                                     .eq('id', companyData.report_id)
                                     .maybeSingle();
                                   
+                                  console.log('Report data:', reportData);
+                                  
                                   if (reportData?.user_id && reportData?.pdf_url) {
-                                    // Use the correct bucket and path structure
                                     const bucketName = 'report-pdfs';
                                     const filePath = `${reportData.user_id}/${reportData.pdf_url}`;
                                     
-                                    const { data: signedUrlData, error } = await supabase.storage
+                                    console.log('Trying to access file:', { bucketName, filePath });
+                                    
+                                    // First, let's check if the file exists by listing the user's folder
+                                    const { data: filesList, error: listError } = await supabase.storage
                                       .from(bucketName)
-                                      .createSignedUrl(filePath, 300); // 5 minutes expiry
+                                      .list(reportData.user_id);
+                                    
+                                    console.log('Files in user folder:', filesList, 'List error:', listError);
+                                    
+                                    // Also try listing the root bucket
+                                    const { data: rootFiles, error: rootError } = await supabase.storage
+                                      .from(bucketName)
+                                      .list('');
+                                    
+                                    console.log('Files in root bucket:', rootFiles, 'Root error:', rootError);
+                                    
+                                    // Try the direct path first
+                                    let signedUrlData, error;
+                                    
+                                    try {
+                                      const result = await supabase.storage
+                                        .from(bucketName)
+                                        .createSignedUrl(filePath, 300);
+                                      signedUrlData = result.data;
+                                      error = result.error;
+                                    } catch (e) {
+                                      console.log('Error with user path, trying direct path');
+                                      // Try direct path without user_id
+                                      const result = await supabase.storage
+                                        .from(bucketName)
+                                        .createSignedUrl(reportData.pdf_url, 300);
+                                      signedUrlData = result.data;
+                                      error = result.error;
+                                    }
                                     
                                     if (error) {
                                       console.error('Error creating signed URL:', error);
@@ -367,7 +405,11 @@ export const VCNotifications = () => {
                                     if (signedUrlData?.signedUrl) {
                                       window.open(signedUrlData.signedUrl, '_blank');
                                     }
+                                  } else {
+                                    console.log('Missing report data:', reportData);
                                   }
+                                } else {
+                                  console.log('No report_id found for company');
                                 }
                               } catch (error) {
                                 console.error('Error accessing pitch deck:', error);
