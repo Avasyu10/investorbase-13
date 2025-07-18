@@ -24,27 +24,26 @@ const CHART_COLORS = [
   '#f97316', // orange-500
 ];
 
-// Updated blue-violet color palette for better visual distinction
+// Attractive blue-violet gradient colors for better visual appeal
 const BLUE_VIOLET_SHADES = [
-  '#4f46e5', // indigo-600 (Unique Outreaches)
-  '#7c3aed', // violet-600 (Follow Ups)
-  '#2563eb', // blue-600 (Replies)
-  '#1e40af', // blue-800
+  '#6366f1', // indigo-500 (Unique Outreaches) - brighter
+  '#8b5cf6', // violet-500 (Follow Ups) - vibrant violet
+  '#3b82f6', // blue-500 (Replies) - bright blue
+  '#1e40af', // blue-800 - for accent
 ];
 
-// Treemap colors - blue-violet combinations with better distinction
+// Treemap colors - attractive blue-violet combinations with better contrast
 const TREEMAP_COLORS = [
-  '#1e1b4b', // Darker indigo for Total
-  '#4338ca', // Indigo-700 for Accepted
-  '#7c2d92', // Purple-700 for Rejected
-  '#8b5cf6', // Violet-500 for In Review (lighter for better contrast)
+  '#312e81', // Indigo-900 for Total (dark but not too dark)
+  '#6366f1', // Indigo-500 for Accepted (bright and attractive)
+  '#8b5cf6', // Violet-500 for Rejected (vibrant violet)
+  '#a855f7', // Purple-500 for In Review (lighter purple for contrast)
 ];
 
-// Custom content for treemap, now without direct ratio display on segments
+// Custom content for treemap
 const CustomizedContent = (props) => {
   const { root, depth, x, y, width, height, index, payload, colors, name } = props;
 
-  // Determine the fill color based on the payload's fill property
   const fillColor = payload?.fill || (depth < 2 ? colors[Math.floor((index / root.children.length) * colors.length)] : 'none');
 
   return (
@@ -63,11 +62,9 @@ const CustomizedContent = (props) => {
       />
       {depth === 1 ? (
         <>
-          {/* Display Name */}
           <text x={x + width / 2} y={y + height / 2 - 5} textAnchor="middle" fill="#FFFFFF" fontSize={12} fontWeight="normal">
             {name}
           </text>
-          {/* Display Value */}
           <text x={x + width / 2} y={y + height / 2 + 10} textAnchor="middle" fill="#FFFFFF" fontSize={14} fontWeight="normal">
             {payload?.value}
           </text>
@@ -78,19 +75,22 @@ const CustomizedContent = (props) => {
 };
 
 export function VCDashboard() {
-  const { companies, isLoading, potentialStats } = useCompanies(1, 100);
+  const { companies, isLoading } = useCompanies(1, 100);
 
   // Filter States
   const [selectedPerson, setSelectedPerson] = useState('Roohi');
   const [selectedIndustry, setSelectedIndustry] = useState('Tech');
   const [selectedStage, setSelectedStage] = useState('Early');
-  const [dateRangeIndex, setDateRangeIndex] = useState(6); 
+  
+  // Date range states for dual slider
+  const [startDateIndex, setStartDateIndex] = useState(0);
+  const [endDateIndex, setEndDateIndex] = useState(6);
 
   const availablePersons = ['Roohi', 'Avasyu', 'Kanishk', 'Tanisha'];
   const availableIndustries = ['Tech', 'Finance', 'Healthcare', 'Retail'];
   const availableStages = ['Early', 'Growth', 'Mature', 'Seed'];
 
-  // Expanded mock date ranges for the slider - 'Last 2 Years' removed
+  // Date ranges for the slider
   const dateRanges = useMemo(() => [
     { label: 'Last 7 Days', days: 7 },
     { label: 'Last 14 Days', days: 14 },
@@ -99,10 +99,10 @@ export function VCDashboard() {
     { label: 'Last 90 Days', days: 90 },
     { label: 'Last 6 Months', days: 180 },
     { label: 'Last Year', days: 365 },
-    { label: 'All Time', days: 365 * 10 }, // A large number for "All Time"
+    { label: 'All Time', days: 365 * 10 },
   ], []);
 
-  // More granular mock data linking persons, channels, industries, statuses, and stages
+  // Mock data
   const allProspectData = useMemo(() => {
     const data = [];
     const channels = ['LinkedIn', 'Others', 'Calls', 'Mail'];
@@ -117,7 +117,6 @@ export function VCDashboard() {
       const status = statuses[Math.floor(Math.random() * statuses.length)];
       const stage = stages[Math.floor(Math.random() * stages.length)];
 
-      // Generate a random date within the last 2 years for mock purposes
       const randomDate = new Date();
       randomDate.setDate(randomDate.getDate() - Math.floor(Math.random() * (365 * 2)));
 
@@ -125,11 +124,10 @@ export function VCDashboard() {
         person,
         channel,
         industry,
-        // Adjusted mock data numbers for consistency and target ranges
-        uniqueOutreaches: Math.floor(Math.random() * 50) + 100, // Generates 100-149 per item
-        followUps: Math.floor(Math.random() * 20) + 30,    // Generates 30-49 per item
-        replies: Math.floor(Math.random() * 10) + 15,      // Generates 15-24 per item
-        meetings: Math.floor(Math.random() * 5) + 5,     // Generates 5-9 per item
+        uniqueOutreaches: Math.floor(Math.random() * 50) + 100,
+        followUps: Math.floor(Math.random() * 20) + 30,
+        replies: Math.floor(Math.random() * 10) + 15,
+        meetings: Math.floor(Math.random() * 5) + 5,
         status,
         stage,
         date: randomDate,
@@ -138,21 +136,27 @@ export function VCDashboard() {
     return data;
   }, []);
 
-  // Filtered data based on selected person, industry, stage, and date range
+  // Filtered data based on date range
   const filteredData = useMemo(() => {
-    const { days } = dateRanges[dateRangeIndex];
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - days);
+    const startDays = dateRanges[startDateIndex].days;
+    const endDays = dateRanges[endDateIndex].days;
+    const currentDate = new Date();
+    const startCutoffDate = new Date();
+    const endCutoffDate = new Date();
+    
+    startCutoffDate.setDate(currentDate.getDate() - startDays);
+    endCutoffDate.setDate(currentDate.getDate() - endDays);
 
     return allProspectData.filter(item =>
       item.person === selectedPerson &&
       item.industry === selectedIndustry &&
       item.stage === selectedStage &&
-      item.date >= cutoffDate
+      item.date >= endCutoffDate &&
+      item.date <= startCutoffDate
     );
-  }, [selectedPerson, selectedIndustry, selectedStage, dateRangeIndex, allProspectData, dateRanges]);
+  }, [selectedPerson, selectedIndustry, selectedStage, startDateIndex, endDateIndex, allProspectData, dateRanges]);
 
-  // Data for the Bar Chart (still based on channels, as requested)
+  // Bar chart data
   const currentChannelChartData = useMemo(() => {
     const aggregatedByChannel = {};
     filteredData.forEach(item => {
@@ -166,7 +170,7 @@ export function VCDashboard() {
     return Object.values(aggregatedByChannel);
   }, [filteredData]);
 
-  // Dynamic treemap chart data based on filtered data
+  // Treemap data
   const treemapChartData = useMemo(() => {
     const statusCounts = { Total: 0, Accepted: 0, Rejected: 0, 'In Review': 0 };
     
@@ -179,7 +183,6 @@ export function VCDashboard() {
     const actualTotal = statusCounts.Accepted + statusCounts.Rejected + statusCounts['In Review'];
     statusCounts.Total = actualTotal;
 
-    // Prepare data for treemap including percentage for legend
     return [
       { name: 'Total', value: statusCounts.Total, fill: TREEMAP_COLORS[0] },
       { name: 'Accepted', value: statusCounts.Accepted, fill: TREEMAP_COLORS[1],
@@ -203,7 +206,7 @@ export function VCDashboard() {
     );
   }
 
-  // Calculate dynamic metrics based on filteredData
+  // Calculate metrics
   const filteredMetrics = useMemo(() => {
     const totalUniqueOutreaches = filteredData.reduce((sum, item) => sum + item.uniqueOutreaches, 0);
     const totalFollowUps = filteredData.reduce((sum, item) => sum + item.followUps, 0);
@@ -218,15 +221,19 @@ export function VCDashboard() {
     };
   }, [filteredData]);
 
-  // Helper to format dates
+  // Date formatting
   const formatDate = (date) => {
     return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' });
   };
 
-  // Calculate the current start and end dates based on the slider
+  // Calculate current date range
   const currentEndDate = new Date();
   const currentStartDate = new Date();
-  currentStartDate.setDate(currentStartDate.getDate() - dateRanges[dateRangeIndex].days);
+  const startRangeDate = new Date();
+  const endRangeDate = new Date();
+  
+  startRangeDate.setDate(currentEndDate.getDate() - dateRanges[startDateIndex].days);
+  endRangeDate.setDate(currentEndDate.getDate() - dateRanges[endDateIndex].days);
 
   return (
     <div className="flex flex-col lg:flex-row space-y-3 lg:space-y-0 lg:space-x-3 p-3 bg-gray-900 text-white font-inter">
@@ -234,27 +241,48 @@ export function VCDashboard() {
       <div className="lg:w-1/4 p-3 space-y-3 flex-shrink-0 bg-gray-800 rounded-lg shadow-lg">
         <h2 className="text-base font-bold text-white mb-3">Filters</h2>
 
-        {/* Date Filter (Slider) */}
+        {/* Date Filter (Dual Range Slider) */}
         <div>
           <h3 className="text-sm font-semibold mb-1 text-white">Date Range</h3>
           <div className="flex justify-between text-xs text-gray-300 mb-1">
-            <span>From: {formatDate(currentStartDate)}</span>
-            <span>To: {formatDate(currentEndDate)}</span>
+            <span>From: {formatDate(endRangeDate)}</span>
+            <span>To: {formatDate(startRangeDate)}</span>
           </div>
-          <input
-            type="range"
-            min="0"
-            max={dateRanges.length - 1}
-            value={dateRangeIndex}
-            onChange={(e) => setDateRangeIndex(parseInt(e.target.value))}
-            className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"
-          />
-          <div className="text-center text-xs text-gray-300 mt-1">
-            {dateRanges[dateRangeIndex].label}
+          
+          {/* Start Date Slider */}
+          <div className="mb-2">
+            <label className="text-xs text-gray-400 mb-1 block">Start Period</label>
+            <input
+              type="range"
+              min="0"
+              max={dateRanges.length - 1}
+              value={startDateIndex}
+              onChange={(e) => setStartDateIndex(parseInt(e.target.value))}
+              className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+            />
+            <div className="text-center text-xs text-gray-300 mt-1">
+              {dateRanges[startDateIndex].label}
+            </div>
+          </div>
+
+          {/* End Date Slider */}
+          <div>
+            <label className="text-xs text-gray-400 mb-1 block">End Period</label>
+            <input
+              type="range"
+              min="0"
+              max={dateRanges.length - 1}
+              value={endDateIndex}
+              onChange={(e) => setEndDateIndex(parseInt(e.target.value))}
+              className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-violet-500"
+            />
+            <div className="text-center text-xs text-gray-300 mt-1">
+              {dateRanges[endDateIndex].label}
+            </div>
           </div>
         </div>
 
-        {/* POC Name Filter (Dropdown) */}
+        {/* POC Name Filter */}
         <div>
           <h3 className="text-sm font-semibold mb-1 text-white">POC</h3>
           <div className="relative">
@@ -274,7 +302,7 @@ export function VCDashboard() {
           </div>
         </div>
 
-        {/* Industry Filter (Dropdown) */}
+        {/* Industry Filter */}
         <div>
           <h3 className="text-sm font-semibold mb-1 text-white">Industry</h3>
           <div className="relative">
@@ -294,7 +322,7 @@ export function VCDashboard() {
           </div>
         </div>
 
-        {/* Stage Filter (Dropdown) */}
+        {/* Stage Filter */}
         <div>
           <h3 className="text-sm font-semibold mb-1 text-white">Stage</h3>
           <div className="relative">
@@ -350,12 +378,12 @@ export function VCDashboard() {
 
         {/* Charts Area */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-grow">
-          {/* Unique Outreaches, Follow ups and Replies by Channel (Bar Chart - Channel fixed) */}
+          {/* Bar Chart */}
           <div className="bg-gray-800 rounded-lg shadow-lg">
-            <div className="p-4 pb-1"> {/* Adjusted padding for card header */}
+            <div className="p-4 pb-1">
               <h2 className="text-base text-white font-semibold">Unique Outreaches, Follow ups and Replies by Channel</h2>
             </div>
-            <div className="p-4 pt-1"> {/* Adjusted padding for card content */}
+            <div className="p-4 pt-1">
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={currentChannelChartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#4a5568" />
@@ -374,30 +402,27 @@ export function VCDashboard() {
             </div>
           </div>
 
-          {/* Prospect Status Treemap Chart - Dynamic data that changes with filters */}
+          {/* Treemap Chart */}
           <div className="bg-gray-800 rounded-lg shadow-lg">
-            <div className="p-4 pb-1 flex justify-between items-center"> {/* Adjusted padding and added flex for alignment */}
+            <div className="p-4 pb-1 flex justify-between items-center">
               <h2 className="text-base text-white font-semibold">Prospect Status Overview</h2>
-              {/* Treemap Legend moved here */}
-              <div className="flex space-x-1 text-[9px] text-white"> {/* Adjusted text size and spacing */}
+              <div className="flex space-x-1 text-[9px] text-white">
                 {treemapChartData.filter(d => d.name !== 'Total').map((entry) => (
                   <div key={entry.name} className="flex items-center">
-                    <span className="inline-block w-1.5 h-1.5 rounded-full mr-0.5" style={{ backgroundColor: entry.fill }}></span> {/* Adjusted circle size and margin */}
+                    <span className="inline-block w-1.5 h-1.5 rounded-full mr-0.5" style={{ backgroundColor: entry.fill }}></span>
                     <span>{entry.name}: {entry.value} ({entry.percentage}%)</span>
                   </div>
                 ))}
               </div>
             </div>
-            <div className="p-4 pt-1"> {/* Adjusted padding for card content */}
+            <div className="p-4 pt-1">
               <ResponsiveContainer width="100%" height={200}>
                 <Treemap
                   data={treemapChartData}
                   dataKey="value"
                   aspectRatio={4/3}
                   stroke="#fff"
-                  content={(props) => (
-                    <CustomizedContent {...props} colors={TREEMAP_COLORS} />
-                  )}
+                  content={<CustomizedContent colors={TREEMAP_COLORS} />}
                 />
               </ResponsiveContainer>
             </div>
