@@ -251,7 +251,7 @@ export function VCDashboard() {
   endRangeDate.setDate(currentEndDate.getDate() - dateRanges[dateRange[0]].days);
 
   return (
-    <div className="flex flex-col lg:flex-row space-y-4 lg:space-y-0 lg:space-x-4 p-4 bg-gray-900 text-white font-inter h-screen overflow-hidden">
+    <div className="flex flex-col lg:flex-row space-y-4 lg:space-y-0 lg:space-x-4 p-4 bg-gray-900 text-white font-inter max-h-[75vh] overflow-hidden">
       {/* Left Sidebar for Filters */}
       <div className="lg:w-1/4 p-4 space-y-4 flex-shrink-0 bg-gray-800 rounded-lg shadow-lg">
         <h2 className="text-lg font-bold text-white mb-4">Filters</h2>
