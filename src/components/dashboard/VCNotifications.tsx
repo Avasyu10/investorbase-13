@@ -179,7 +179,7 @@ export const VCNotifications = () => {
             .from('companies')
             .select('overall_score, report_id, deck_url')
             .eq('id', notification.company_id)
-            .single();
+            .maybeSingle();
 
           // Get report analysis if company has a report
           let analysisResult = null;
@@ -189,7 +189,7 @@ export const VCNotifications = () => {
               .from('reports')
               .select('analysis_result, overall_score')
               .eq('id', companyData.report_id)
-              .single();
+              .maybeSingle();
             
             analysisResult = reportData?.analysis_result;
             reportScore = reportData?.overall_score;
@@ -302,14 +302,33 @@ export const VCNotifications = () => {
                           </Badge>
                         )}
                       </div>
-                      {notification.overall_score && (
-                        <div className="flex items-center gap-1 px-2 py-1 bg-yellow-50 dark:bg-yellow-900/20 rounded-md">
-                          <Star className="h-3 w-3 text-yellow-600 dark:text-yellow-400" />
-                          <span className="text-sm font-semibold text-yellow-700 dark:text-yellow-300">
-                            {Math.round(notification.overall_score)}/100
-                          </span>
-                        </div>
-                      )}
+                      <div className="flex flex-col items-end gap-2">
+                        {notification.overall_score && (
+                          <div className="flex items-center gap-1 px-2 py-1 bg-yellow-50 dark:bg-yellow-900/20 rounded-md">
+                            <Star className="h-3 w-3 text-yellow-600 dark:text-yellow-400" />
+                            <span className="text-sm font-semibold text-yellow-700 dark:text-yellow-300">
+                              {Math.round(notification.overall_score)}/100
+                            </span>
+                          </div>
+                        )}
+                        {notification.deck_url && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="flex items-center gap-1 text-xs"
+                            onClick={() => {
+                              // Handle both direct URLs and storage bucket paths
+                              const url = notification.deck_url?.startsWith('http') 
+                                ? notification.deck_url 
+                                : `https://jhtnruktmtjqrfoiyrep.supabase.co/storage/v1/object/public/Report%20PDFs/${notification.deck_url}`;
+                              window.open(url, '_blank');
+                            }}
+                          >
+                            <FileText className="h-3 w-3" />
+                            View Pitch Deck
+                          </Button>
+                        )}
+                      </div>
                     </div>
                     
                     <p className="text-sm text-muted-foreground mb-3">
@@ -335,8 +354,8 @@ export const VCNotifications = () => {
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-2">
-                      {notification.analysis_result && (
+                    {notification.analysis_result && (
+                      <div className="mb-2">
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button variant="outline" size="sm" className="flex items-center gap-1">
@@ -354,26 +373,8 @@ export const VCNotifications = () => {
                             <CompanyAnalysisDialog analysisResult={notification.analysis_result} />
                           </DialogContent>
                         </Dialog>
-                      )}
-                      
-                      {notification.deck_url && (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="flex items-center gap-1"
-                          onClick={() => {
-                            // Handle both direct URLs and storage bucket paths
-                            const url = notification.deck_url?.startsWith('http') 
-                              ? notification.deck_url 
-                              : `https://jhtnruktmtjqrfoiyrep.supabase.co/storage/v1/object/public/Report%20PDFs/${notification.deck_url}`;
-                            window.open(url, '_blank');
-                          }}
-                        >
-                          <FileText className="h-3 w-3" />
-                          View Pitch Deck
-                        </Button>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
                   
                   {!notification.is_read && (
