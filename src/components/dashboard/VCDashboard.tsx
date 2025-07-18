@@ -143,10 +143,10 @@ export function VCDashboard() {
         person,
         channel,
         industry,
-        uniqueOutreaches: Math.floor(Math.random() * 101) + 400, // 400-500 range
-        followUps: Math.floor(Math.random() * 50) + 100,       // 100-150 range
-        replies: Math.floor(Math.random() * 30) + 40,          // 40-70 range
-        meetings: Math.floor(Math.random() * 10) + 10,         // 10-20 range
+        uniqueOutreaches: Math.floor(Math.random() * 51) + 150, // 150-200 range
+        followUps: Math.floor(Math.random() * 30) + 50,       // 50-80 range
+        replies: Math.floor(Math.random() * 20) + 20,          // 20-40 range
+        meetings: Math.floor(Math.random() * 5) + 5,         // 5-10 range
         status,
         stage,
         date: randomDate,
@@ -380,7 +380,7 @@ export function VCDashboard() {
             </div>
             <div className="p-4 pt-2 flex-grow">
               {/* Set a fixed height for ResponsiveContainer to control vertical space */}
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={250}> {/* Decreased height */}
                 <BarChart data={currentChannelChartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#4a5568" />
                   <XAxis dataKey="channel" stroke="#cbd5e0" style={{ fontSize: '12px' }} />
@@ -413,7 +413,7 @@ export function VCDashboard() {
             </div>
             <div className="p-4 pt-2 flex-grow">
               {/* Set a fixed height for ResponsiveContainer to control vertical space */}
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={250}> {/* Decreased height */}
                 <Treemap
                   data={treemapChartData}
                   dataKey="value"
