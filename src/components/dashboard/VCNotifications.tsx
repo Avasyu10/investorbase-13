@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Bell, Building2, Calendar, CheckCircle, Eye, Star, TrendingUp } from "lucide-react";
+import { Bell, Building2, Calendar, CheckCircle, Eye, FileText, Star, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
@@ -25,6 +25,47 @@ const CompanyAnalysisDialog = ({ analysisResult }: { analysisResult: any }) => {
     { key: 'investment_recommendation', title: 'Investment Recommendation', icon: <CheckCircle className="h-4 w-4" /> }
   ];
 
+  const formatContent = (content: any) => {
+    if (typeof content === 'string') {
+      return content;
+    }
+    
+    if (typeof content === 'object' && content !== null) {
+      // Handle arrays
+      if (Array.isArray(content)) {
+        return content.map((item, index) => (
+          <div key={index} className="mb-2">
+            {typeof item === 'object' ? 
+              Object.entries(item).map(([k, v]) => (
+                <div key={k} className="ml-2">
+                  <span className="font-medium">{k.replace(/_/g, ' ')}:</span> {String(v)}
+                </div>
+              )) : 
+              <span>• {String(item)}</span>
+            }
+          </div>
+        ));
+      }
+      
+      // Handle objects - extract relevant information only
+      return Object.entries(content).map(([key, value]) => {
+        // Skip slide-by-slide notes and other irrelevant data
+        if (key.includes('slide') || key.includes('note') || key.includes('_notes')) {
+          return null;
+        }
+        
+        return (
+          <div key={key} className="mb-2">
+            <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span>{' '}
+            <span>{String(value)}</span>
+          </div>
+        );
+      }).filter(Boolean);
+    }
+    
+    return String(content);
+  };
+
   return (
     <div className="space-y-6">
       {sections.map((section) => {
@@ -37,16 +78,19 @@ const CompanyAnalysisDialog = ({ analysisResult }: { analysisResult: any }) => {
               {section.icon}
               <h3 className="font-semibold text-lg">{section.title}</h3>
             </div>
-            <div className="text-sm text-muted-foreground whitespace-pre-wrap">
-              {typeof content === 'string' ? content : JSON.stringify(content, null, 2)}
+            <div className="text-sm text-muted-foreground">
+              {formatContent(content)}
             </div>
           </div>
         );
       })}
       
-      {/* Display any other fields that weren't covered */}
+      {/* Display any other relevant fields */}
       {Object.entries(analysisResult).map(([key, value]) => {
-        if (sections.some(s => s.key === key) || !value) return null;
+        if (sections.some(s => s.key === key) || !value || 
+            key.includes('slide') || key.includes('note') || key.includes('_notes')) {
+          return null;
+        }
         
         return (
           <div key={key} className="border rounded-lg p-4">
@@ -54,8 +98,8 @@ const CompanyAnalysisDialog = ({ analysisResult }: { analysisResult: any }) => {
               <Star className="h-4 w-4" />
               <h3 className="font-semibold text-lg capitalize">{key.replace(/_/g, ' ')}</h3>
             </div>
-            <div className="text-sm text-muted-foreground whitespace-pre-wrap">
-              {typeof value === 'string' ? value : JSON.stringify(value, null, 2)}
+            <div className="text-sm text-muted-foreground">
+              {formatContent(value)}
             </div>
           </div>
         );
@@ -76,6 +120,7 @@ interface VCNotification {
   company_id: string;
   overall_score?: number;
   analysis_result?: any;
+  deck_url?: string;
 }
 
 export const VCNotifications = () => {
@@ -132,7 +177,7 @@ export const VCNotifications = () => {
           // Get company data
           const { data: companyData } = await supabase
             .from('companies')
-            .select('overall_score, report_id')
+            .select('overall_score, report_id, deck_url')
             .eq('id', notification.company_id)
             .single();
 
@@ -153,7 +198,8 @@ export const VCNotifications = () => {
           return {
             ...notification,
             overall_score: companyData?.overall_score || reportScore,
-            analysis_result: analysisResult
+            analysis_result: analysisResult,
+            deck_url: companyData?.deck_url
           };
         })
       );
@@ -246,13 +292,21 @@ export const VCNotifications = () => {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Building2 className="h-4 w-4 text-primary" />
-                      <h4 className="font-semibold">{notification.company_name}</h4>
-                      {!notification.is_read && (
-                        <Badge variant="secondary" className="text-xs">
-                          New
-                        </Badge>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-primary" />
+                        <h4 className="font-semibold">{notification.company_name}</h4>
+                        {!notification.is_read && (
+                          <Badge variant="secondary" className="text-xs">
+                            New
+                          </Badge>
+                        )}
+                      </div>
+                      {notification.overall_score && (
+                        <div className="flex items-center gap-1 text-sm font-medium">
+                          <Star className="h-3 w-3 text-yellow-500" />
+                          <span>{Math.round(notification.overall_score * 10)}/100</span>
+                        </div>
                       )}
                     </div>
                     
@@ -260,7 +314,7 @@ export const VCNotifications = () => {
                       {notification.message || "Company is interested in connecting with you!"}
                     </p>
                     
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
                       {notification.company_stage && (
                         <div className="flex items-center gap-1">
                           <Eye className="h-3 w-3" />
@@ -273,20 +327,14 @@ export const VCNotifications = () => {
                           <span>Industry: {notification.company_industry}</span>
                         </div>
                       )}
-                      {notification.overall_score && (
-                        <div className="flex items-center gap-1">
-                          <Star className="h-3 w-3" />
-                          <span>Score: {notification.overall_score}/10</span>
-                        </div>
-                      )}
                       <div className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
                         <span>{formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}</span>
                       </div>
                     </div>
                     
-                    {notification.analysis_result && (
-                      <div className="mt-3">
+                    <div className="flex items-center gap-2">
+                      {notification.analysis_result && (
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button variant="outline" size="sm" className="flex items-center gap-1">
@@ -304,8 +352,20 @@ export const VCNotifications = () => {
                             <CompanyAnalysisDialog analysisResult={notification.analysis_result} />
                           </DialogContent>
                         </Dialog>
-                      </div>
-                    )}
+                      )}
+                      
+                      {notification.deck_url && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex items-center gap-1"
+                          onClick={() => window.open(notification.deck_url, '_blank')}
+                        >
+                          <FileText className="h-3 w-3" />
+                          Pitch Deck
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   
                   {!notification.is_read && (
