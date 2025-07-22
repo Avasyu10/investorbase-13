@@ -279,7 +279,7 @@ export function CompanyInfoCard({
   const shouldShowVCMatchmaking = companyData?.id && !isIITBombayUser && companyWithScore?.overall_score > 65;
   return <div className="mb-7">
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-8">
           <h3 className="text-xl font-semibold flex items-center gap-2">
             <Briefcase className="h-5 w-5 text-primary" />
             Company Overview
