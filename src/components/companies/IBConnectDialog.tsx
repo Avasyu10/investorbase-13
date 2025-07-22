@@ -113,7 +113,7 @@ export function IBConnectDialog({
   };
   return <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="h-10 px-4 border-blue-600 hover:border-blue-700 text-zinc-950 bg-sky-600 hover:bg-sky-500">
+        <Button variant="outline" size="sm" className="h-10 px-4 border-yellow-600 hover:border-yellow-500 text-zinc-950 bg-yellow-500 hover:bg-yellow-400">
           <Building2 className="h-4 w-4 mr-2" />
           IB Connect
         </Button>

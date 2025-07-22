@@ -284,13 +284,13 @@ export function CompanyInfoCard({
           Company Overview
         </h3>
         {/* Buttons for Chatbot, VC Bot and Investment Memo */}
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           {shouldShowChatbot && <Button variant="outline" onClick={handleChatbot} size="sm" className="h-10 w-10 p-0 bg-amber-400 hover:bg-amber-300 text-slate-950">
               <Bot className="h-5 w-5" />
             </Button>}
 
           {/* VC Evaluation Bot for general users */}
-          {companyData?.id && isGeneralUser && <Button variant="outline" onClick={handleVCBot} size="sm" className="h-10 px-4 bg-yellow-500 text-zinc-950">
+          {companyData?.id && isGeneralUser && <Button variant="outline" onClick={handleVCBot} size="sm" className="h-10 px-4 bg-yellow-500 hover:bg-yellow-400 text-zinc-950 border-yellow-600">
               <Bot className="h-4 w-4 mr-2" />
               <span className="font-medium">VC Bot</span>
             </Button>}
