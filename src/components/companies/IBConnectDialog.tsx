@@ -29,6 +29,33 @@ interface VCMatchResponse {
   companyName: string;
 }
 
+// Helper function to parse and extract top entries with counts
+const parseAndShowTop = (data: string | null, topCount: number = 5) => {
+  if (!data) return [];
+  
+  // Parse items like "Enterprise Applications (585), Consumer (280), FinTech (171)"
+  const items = data.split(',').map(item => {
+    const trimmed = item.trim();
+    const match = trimmed.match(/^(.+?)\s*\((\d+)\)$/);
+    if (match) {
+      return {
+        name: match[1].trim(),
+        count: parseInt(match[2])
+      };
+    }
+    return {
+      name: trimmed,
+      count: 0
+    };
+  });
+  
+  // Sort by count (highest first) and take top entries
+  return items
+    .filter(item => item.count > 0)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, topCount);
+};
+
 export function IBConnectDialog({ companyId, companyName }: IBConnectDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -144,45 +171,41 @@ export function IBConnectDialog({ companyId, companyName }: IBConnectDialogProps
                         </Badge>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                            <TrendingUp className="h-3 w-3" />
-                            Investment Sectors
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Investment Sectors */}
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                            <TrendingUp className="h-4 w-4 text-blue-500" />
+                            Top Investment Sectors
                           </div>
-                          <p className="text-sm font-medium">
-                            {vc['Sectors of Investments - Overall'] || 'Not specified'}
-                          </p>
+                          <div className="space-y-2">
+                            {parseAndShowTop(vc['Sectors of Investments - Overall'], 5).map((item, idx) => (
+                              <div key={idx} className="flex items-center justify-between p-2 bg-muted/30 rounded-md">
+                                <span className="text-sm font-medium">{item.name}</span>
+                                <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                                  {item.count}
+                                </Badge>
+                              </div>
+                            ))}
+                          </div>
                         </div>
 
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                            <Users className="h-3 w-3" />
-                            Entry Stages
+                        {/* Locations */}
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                            <MapPin className="h-4 w-4 text-green-500" />
+                            Top Investment Locations
                           </div>
-                          <p className="text-sm font-medium">
-                            {vc['Stages of Entry - Overall'] || 'Not specified'}
-                          </p>
-                        </div>
-
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                            <Building2 className="h-3 w-3" />
-                            Portfolio Count
+                          <div className="space-y-2">
+                            {parseAndShowTop(vc['Locations of Investment - Overall'], 5).map((item, idx) => (
+                              <div key={idx} className="flex items-center justify-between p-2 bg-muted/30 rounded-md">
+                                <span className="text-sm font-medium">{item.name}</span>
+                                <Badge variant="secondary" className="bg-green-100 text-green-800">
+                                  {item.count}
+                                </Badge>
+                              </div>
+                            ))}
                           </div>
-                          <p className="text-sm font-medium">
-                            {vc['Portfolio Count - Overall'] || 0} companies
-                          </p>
-                        </div>
-
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                            <MapPin className="h-3 w-3" />
-                            Locations
-                          </div>
-                          <p className="text-sm font-medium">
-                            {vc['Locations of Investment - Overall'] || 'Not specified'}
-                          </p>
                         </div>
                       </div>
                     </CardContent>
