@@ -24,7 +24,6 @@ interface CompaniesTableProps {
   isVCAndBits?: boolean;
   isGeneralUser?: boolean;
   isBitsQuestion?: boolean;
-  isVC?: boolean;
 }
 
 export function CompaniesTable({
@@ -36,8 +35,7 @@ export function CompaniesTable({
   isIITBombay = false,
   isVCAndBits = false,
   isGeneralUser = false,
-  isBitsQuestion = false,
-  isVC = false
+  isBitsQuestion = false
 }: CompaniesTableProps) {
   const [localCompanies, setLocalCompanies] = useState(companies);
   const [deletingCompanies, setDeletingCompanies] = useState<Set<string>>(new Set());
@@ -103,33 +101,6 @@ export function CompaniesTable({
         return "bg-slate-100 text-slate-800";
       case 'deck evaluated':
         return "bg-lime-100 text-lime-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  const getPipelineStageBadgeColor = (stage: string): string => {
-    switch (stage?.toLowerCase()) {
-      case 'pitch_received':
-        return "bg-blue-100 text-blue-800";
-      case 'initial_review':
-        return "bg-purple-100 text-purple-800";
-      case 'deck_evaluated':
-        return "bg-yellow-100 text-yellow-800";
-      case 'shortlisted':
-        return "bg-green-100 text-green-800";
-      case 'due_diligence':
-        return "bg-orange-100 text-orange-800";
-      case 'term_sheet_offer':
-        return "bg-cyan-100 text-cyan-800";
-      case 'negotiation':
-        return "bg-indigo-100 text-indigo-800";
-      case 'investment_decision':
-        return "bg-amber-100 text-amber-800";
-      case 'closed_won':
-        return "bg-emerald-100 text-emerald-800";
-      case 'closed_lost':
-        return "bg-red-100 text-red-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -487,7 +458,6 @@ export function CompaniesTable({
                   </Button>
                 </TableHead>
                 <TableHead className="font-semibold w-[100px]">Status</TableHead>
-                {isVC && <TableHead className="font-semibold w-[120px]">Pipeline Stage</TableHead>}
                 <TableHead className="font-semibold w-[140px]">Team POC</TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
@@ -553,11 +523,6 @@ export function CompaniesTable({
                         <span className="text-xs font-medium">{status}</span>
                       </Badge>
                     </TableCell>
-                    {isVC && <TableCell>
-                      <Badge className={getPipelineStageBadgeColor(companyDetails?.pipeline_stage || 'pitch_received')}>
-                        <span className="text-xs font-medium">{companyDetails?.pipeline_stage?.replace(/_/g, ' ') || 'Pitch Received'}</span>
-                      </Badge>
-                    </TableCell>}
                     <TableCell>
                       <span className="text-sm">{teamMemberName || "—"}</span>
                     </TableCell>

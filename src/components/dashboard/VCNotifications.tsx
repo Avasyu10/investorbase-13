@@ -422,47 +422,6 @@ export const VCNotifications = () => {
     }
   };
 
-  type PipelineStage = 
-    | "pitch_received"
-    | "initial_review" 
-    | "deck_evaluated"
-    | "shortlisted"
-    | "due_diligence"
-    | "term_sheet_offer"
-    | "negotiation"
-    | "investment_decision"
-    | "closed_won"
-    | "closed_lost";
-
-  const updatePipelineStage = async (companyId: string, newStage: PipelineStage) => {
-    try {
-      const { error } = await supabase
-        .from('company_details')
-        .update({ pipeline_stage: newStage })
-        .eq('company_id', companyId);
-
-      if (error) {
-        console.error('Error updating pipeline stage:', error);
-        toast({
-          title: "Error",
-          description: "Failed to update pipeline stage.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      toast({
-        title: "Pipeline Updated",
-        description: `Company moved to ${newStage.replace(/_/g, ' ')}.`,
-      });
-
-      // Refresh notifications to reflect the change
-      fetchNotifications();
-    } catch (error) {
-      console.error('Error in updatePipelineStage:', error);
-    }
-  };
-
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   if (isLoading) {
@@ -717,43 +676,6 @@ export const VCNotifications = () => {
                       >
                         <MessageCircle className="h-3 w-3" />
                         Connect with Founder
-                      </Button>
-                    </div>
-
-                    {/* Pipeline Stage Management */}
-                    <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-muted">
-                      <span className="text-xs text-muted-foreground font-medium">Pipeline Actions:</span>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="h-6 px-2 text-xs"
-                        onClick={() => updatePipelineStage(notification.company_id, "initial_review")}
-                      >
-                        Start Review
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="h-6 px-2 text-xs"
-                        onClick={() => updatePipelineStage(notification.company_id, "deck_evaluated")}
-                      >
-                        Mark Evaluated
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="h-6 px-2 text-xs bg-green-50 text-green-700 hover:bg-green-100"
-                        onClick={() => updatePipelineStage(notification.company_id, "shortlisted")}
-                      >
-                        Shortlist
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="h-6 px-2 text-xs bg-red-50 text-red-700 hover:bg-red-100"
-                        onClick={() => updatePipelineStage(notification.company_id, "closed_lost")}
-                      >
-                        Pass
                       </Button>
                     </div>
                   </div>

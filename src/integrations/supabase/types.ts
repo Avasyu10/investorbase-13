@@ -242,9 +242,6 @@ export type Database = {
           introduction: string | null
           linkedin_url: string | null
           notes: string | null
-          pipeline_stage:
-            | Database["public"]["Enums"]["pipeline_stage_enum"]
-            | null
           point_of_contact: string | null
           source_of_introduction: string | null
           stage: string | null
@@ -264,9 +261,6 @@ export type Database = {
           introduction?: string | null
           linkedin_url?: string | null
           notes?: string | null
-          pipeline_stage?:
-            | Database["public"]["Enums"]["pipeline_stage_enum"]
-            | null
           point_of_contact?: string | null
           source_of_introduction?: string | null
           stage?: string | null
@@ -286,9 +280,6 @@ export type Database = {
           introduction?: string | null
           linkedin_url?: string | null
           notes?: string | null
-          pipeline_stage?:
-            | Database["public"]["Enums"]["pipeline_stage_enum"]
-            | null
           point_of_contact?: string | null
           source_of_introduction?: string | null
           stage?: string | null
@@ -1535,17 +1526,7 @@ export type Database = {
       }
     }
     Enums: {
-      pipeline_stage_enum:
-        | "pitch_received"
-        | "initial_review"
-        | "deck_evaluated"
-        | "shortlisted"
-        | "due_diligence"
-        | "term_sheet_offer"
-        | "negotiation"
-        | "investment_decision"
-        | "closed_won"
-        | "closed_lost"
+      [_ in never]: never
     }
     CompositeTypes: {
       http_header: {
@@ -1688,19 +1669,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {
-      pipeline_stage_enum: [
-        "pitch_received",
-        "initial_review",
-        "deck_evaluated",
-        "shortlisted",
-        "due_diligence",
-        "term_sheet_offer",
-        "negotiation",
-        "investment_decision",
-        "closed_won",
-        "closed_lost",
-      ],
-    },
+    Enums: {},
   },
 } as const
