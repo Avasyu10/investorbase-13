@@ -39,7 +39,7 @@ interface VCMatchResponse {
   companyName: string;
 }
 
-// Helper function to parse and extract top entries with counts
+// Helper function to parse and extract top entries without displaying counts
 const parseAndShowTop = (data: string | null, topCount: number = 3) => {
   if (!data) return [];
   
@@ -239,63 +239,88 @@ export function IBConnectDialog({ companyId, companyName }: IBConnectDialogProps
                                  </div>
                                </div>
                              )}
-                             {(vc['Emails'] || vc['Phone Numbers'] || vc['Website'] || vc['LinkedIn']) && (
-                               <div className="flex items-center gap-1">
-                                 <div className="flex gap-1">
-                                   {vc['Emails'] && <Mail className="h-4 w-4 text-blue-600" />}
-                                   {vc['Phone Numbers'] && <Phone className="h-4 w-4 text-green-600" />}
-                                   {vc['Website'] && <Globe className="h-4 w-4 text-purple-600" />}
-                                   {vc['LinkedIn'] && <Building2 className="h-4 w-4 text-blue-700" />}
-                                 </div>
-                                 <span className="text-xs text-muted-foreground">Contact Available</span>
-                               </div>
-                             )}
-                           </div>
-                           {vc['Description'] && (
-                             <div className="mt-3 pt-3 border-t">
-                               <p className="text-sm text-muted-foreground line-clamp-2">{vc['Description']}</p>
-                             </div>
-                           )}
-                         </div>
-                       )}
+                              {/* Display actual contact details */}
+                              <div className="col-span-full">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  {vc['Emails'] && (
+                                    <div className="flex items-center gap-2">
+                                      <Mail className="h-4 w-4 text-blue-600" />
+                                      <div>
+                                        <span className="text-xs text-muted-foreground">Email:</span>
+                                        <div className="text-sm font-medium">{vc['Emails']}</div>
+                                      </div>
+                                    </div>
+                                  )}
+                                  {vc['Phone Numbers'] && (
+                                    <div className="flex items-center gap-2">
+                                      <Phone className="h-4 w-4 text-green-600" />
+                                      <div>
+                                        <span className="text-xs text-muted-foreground">Phone:</span>
+                                        <div className="text-sm font-medium">{vc['Phone Numbers']}</div>
+                                      </div>
+                                    </div>
+                                  )}
+                                  {vc['Website'] && (
+                                    <div className="flex items-center gap-2">
+                                      <Globe className="h-4 w-4 text-purple-600" />
+                                      <div>
+                                        <span className="text-xs text-muted-foreground">Website:</span>
+                                        <div className="text-sm font-medium">{vc['Website']}</div>
+                                      </div>
+                                    </div>
+                                  )}
+                                  {vc['LinkedIn'] && (
+                                    <div className="flex items-center gap-2">
+                                      <Building2 className="h-4 w-4 text-blue-700" />
+                                      <div>
+                                        <span className="text-xs text-muted-foreground">LinkedIn:</span>
+                                        <div className="text-sm font-medium">{vc['LinkedIn']}</div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            {vc['Description'] && (
+                              <div className="mt-4 pt-4 border-t">
+                                <h6 className="text-sm font-medium mb-2">About</h6>
+                                <p className="text-sm text-muted-foreground leading-relaxed">{vc['Description']}</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
 
-                       {/* Only show Top Sectors, Top Locations, and Portfolio */}
-                       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                         {/* Top Investment Sectors */}
-                         <div className="border rounded-lg p-4">
-                           <div className="flex items-center gap-2 mb-3">
-                             <TrendingUp className="h-4 w-4 text-blue-600" />
-                             <h6 className="font-medium">Top Sectors</h6>
-                           </div>
-                           <div className="space-y-2">
-                             {parseAndShowTop(vc['Sectors of Investments - Overall'], 2).map((item, idx) => (
-                               <div key={idx} className="flex items-center justify-between">
-                                 <span className="text-sm truncate">{item.name}</span>
-                                 <Badge variant="secondary" className="text-xs">
-                                   {item.count}
-                                 </Badge>
-                               </div>
-                             ))}
-                           </div>
-                         </div>
+                        {/* Only show Top Sectors, Top Locations, and Portfolio */}
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                          {/* Top Investment Sectors */}
+                          <div className="border rounded-lg p-4">
+                            <div className="flex items-center gap-2 mb-3">
+                              <TrendingUp className="h-4 w-4 text-blue-600" />
+                              <h6 className="font-medium">Top Sectors</h6>
+                            </div>
+                            <div className="space-y-2">
+                              {parseAndShowTop(vc['Sectors of Investments - Overall'], 3).map((item, idx) => (
+                                <div key={idx} className="text-sm">
+                                  {item.name}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
 
-                         {/* Top Investment Locations */}
-                         <div className="border rounded-lg p-4">
-                           <div className="flex items-center gap-2 mb-3">
-                             <MapPin className="h-4 w-4 text-green-600" />
-                             <h6 className="font-medium">Top Locations</h6>
-                           </div>
-                           <div className="space-y-2">
-                             {parseAndShowTop(vc['Locations of Investment - Overall'], 2).map((item, idx) => (
-                               <div key={idx} className="flex items-center justify-between">
-                                 <span className="text-sm truncate">{item.name}</span>
-                                 <Badge variant="secondary" className="text-xs">
-                                   {item.count}
-                                 </Badge>
-                               </div>
-                             ))}
-                           </div>
-                         </div>
+                          {/* Top Investment Locations */}
+                          <div className="border rounded-lg p-4">
+                            <div className="flex items-center gap-2 mb-3">
+                              <MapPin className="h-4 w-4 text-green-600" />
+                              <h6 className="font-medium">Top Locations</h6>
+                            </div>
+                            <div className="space-y-2">
+                              {parseAndShowTop(vc['Locations of Investment - Overall'], 3).map((item, idx) => (
+                                <div key={idx} className="text-sm">
+                                  {item.name}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
 
                          {/* Portfolio */}
                          <div className="border rounded-lg p-4">
