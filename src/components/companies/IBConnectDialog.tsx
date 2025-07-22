@@ -72,23 +72,38 @@ const formatPortfolioIPOs = (ipos: string | null) => {
     return <span className="text-muted-foreground">No IPOs</span>;
   }
   
-  // Split IPOs and take first 3-4, then add "... and many more" if there are more
+  // Split IPOs and take more entries to fill the space better
   const ipoList = ipos.split(',').map(ipo => ipo.trim()).filter(ipo => ipo.length > 0);
   
   if (ipoList.length === 0) {
     return <span className="text-muted-foreground">No IPOs</span>;
   }
   
-  if (ipoList.length <= 4) {
-    return <span className="font-medium">{ipoList.join(', ')}</span>;
+  // Show up to 8-10 IPOs to fill the space, then add "... and more" if there are more
+  if (ipoList.length <= 10) {
+    return (
+      <div className="space-y-1">
+        {ipoList.map((ipo, index) => (
+          <div key={index} className="font-medium text-xs">
+            {ipo}
+          </div>
+        ))}
+      </div>
+    );
   }
   
-  const firstFew = ipoList.slice(0, 3);
+  const firstBatch = ipoList.slice(0, 8);
   return (
-    <span className="font-medium">
-      {firstFew.join(', ')}
-      <span className="text-muted-foreground"> ... and {ipoList.length - 3} more</span>
-    </span>
+    <div className="space-y-1">
+      {firstBatch.map((ipo, index) => (
+        <div key={index} className="font-medium text-xs">
+          {ipo}
+        </div>
+      ))}
+      <div className="text-xs text-muted-foreground font-medium">
+        ... and {ipoList.length - 8} more
+      </div>
+    </div>
   );
 };
 
