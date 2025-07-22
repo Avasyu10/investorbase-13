@@ -208,140 +208,117 @@ export function IBConnectDialog({ companyId, companyName }: IBConnectDialogProps
                         </Badge>
                       </div>
 
-                      {/* VC Contact Info */}
-                      <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50 rounded-lg border border-blue-200 dark:border-blue-800">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                          {vc['Founded Year'] && (
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-4 w-4 text-blue-600" />
-                              <div>
-                                <span className="text-muted-foreground">Founded:</span>
-                                <div className="font-medium">{vc['Founded Year']}</div>
-                              </div>
-                            </div>
-                          )}
-                          {vc['City'] && (
-                            <div className="flex items-center gap-2">
-                              <MapPin className="h-4 w-4 text-green-600" />
-                              <div>
-                                <span className="text-muted-foreground">City:</span>
-                                <div className="font-medium">{vc['City']}</div>
-                              </div>
-                            </div>
-                          )}
-                          {vc['Investment Score'] && (
-                            <div className="flex items-center gap-2">
-                              <Award className="h-4 w-4 text-amber-600" />
-                              <div>
-                                <span className="text-muted-foreground">Score:</span>
-                                <div className="font-medium">{vc['Investment Score']}</div>
-                              </div>
-                            </div>
-                          )}
-                          {(vc['Emails'] || vc['Phone Numbers'] || vc['Website'] || vc['LinkedIn']) && (
-                            <div className="flex items-center gap-1">
-                              <div className="flex gap-1">
-                                {vc['Emails'] && <Mail className="h-4 w-4 text-blue-600" />}
-                                {vc['Phone Numbers'] && <Phone className="h-4 w-4 text-green-600" />}
-                                {vc['Website'] && <Globe className="h-4 w-4 text-purple-600" />}
-                                {vc['LinkedIn'] && <Building2 className="h-4 w-4 text-blue-700" />}
-                              </div>
-                              <span className="text-xs text-muted-foreground">Contact Available</span>
-                            </div>
-                          )}
-                        </div>
-                        {vc['Description'] && (
-                          <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-800">
-                            <p className="text-sm text-muted-foreground line-clamp-2">{vc['Description']}</p>
-                          </div>
-                        )}
-                      </div>
+                       {/* VC Contact Info */}
+                       {(vc['Founded Year'] || vc['City'] || vc['Investment Score'] || vc['Emails'] || vc['Phone Numbers'] || vc['Website'] || vc['LinkedIn']) && (
+                         <div className="mb-6 p-4 border rounded-lg">
+                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                             {vc['Founded Year'] && (
+                               <div className="flex items-center gap-2">
+                                 <Calendar className="h-4 w-4 text-blue-600" />
+                                 <div>
+                                   <span className="text-muted-foreground">Founded:</span>
+                                   <div className="font-medium">{vc['Founded Year']}</div>
+                                 </div>
+                               </div>
+                             )}
+                             {vc['City'] && (
+                               <div className="flex items-center gap-2">
+                                 <MapPin className="h-4 w-4 text-green-600" />
+                                 <div>
+                                   <span className="text-muted-foreground">City:</span>
+                                   <div className="font-medium">{vc['City']}</div>
+                                 </div>
+                               </div>
+                             )}
+                             {vc['Investment Score'] && (
+                               <div className="flex items-center gap-2">
+                                 <Award className="h-4 w-4 text-amber-600" />
+                                 <div>
+                                   <span className="text-muted-foreground">Score:</span>
+                                   <div className="font-medium">{vc['Investment Score']}</div>
+                                 </div>
+                               </div>
+                             )}
+                             {(vc['Emails'] || vc['Phone Numbers'] || vc['Website'] || vc['LinkedIn']) && (
+                               <div className="flex items-center gap-1">
+                                 <div className="flex gap-1">
+                                   {vc['Emails'] && <Mail className="h-4 w-4 text-blue-600" />}
+                                   {vc['Phone Numbers'] && <Phone className="h-4 w-4 text-green-600" />}
+                                   {vc['Website'] && <Globe className="h-4 w-4 text-purple-600" />}
+                                   {vc['LinkedIn'] && <Building2 className="h-4 w-4 text-blue-700" />}
+                                 </div>
+                                 <span className="text-xs text-muted-foreground">Contact Available</span>
+                               </div>
+                             )}
+                           </div>
+                           {vc['Description'] && (
+                             <div className="mt-3 pt-3 border-t">
+                               <p className="text-sm text-muted-foreground line-clamp-2">{vc['Description']}</p>
+                             </div>
+                           )}
+                         </div>
+                       )}
 
-                      {/* Compact Data Grid */}
-                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                        {/* Investment Data */}
-                        <div className="space-y-3">
-                          {/* Top Investment Sectors */}
-                          <div className="bg-slate-800 rounded-lg p-3 border border-slate-700">
-                            <div className="flex items-center gap-2 mb-2">
-                              <TrendingUp className="h-4 w-4 text-blue-600" />
-                              <h6 className="text-sm font-medium">Top Sectors</h6>
-                            </div>
-                            <div className="space-y-1">
-                              {parseAndShowTop(vc['Sectors of Investments - Overall'], 2).map((item, idx) => (
-                                <div key={idx} className="flex items-center justify-between text-xs">
-                                  <span className="text-slate-300 truncate">{item.name}</span>
-                                  <Badge className="bg-blue-600 text-white text-xs px-1 py-0.5">
-                                    {item.count}
-                                  </Badge>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
+                       {/* Only show Top Sectors, Top Locations, and Portfolio */}
+                       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                         {/* Top Investment Sectors */}
+                         <div className="border rounded-lg p-4">
+                           <div className="flex items-center gap-2 mb-3">
+                             <TrendingUp className="h-4 w-4 text-blue-600" />
+                             <h6 className="font-medium">Top Sectors</h6>
+                           </div>
+                           <div className="space-y-2">
+                             {parseAndShowTop(vc['Sectors of Investments - Overall'], 2).map((item, idx) => (
+                               <div key={idx} className="flex items-center justify-between">
+                                 <span className="text-sm truncate">{item.name}</span>
+                                 <Badge variant="secondary" className="text-xs">
+                                   {item.count}
+                                 </Badge>
+                               </div>
+                             ))}
+                           </div>
+                         </div>
 
-                          {/* Top Investment Locations */}
-                          <div className="bg-slate-800 rounded-lg p-3 border border-slate-700">
-                            <div className="flex items-center gap-2 mb-2">
-                              <MapPin className="h-4 w-4 text-green-600" />
-                              <h6 className="text-sm font-medium">Top Locations</h6>
-                            </div>
-                            <div className="space-y-1">
-                              {parseAndShowTop(vc['Locations of Investment - Overall'], 2).map((item, idx) => (
-                                <div key={idx} className="flex items-center justify-between text-xs">
-                                  <span className="text-slate-300 truncate">{item.name}</span>
-                                  <Badge className="bg-green-600 text-white text-xs px-1 py-0.5">
-                                    {item.count}
-                                  </Badge>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
+                         {/* Top Investment Locations */}
+                         <div className="border rounded-lg p-4">
+                           <div className="flex items-center gap-2 mb-3">
+                             <MapPin className="h-4 w-4 text-green-600" />
+                             <h6 className="font-medium">Top Locations</h6>
+                           </div>
+                           <div className="space-y-2">
+                             {parseAndShowTop(vc['Locations of Investment - Overall'], 2).map((item, idx) => (
+                               <div key={idx} className="flex items-center justify-between">
+                                 <span className="text-sm truncate">{item.name}</span>
+                                 <Badge variant="secondary" className="text-xs">
+                                   {item.count}
+                                 </Badge>
+                               </div>
+                             ))}
+                           </div>
+                         </div>
 
-                        {/* Portfolio Data */}
-                        <div className="space-y-3">
-                          {/* Portfolio Count */}
-                          <div className="bg-slate-800 rounded-lg p-3 border border-slate-700 text-center">
-                            <div className="flex items-center justify-center gap-2 mb-2">
-                              <Users className="h-4 w-4 text-rose-600" />
-                              <h6 className="text-sm font-medium">Portfolio</h6>
-                            </div>
-                            <div className="text-2xl font-bold text-blue-400">
-                              {vc['Portfolio Count - Overall'] || 0}
-                            </div>
-                            <div className="text-xs text-slate-400">companies</div>
-                          </div>
-
-                          {/* Entry Stages */}
-                          <div className="bg-slate-800 rounded-lg p-3 border border-slate-700">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Target className="h-4 w-4 text-amber-600" />
-                              <h6 className="text-sm font-medium">Entry Stages</h6>
-                            </div>
-                            <div className="grid grid-cols-2 gap-1">
-                              {parseAndShowTop(vc['Stages of Entry - Overall'], 4).map((item, idx) => (
-                                <div key={idx} className="text-center p-1 bg-slate-700 rounded text-xs">
-                                  <div className="text-slate-300 truncate">{item.name}</div>
-                                  <Badge className="bg-amber-600 text-white text-xs mt-1">
-                                    {item.count}
-                                  </Badge>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Portfolio IPOs */}
-                        <div className="bg-slate-800 rounded-lg p-3 border border-slate-700">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Building2 className="h-4 w-4 text-purple-600" />
-                            <h6 className="text-sm font-medium">Portfolio IPOs</h6>
-                          </div>
-                          <div className="text-xs text-slate-300 leading-relaxed">
-                            {formatPortfolioIPOs(vc['Portfolio IPOs - Overall'])}
-                          </div>
-                        </div>
-                      </div>
+                         {/* Portfolio */}
+                         <div className="border rounded-lg p-4">
+                           <div className="flex items-center gap-2 mb-3">
+                             <Users className="h-4 w-4 text-rose-600" />
+                             <h6 className="font-medium">Portfolio</h6>
+                           </div>
+                           <div className="text-center mb-3">
+                             <div className="text-2xl font-bold text-foreground">
+                               {vc['Portfolio Count - Overall'] || 0}
+                             </div>
+                             <div className="text-xs text-muted-foreground">companies</div>
+                           </div>
+                           {vc['Portfolio IPOs - Overall'] && (
+                             <div className="pt-3 border-t">
+                               <h6 className="text-sm font-medium mb-2">Notable IPOs</h6>
+                               <div className="text-xs leading-relaxed">
+                                 {formatPortfolioIPOs(vc['Portfolio IPOs - Overall'])}
+                               </div>
+                             </div>
+                           )}
+                         </div>
+                       </div>
                     </CardContent>
                   </Card>
                 ))}
