@@ -234,7 +234,7 @@ export function IBConnectDialog({ companyId, companyName }: IBConnectDialogProps
                                <div className="flex items-center gap-2">
                                  <Award className="h-4 w-4 text-amber-600" />
                                  <div>
-                                   <span className="text-muted-foreground">Score:</span>
+                                   <span className="text-muted-foreground">Investment Score:</span>
                                    <div className="font-medium">{vc['Investment Score']}</div>
                                  </div>
                                </div>
@@ -296,7 +296,7 @@ export function IBConnectDialog({ companyId, companyName }: IBConnectDialogProps
                           <div className="border rounded-lg p-4">
                             <div className="flex items-center gap-2 mb-3">
                               <TrendingUp className="h-4 w-4 text-blue-600" />
-                              <h6 className="font-medium">Top Sectors</h6>
+                              <h6 className="font-medium">Top Sectors Invested in:</h6>
                             </div>
                             <div className="space-y-2">
                               {parseAndShowTop(vc['Sectors of Investments - Overall'], 3).map((item, idx) => (
@@ -311,7 +311,7 @@ export function IBConnectDialog({ companyId, companyName }: IBConnectDialogProps
                           <div className="border rounded-lg p-4">
                             <div className="flex items-center gap-2 mb-3">
                               <MapPin className="h-4 w-4 text-green-600" />
-                              <h6 className="font-medium">Top Locations</h6>
+                              <h6 className="font-medium">Top Locations Invested in:</h6>
                             </div>
                             <div className="space-y-2">
                               {parseAndShowTop(vc['Locations of Investment - Overall'], 3).map((item, idx) => (
