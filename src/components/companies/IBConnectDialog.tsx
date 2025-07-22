@@ -318,7 +318,7 @@ export function IBConnectDialog({ companyId, companyName }: IBConnectDialogProps
                          <div className="border rounded-lg p-4">
                            <div className="flex items-center gap-2 mb-3">
                              <TrendingUp className="h-4 w-4 text-blue-600" />
-                             <h6 className="text-base font-bold">Top Sectors Invested in</h6>
+                             <h6 className="text-base font-bold">Top Sectors Invested in:</h6>
                            </div>
                            <div className="space-y-2">
                              {parseAndShowTop(vc['Sectors of Investments - Overall'], 3).map((item, idx) => (
@@ -333,7 +333,7 @@ export function IBConnectDialog({ companyId, companyName }: IBConnectDialogProps
                          <div className="border rounded-lg p-4">
                            <div className="flex items-center gap-2 mb-3">
                              <MapPin className="h-4 w-4 text-green-600" />
-                             <h6 className="text-base font-bold">Top Locations Invested in</h6>
+                             <h6 className="text-base font-bold">Top Locations Invested in:</h6>
                            </div>
                            <div className="space-y-2">
                              {parseAndShowTop(vc['Locations of Investment - Overall'], 3).map((item, idx) => (
