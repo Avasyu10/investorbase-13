@@ -185,100 +185,105 @@ export function IBConnectDialog({ companyId, companyName }: IBConnectDialogProps
                 </p>
               </div>
             ) : (
-              <div className="grid gap-4">
+              <div className="grid gap-6">
                 {vcMatches.matches.map((vc, index) => (
-                  <Card key={index} className="border-l-4 border-l-blue-500">
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between mb-3">
-                        <h4 className="font-medium text-lg">
+                  <Card key={index} className="border border-muted/20 shadow-sm hover:shadow-md transition-shadow">
+                    <CardContent className="p-6">
+                      {/* VC Header */}
+                      <div className="flex items-center justify-between mb-6">
+                        <h4 className="text-xl font-semibold text-foreground">
                           {vc['Investor Name']}
                         </h4>
-                        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                        <Badge variant="secondary" className="bg-primary/10 text-primary font-medium">
                           #{index + 1}
                         </Badge>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Investment Sectors */}
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                            <TrendingUp className="h-4 w-4 text-blue-500" />
-                            Top Investment Sectors
-                          </div>
-                          <div className="space-y-2">
-                            {parseAndShowTop(vc['Sectors of Investments - Overall'], 3).map((item, idx) => (
-                              <div key={idx} className="flex items-center justify-between p-2 bg-muted/30 rounded-md">
-                                <span className="text-sm font-medium">{item.name}</span>
-                                <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                                  {item.count}
-                                </Badge>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Locations */}
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                            <MapPin className="h-4 w-4 text-green-500" />
-                            Top Investment Locations
-                          </div>
-                          <div className="space-y-2">
-                            {parseAndShowTop(vc['Locations of Investment - Overall'], 3).map((item, idx) => (
-                              <div key={idx} className="flex items-center justify-between p-2 bg-muted/30 rounded-md">
-                                <span className="text-sm font-medium">{item.name}</span>
-                                <Badge variant="secondary" className="bg-green-100 text-green-800">
-                                  {item.count}
-                                </Badge>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Additional VC Info Row */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6 pt-4 border-t border-muted/50">
-                        {/* Entry Stages */}
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                            <TrendingUp className="h-4 w-4 text-amber-500" />
-                            Entry Stages
-                          </div>
-                          <div className="space-y-2">
-                            {parseAndShowTop(vc['Stages of Entry - Overall'], 4).map((item, idx) => (
-                              <div key={idx} className="flex items-center justify-between p-2 bg-amber-50/50 rounded-md border border-amber-100/50">
-                                <span className="text-sm font-medium text-amber-900">{item.name}</span>
-                                <Badge variant="secondary" className="bg-amber-100 text-amber-800 text-xs">
-                                  {item.count}
-                                </Badge>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Portfolio Count */}
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                            <Users className="h-4 w-4 text-rose-500" />
-                            Portfolio
-                          </div>
-                          <div className="text-center p-4 bg-rose-50/50 rounded-lg border border-rose-100/50">
-                            <div className="text-3xl font-bold text-rose-600">
-                              {vc['Portfolio Count - Overall'] || 0}
+                      {/* Main Content Grid */}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        {/* Left Column - Sectors and Locations */}
+                        <div className="space-y-6">
+                          {/* Investment Sectors */}
+                          <div>
+                            <div className="flex items-center gap-2 mb-4">
+                              <TrendingUp className="h-5 w-5 text-blue-600" />
+                              <h5 className="text-lg font-medium">Top Investment Sectors</h5>
                             </div>
-                            <div className="text-sm font-medium text-rose-700 mt-1">companies</div>
+                            <div className="space-y-3">
+                              {parseAndShowTop(vc['Sectors of Investments - Overall'], 3).map((item, idx) => (
+                                <div key={idx} className="flex items-center justify-between p-3 bg-blue-50/50 rounded-lg border border-blue-100/50">
+                                  <span className="font-medium text-blue-900">{item.name}</span>
+                                  <Badge className="bg-blue-600 hover:bg-blue-700 text-white">
+                                    {item.count}
+                                  </Badge>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Investment Locations */}
+                          <div>
+                            <div className="flex items-center gap-2 mb-4">
+                              <MapPin className="h-5 w-5 text-green-600" />
+                              <h5 className="text-lg font-medium">Top Investment Locations</h5>
+                            </div>
+                            <div className="space-y-3">
+                              {parseAndShowTop(vc['Locations of Investment - Overall'], 3).map((item, idx) => (
+                                <div key={idx} className="flex items-center justify-between p-3 bg-green-50/50 rounded-lg border border-green-100/50">
+                                  <span className="font-medium text-green-900">{item.name}</span>
+                                  <Badge className="bg-green-600 hover:bg-green-700 text-white">
+                                    {item.count}
+                                  </Badge>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         </div>
 
-                        {/* Portfolio IPOs */}
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                            <Building2 className="h-4 w-4 text-purple-500" />
-                            Portfolio IPOs
+                        {/* Right Column - Stages, Portfolio, IPOs */}
+                        <div className="space-y-6">
+                          {/* Entry Stages */}
+                          <div>
+                            <div className="flex items-center gap-2 mb-4">
+                              <TrendingUp className="h-5 w-5 text-amber-600" />
+                              <h5 className="text-lg font-medium">Entry Stages</h5>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              {parseAndShowTop(vc['Stages of Entry - Overall'], 4).map((item, idx) => (
+                                <div key={idx} className="p-3 bg-amber-50/50 rounded-lg border border-amber-100/50 text-center">
+                                  <div className="font-medium text-amber-900 text-sm">{item.name}</div>
+                                  <Badge variant="secondary" className="bg-amber-200 text-amber-800 text-xs mt-1">
+                                    {item.count}
+                                  </Badge>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                          <div className="p-3 bg-purple-50/50 rounded-lg border border-purple-100/50">
-                            <div className="text-sm text-purple-900">
-                              {formatPortfolioIPOs(vc['Portfolio IPOs - Overall'])}
+
+                          {/* Portfolio Count */}
+                          <div>
+                            <div className="flex items-center gap-2 mb-4">
+                              <Users className="h-5 w-5 text-rose-600" />
+                              <h5 className="text-lg font-medium">Portfolio</h5>
+                            </div>
+                            <div className="text-center p-6 bg-rose-50/50 rounded-lg border border-rose-100/50">
+                              <div className="text-4xl font-bold text-rose-600">
+                                {vc['Portfolio Count - Overall'] || 0}
+                              </div>
+                              <div className="text-sm font-medium text-rose-700 mt-1">companies</div>
+                            </div>
+                          </div>
+
+                          {/* Portfolio IPOs */}
+                          <div>
+                            <div className="flex items-center gap-2 mb-4">
+                              <Building2 className="h-5 w-5 text-purple-600" />
+                              <h5 className="text-lg font-medium">Portfolio IPOs</h5>
+                            </div>
+                            <div className="p-4 bg-purple-50/50 rounded-lg border border-purple-100/50">
+                              <div className="text-sm text-purple-900 leading-relaxed">
+                                {formatPortfolioIPOs(vc['Portfolio IPOs - Overall'])}
+                              </div>
                             </div>
                           </div>
                         </div>
