@@ -184,7 +184,10 @@ export function IBConnectDialog({
                                       <MapPin className="h-4 w-4 text-green-600" />
                                       <div>
                                         <span className="text-xs text-muted-foreground block">City</span>
-                                        <div className="text-sm font-medium">{vc['City']}</div>
+                                        <div className="text-sm font-medium">
+                                          {vc['City'].split(',').slice(0, 3).map(city => city.trim()).join(', ')}
+                                          {vc['City'].split(',').length > 3 && ` +${vc['City'].split(',').length - 3} more`}
+                                        </div>
                                       </div>
                                     </div>}
                                   {vc['Investment Score'] && <div className="flex items-center gap-2">
