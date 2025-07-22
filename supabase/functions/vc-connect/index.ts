@@ -17,6 +17,15 @@ interface VCMatch {
   'Portfolio Count - Overall': number;
   'Locations of Investment - Overall': string;
   'Portfolio IPOs - Overall': string;
+  // From vccontact table
+  'Founded Year'?: number;
+  'City'?: string;
+  'Description'?: string;
+  'Investment Score'?: number;
+  'Emails'?: string;
+  'Phone Numbers'?: string;
+  'Website'?: string;
+  'LinkedIn'?: string;
 }
 
 serve(async (req) => {
@@ -105,12 +114,10 @@ serve(async (req) => {
     const stagesList = companyStages ? companyStages.split(',').map(s => s.trim()) : [];
 
     // Query VCs from vcdata table
-    let query = supabase
+    const { data: vcdataRecords, error: vcError } = await supabase
       .from('vcdata')
       .select('*')
-      .limit(100); // Get more records to improve matching
-
-    const { data: allVCs, error: vcError } = await query;
+      .limit(100);
 
     if (vcError) {
       console.error('Error fetching VC data:', vcError);
@@ -119,6 +126,30 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    // Get corresponding vccontact data
+    const investorNames = vcdataRecords?.map(vc => vc['Investor Name']).filter(Boolean) || [];
+    
+    const { data: vccontactRecords, error: contactError } = await supabase
+      .from('vccontact')
+      .select('*')
+      .in('Investor Name', investorNames);
+
+    if (contactError) {
+      console.log('Warning: Could not fetch VC contact data:', contactError);
+    }
+
+    // Merge the data
+    const allVCs = vcdataRecords?.map(vcdata => {
+      const contact = vccontactRecords?.find(contact => 
+        contact['Investor Name'] === vcdata['Investor Name']
+      );
+      return {
+        ...vcdata,
+        vccontact: contact || null
+      };
+    }) || [];
+
 
     if (!allVCs || allVCs.length === 0) {
       return new Response(JSON.stringify({ 
@@ -176,7 +207,16 @@ serve(async (req) => {
       'Stages of Entry - Overall': vc['Stages of Entry - Overall'] || '',
       'Portfolio Count - Overall': vc['Portfolio Count - Overall'] || 0,
       'Locations of Investment - Overall': vc['Locations of Investment - Overall'] || '',
-      'Portfolio IPOs - Overall': vc['Portfolio IPOs - Overall'] || ''
+      'Portfolio IPOs - Overall': vc['Portfolio IPOs - Overall'] || '',
+      // Include vccontact data
+      'Founded Year': vc.vccontact?.['Founded Year'] || null,
+      'City': vc.vccontact?.['City'] || '',
+      'Description': vc.vccontact?.['Description'] || '',
+      'Investment Score': vc.vccontact?.['Investment Score'] || null,
+      'Emails': vc.vccontact?.['Emails'] || '',
+      'Phone Numbers': vc.vccontact?.['Phone Numbers'] || '',
+      'Website': vc.vccontact?.['Website'] || '',
+      'LinkedIn': vc.vccontact?.['LinkedIn'] || ''
     }));
 
     console.log(`Found ${matches.length} matching VCs for company ${companyData.name}`);
