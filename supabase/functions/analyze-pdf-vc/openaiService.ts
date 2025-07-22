@@ -142,7 +142,13 @@ function getVCAnalysisPrompt(): string {
     "stage": "<extract funding stage from pitch deck content - look for mentions like 'seed', 'series A', 'pre-seed', 'growth stage', etc.>",
     "industry": "<extract industry/sector from pitch deck content - look for business domain, market category, technology sector>",
     "website": "<extract website URL if mentioned in the deck>",
-    "description": "<create a comprehensive 3-4 sentence description of what the company does based on the pitch content, their value proposition, and target market>"
+    "description": "<create a comprehensive 3-4 sentence description of what the company does based on the pitch content, their value proposition, and target market>",
+    "contactInfo": {
+      "phoneNumber": "<extract phone number/contact number from the deck - look for mobile numbers, phone numbers, contact details>",
+      "email": "<extract email address from the deck - look for contact email, founder email, business email>",
+      "pocName": "<extract the name of the person whose contact details are mentioned - typically founder name, CEO name, or point of contact>",
+      "extractedIndustry": "<extract the specific industry/sector the company operates in from the deck content>"
+    }
   },
   "sections": [
     {

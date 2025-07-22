@@ -5,16 +5,25 @@ export async function saveAnalysisResults(supabase: any, analysis: AnalysisResul
   console.log("Saving VC analysis results to database");
   
   try {
-    // Create company record
+    // Extract contact information from analysis
+    const contactInfo = analysis.companyInfo?.contactInfo || {};
+    const companyInfo = analysis.companyInfo || {};
+    
+    // Create company record with extracted contact information
     const { data: company, error: companyError } = await supabase
       .from('companies')
       .insert([{
-        name: report.title,
+        name: companyInfo.name || report.title,
         overall_score: analysis.overallScore || 0,
         assessment_points: analysis.assessmentPoints || [],
         report_id: report.id,
         user_id: report.user_id,
-        source: 'vc_analysis'
+        source: 'vc_analysis',
+        // Contact information fields
+        phonenumber: contactInfo.phoneNumber || null,
+        email: contactInfo.email || null,
+        poc_name: contactInfo.pocName || null,
+        industry: contactInfo.extractedIndustry || companyInfo.industry || null
       }])
       .select()
       .single();
