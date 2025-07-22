@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, Building2, MapPin, TrendingUp, Users } from "lucide-react";
+import { Loader2, Building2, MapPin, TrendingUp, Users, DollarSign, Globe, Target } from "lucide-react";
 import { toast } from "sonner";
 
 interface IBConnectDialogProps {
@@ -19,6 +19,12 @@ interface VCMatch {
   'Stages of Entry - Overall': string;
   'Portfolio Count - Overall': number;
   'Locations of Investment - Overall': string;
+  'Investor Type': string;
+  'Fund Size - Overall': string;
+  'Target Check Size - Overall': string;
+  'Website': string;
+  'Rounds of Investment - Overall': number;
+  'Portfolio IPOs - Overall': string;
 }
 
 interface VCMatchResponse {
@@ -30,7 +36,7 @@ interface VCMatchResponse {
 }
 
 // Helper function to parse and extract top entries with counts
-const parseAndShowTop = (data: string | null, topCount: number = 5) => {
+const parseAndShowTop = (data: string | null, topCount: number = 3) => {
   if (!data) return [];
   
   // Parse items like "Enterprise Applications (585), Consumer (280), FinTech (171)"
@@ -179,7 +185,7 @@ export function IBConnectDialog({ companyId, companyName }: IBConnectDialogProps
                             Top Investment Sectors
                           </div>
                           <div className="space-y-2">
-                            {parseAndShowTop(vc['Sectors of Investments - Overall'], 5).map((item, idx) => (
+                            {parseAndShowTop(vc['Sectors of Investments - Overall'], 3).map((item, idx) => (
                               <div key={idx} className="flex items-center justify-between p-2 bg-muted/30 rounded-md">
                                 <span className="text-sm font-medium">{item.name}</span>
                                 <Badge variant="secondary" className="bg-blue-100 text-blue-800">
@@ -197,7 +203,7 @@ export function IBConnectDialog({ companyId, companyName }: IBConnectDialogProps
                             Top Investment Locations
                           </div>
                           <div className="space-y-2">
-                            {parseAndShowTop(vc['Locations of Investment - Overall'], 5).map((item, idx) => (
+                            {parseAndShowTop(vc['Locations of Investment - Overall'], 3).map((item, idx) => (
                               <div key={idx} className="flex items-center justify-between p-2 bg-muted/30 rounded-md">
                                 <span className="text-sm font-medium">{item.name}</span>
                                 <Badge variant="secondary" className="bg-green-100 text-green-800">
@@ -206,6 +212,90 @@ export function IBConnectDialog({ companyId, companyName }: IBConnectDialogProps
                               </div>
                             ))}
                           </div>
+                        </div>
+
+                        {/* Additional VC Info */}
+                        <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t border-muted">
+                          {/* Fund Size */}
+                          {vc['Fund Size - Overall'] && (
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                <DollarSign className="h-3 w-3 text-purple-500" />
+                                Fund Size
+                              </div>
+                              <p className="text-sm font-medium">
+                                {vc['Fund Size - Overall']}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Check Size */}
+                          {vc['Target Check Size - Overall'] && (
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                <Target className="h-3 w-3 text-orange-500" />
+                                Check Size
+                              </div>
+                              <p className="text-sm font-medium">
+                                {vc['Target Check Size - Overall']}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Investor Type */}
+                          {vc['Investor Type'] && (
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                <Building2 className="h-3 w-3 text-indigo-500" />
+                                Type
+                              </div>
+                              <p className="text-sm font-medium">
+                                {vc['Investor Type']}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Website */}
+                          {vc['Website'] && (
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                <Globe className="h-3 w-3 text-teal-500" />
+                                Website
+                              </div>
+                              <a 
+                                href={vc['Website'].startsWith('http') ? vc['Website'] : `https://${vc['Website']}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm font-medium text-blue-600 hover:text-blue-800 underline"
+                              >
+                                {vc['Website']}
+                              </a>
+                            </div>
+                          )}
+
+                          {/* Portfolio Count */}
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                              <Users className="h-3 w-3 text-rose-500" />
+                              Portfolio
+                            </div>
+                            <p className="text-sm font-medium">
+                              {vc['Portfolio Count - Overall'] || 0} companies
+                            </p>
+                          </div>
+
+                          {/* Entry Stages */}
+                          {vc['Stages of Entry - Overall'] && (
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                <TrendingUp className="h-3 w-3 text-amber-500" />
+                                Entry Stages
+                              </div>
+                              <p className="text-sm font-medium">
+                                {vc['Stages of Entry - Overall']}
+                              </p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </CardContent>
