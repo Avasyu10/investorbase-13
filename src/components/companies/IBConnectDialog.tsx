@@ -211,13 +211,13 @@ export function IBConnectDialog({
                                        <div className="text-sm font-medium">{vc['Phone Numbers']}</div>
                                      </div>
                                    </div>}
-                                 {vc['Website'] && <div className="flex items-center gap-2">
-                                     <Globe className="h-4 w-4 text-purple-600" />
-                                     <div>
-                                       <span className="text-xs text-muted-foreground">Website:</span>
-                                       <div className="text-sm font-medium">{vc['Website']}</div>
-                                     </div>
-                                   </div>}
+                                  {vc['Website'] && <div className="flex items-center gap-2">
+                                      <Globe className="h-4 w-4 text-purple-600" />
+                                      <div className="min-w-0 flex-1">
+                                        <span className="text-xs text-muted-foreground">Website:</span>
+                                        <div className="text-sm font-medium break-words">{vc['Website']}</div>
+                                      </div>
+                                    </div>}
                                   {vc['LinkedIn'] && <div className="flex items-center gap-2">
                                       <Building2 className="h-4 w-4 text-blue-700" />
                                       <div className="min-w-0 flex-1">
