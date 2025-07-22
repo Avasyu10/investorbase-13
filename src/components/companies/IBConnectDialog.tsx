@@ -208,140 +208,145 @@ export function IBConnectDialog({ companyId, companyName }: IBConnectDialogProps
                         </Badge>
                       </div>
 
-                       {/* VC Contact Info */}
-                       {(vc['Founded Year'] || vc['City'] || vc['Investment Score'] || vc['Emails'] || vc['Phone Numbers'] || vc['Website'] || vc['LinkedIn']) && (
-                         <div className="mb-6 p-4 border rounded-lg">
-                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                             {vc['Founded Year'] && (
-                               <div className="flex items-center gap-2">
-                                 <Calendar className="h-4 w-4 text-blue-600" />
-                                 <div>
-                                   <span className="text-muted-foreground">Founded:</span>
-                                   <div className="font-medium">{vc['Founded Year']}</div>
-                                 </div>
+                       {/* Main Content Layout */}
+                       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                         {/* Left Section: VC Contact Info */}
+                         <div className="lg:col-span-2">
+                           {(vc['Founded Year'] || vc['City'] || vc['Investment Score'] || vc['Emails'] || vc['Phone Numbers'] || vc['Website'] || vc['LinkedIn']) && (
+                             <div className="p-4 border rounded-lg h-full">
+                               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm mb-4">
+                                 {vc['Founded Year'] && (
+                                   <div className="flex items-center gap-2">
+                                     <Calendar className="h-4 w-4 text-blue-600" />
+                                     <div>
+                                       <span className="text-muted-foreground">Founded:</span>
+                                       <div className="font-medium">{vc['Founded Year']}</div>
+                                     </div>
+                                   </div>
+                                 )}
+                                 {vc['City'] && (
+                                   <div className="flex items-center gap-2">
+                                     <MapPin className="h-4 w-4 text-green-600" />
+                                     <div>
+                                       <span className="text-muted-foreground">City:</span>
+                                       <div className="font-medium">{vc['City']}</div>
+                                     </div>
+                                   </div>
+                                 )}
+                                 {vc['Investment Score'] && (
+                                   <div className="flex items-center gap-2">
+                                     <Award className="h-4 w-4 text-amber-600" />
+                                     <div>
+                                       <span className="text-muted-foreground">Investment Score:</span>
+                                       <div className="font-medium">{vc['Investment Score']}</div>
+                                     </div>
+                                   </div>
+                                 )}
                                </div>
-                             )}
-                             {vc['City'] && (
-                               <div className="flex items-center gap-2">
-                                 <MapPin className="h-4 w-4 text-green-600" />
-                                 <div>
-                                   <span className="text-muted-foreground">City:</span>
-                                   <div className="font-medium">{vc['City']}</div>
-                                 </div>
+
+                               {/* Contact Details */}
+                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                                 {vc['Emails'] && (
+                                   <div className="flex items-center gap-2">
+                                     <Mail className="h-4 w-4 text-blue-600" />
+                                     <div>
+                                       <span className="text-xs text-muted-foreground">Email:</span>
+                                       <div className="text-sm font-medium">{vc['Emails']}</div>
+                                     </div>
+                                   </div>
+                                 )}
+                                 {vc['Phone Numbers'] && (
+                                   <div className="flex items-center gap-2">
+                                     <Phone className="h-4 w-4 text-green-600" />
+                                     <div>
+                                       <span className="text-xs text-muted-foreground">Phone:</span>
+                                       <div className="text-sm font-medium">{vc['Phone Numbers']}</div>
+                                     </div>
+                                   </div>
+                                 )}
+                                 {vc['Website'] && (
+                                   <div className="flex items-center gap-2">
+                                     <Globe className="h-4 w-4 text-purple-600" />
+                                     <div>
+                                       <span className="text-xs text-muted-foreground">Website:</span>
+                                       <div className="text-sm font-medium">{vc['Website']}</div>
+                                     </div>
+                                   </div>
+                                 )}
+                                 {vc['LinkedIn'] && (
+                                   <div className="flex items-center gap-2">
+                                     <Building2 className="h-4 w-4 text-blue-700" />
+                                     <div>
+                                       <span className="text-xs text-muted-foreground">LinkedIn:</span>
+                                       <div className="text-sm font-medium">{vc['LinkedIn']}</div>
+                                     </div>
+                                   </div>
+                                 )}
                                </div>
-                             )}
-                             {vc['Investment Score'] && (
-                               <div className="flex items-center gap-2">
-                                 <Award className="h-4 w-4 text-amber-600" />
-                                 <div>
-                                   <span className="text-muted-foreground">Investment Score:</span>
-                                   <div className="font-medium">{vc['Investment Score']}</div>
+
+                               {vc['Description'] && (
+                                 <div className="pt-4 border-t">
+                                   <h6 className="text-sm font-medium mb-2">About</h6>
+                                   <p className="text-sm text-muted-foreground leading-relaxed">{vc['Description']}</p>
                                  </div>
-                               </div>
-                             )}
-                              {/* Display actual contact details */}
-                              <div className="col-span-full">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                  {vc['Emails'] && (
-                                    <div className="flex items-center gap-2">
-                                      <Mail className="h-4 w-4 text-blue-600" />
-                                      <div>
-                                        <span className="text-xs text-muted-foreground">Email:</span>
-                                        <div className="text-sm font-medium">{vc['Emails']}</div>
-                                      </div>
-                                    </div>
-                                  )}
-                                  {vc['Phone Numbers'] && (
-                                    <div className="flex items-center gap-2">
-                                      <Phone className="h-4 w-4 text-green-600" />
-                                      <div>
-                                        <span className="text-xs text-muted-foreground">Phone:</span>
-                                        <div className="text-sm font-medium">{vc['Phone Numbers']}</div>
-                                      </div>
-                                    </div>
-                                  )}
-                                  {vc['Website'] && (
-                                    <div className="flex items-center gap-2">
-                                      <Globe className="h-4 w-4 text-purple-600" />
-                                      <div>
-                                        <span className="text-xs text-muted-foreground">Website:</span>
-                                        <div className="text-sm font-medium">{vc['Website']}</div>
-                                      </div>
-                                    </div>
-                                  )}
-                                  {vc['LinkedIn'] && (
-                                    <div className="flex items-center gap-2">
-                                      <Building2 className="h-4 w-4 text-blue-700" />
-                                      <div>
-                                        <span className="text-xs text-muted-foreground">LinkedIn:</span>
-                                        <div className="text-sm font-medium">{vc['LinkedIn']}</div>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                            {vc['Description'] && (
-                              <div className="mt-4 pt-4 border-t">
-                                <h6 className="text-sm font-medium mb-2">About</h6>
-                                <p className="text-sm text-muted-foreground leading-relaxed">{vc['Description']}</p>
-                              </div>
-                            )}
-                          </div>
-                        )}
+                               )}
+                             </div>
+                           )}
+                         </div>
 
-                        {/* Only show Top Sectors, Top Locations, and Portfolio */}
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                          {/* Top Investment Sectors */}
-                          <div className="border rounded-lg p-4">
-                            <div className="flex items-center gap-2 mb-3">
-                              <TrendingUp className="h-4 w-4 text-blue-600" />
-                              <h6 className="font-medium">Top Sectors Invested in:</h6>
-                            </div>
-                            <div className="space-y-2">
-                              {parseAndShowTop(vc['Sectors of Investments - Overall'], 3).map((item, idx) => (
-                                <div key={idx} className="text-sm">
-                                  {item.name}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Top Investment Locations */}
-                          <div className="border rounded-lg p-4">
-                            <div className="flex items-center gap-2 mb-3">
-                              <MapPin className="h-4 w-4 text-green-600" />
-                              <h6 className="font-medium">Top Locations Invested in:</h6>
-                            </div>
-                            <div className="space-y-2">
-                              {parseAndShowTop(vc['Locations of Investment - Overall'], 3).map((item, idx) => (
-                                <div key={idx} className="text-sm">
-                                  {item.name}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-
-                         {/* Portfolio */}
-                         <div className="border rounded-lg p-4">
-                           <div className="flex items-center gap-2 mb-3">
+                         {/* Right Section: Portfolio */}
+                         <div className="border rounded-lg p-4 h-full">
+                           <div className="flex items-center gap-2 mb-4">
                              <Users className="h-4 w-4 text-rose-600" />
-                             <h6 className="font-medium">Portfolio</h6>
+                             <h6 className="text-base font-bold">Portfolio</h6>
                            </div>
-                           <div className="text-center mb-3">
-                             <div className="text-2xl font-bold text-foreground">
+                           <div className="text-center mb-4">
+                             <div className="text-3xl font-bold text-foreground">
                                {vc['Portfolio Count - Overall'] || 0}
                              </div>
-                             <div className="text-xs text-muted-foreground">companies</div>
+                             <div className="text-sm text-muted-foreground">companies</div>
                            </div>
                            {vc['Portfolio IPOs - Overall'] && (
-                             <div className="pt-3 border-t">
+                             <div className="pt-4 border-t">
                                <h6 className="text-sm font-medium mb-2">Notable IPOs</h6>
                                <div className="text-xs leading-relaxed">
                                  {formatPortfolioIPOs(vc['Portfolio IPOs - Overall'])}
                                </div>
                              </div>
                            )}
+                         </div>
+                       </div>
+
+                       {/* Bottom Section: Investment Areas */}
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                         {/* Top Investment Sectors */}
+                         <div className="border rounded-lg p-4">
+                           <div className="flex items-center gap-2 mb-3">
+                             <TrendingUp className="h-4 w-4 text-blue-600" />
+                             <h6 className="text-base font-bold">Top Sectors Invested in</h6>
+                           </div>
+                           <div className="space-y-2">
+                             {parseAndShowTop(vc['Sectors of Investments - Overall'], 3).map((item, idx) => (
+                               <div key={idx} className="text-sm">
+                                 {item.name}
+                               </div>
+                             ))}
+                           </div>
+                         </div>
+
+                         {/* Top Investment Locations */}
+                         <div className="border rounded-lg p-4">
+                           <div className="flex items-center gap-2 mb-3">
+                             <MapPin className="h-4 w-4 text-green-600" />
+                             <h6 className="text-base font-bold">Top Locations Invested in</h6>
+                           </div>
+                           <div className="space-y-2">
+                             {parseAndShowTop(vc['Locations of Investment - Overall'], 3).map((item, idx) => (
+                               <div key={idx} className="text-sm">
+                                 {item.name}
+                               </div>
+                             ))}
+                           </div>
                          </div>
                        </div>
                     </CardContent>
