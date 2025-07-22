@@ -235,11 +235,11 @@ export function useCompanies(
       }
     },
     enabled: !!user,
-    staleTime: 2 * 60 * 1000, // Cache for 2 minutes to reduce unnecessary queries
+    staleTime: 0, // Force refresh to ensure data loads immediately  
     gcTime: 5 * 60 * 1000, // Keep in memory for 5 minutes
     retry: 3, // Retry failed queries up to 3 times
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
-    refetchOnWindowFocus: false, // Don't refetch when window regains focus
+    refetchOnWindowFocus: true, // Ensure refetch when window regains focus
     refetchOnReconnect: true, // Refetch when connection is restored
     meta: {
       onError: (err: any) => {

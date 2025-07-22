@@ -24,6 +24,15 @@ export function CompaniesList({ isGeneralUser = false }: CompaniesListProps) {
     '' // search
   );
 
+  // Auto-refresh data every 30 seconds to ensure fresh data
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refetch();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [refetch]);
+
   const handleCompanyClick = (companyId: string) => {
     navigate(`/company/${companyId}`);
   };
