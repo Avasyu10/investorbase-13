@@ -279,10 +279,19 @@ export function CompanyInfoCard({
   const shouldShowVCMatchmaking = companyData?.id && !isIITBombayUser && companyWithScore?.overall_score > 65;
   return <div className="mb-7">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-xl font-semibold flex items-center gap-2">
-          <Briefcase className="h-5 w-5 text-primary" />
-          Company Overview
-        </h3>
+        <div className="flex items-center gap-3">
+          <h3 className="text-xl font-semibold flex items-center gap-2">
+            <Briefcase className="h-5 w-5 text-primary" />
+            Company Overview
+          </h3>
+          {/* IB Connect button next to heading for general users */}
+          {companyData?.id && isGeneralUser && (
+            <IBConnectDialog 
+              companyId={companyData.id} 
+              companyName={companyData.name || companyName} 
+            />
+          )}
+        </div>
         {/* Buttons for Chatbot, VC Bot and Investment Memo */}
         <div className="flex flex-wrap items-center gap-3">
           {shouldShowChatbot && <Button variant="outline" onClick={handleChatbot} size="sm" className="h-10 w-10 p-0 bg-amber-400 hover:bg-amber-300 text-slate-950">
@@ -304,14 +313,6 @@ export function CompanyInfoCard({
           {/* VC Matchmaking button for non-IIT Bombay users with score > 65 */}
           {shouldShowVCMatchmaking && (
             <VCMatchmakingDialog 
-              companyId={companyData.id} 
-              companyName={companyData.name || companyName} 
-            />
-          )}
-
-          {/* IB Connect button for general users */}
-          {companyData?.id && isGeneralUser && (
-            <IBConnectDialog 
               companyId={companyData.id} 
               companyName={companyData.name || companyName} 
             />
