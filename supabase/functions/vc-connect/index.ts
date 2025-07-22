@@ -16,11 +16,6 @@ interface VCMatch {
   'Stages of Entry - Overall': string;
   'Portfolio Count - Overall': number;
   'Locations of Investment - Overall': string;
-  'Investor Type': string;
-  'Fund Size - Overall': string;
-  'Target Check Size - Overall': string;
-  'Website': string;
-  'Rounds of Investment - Overall': number;
   'Portfolio IPOs - Overall': string;
 }
 
@@ -175,64 +170,14 @@ serve(async (req) => {
     })
     .slice(0, 10); // Top 10 matches
 
-    // Helper function to determine investor type based on portfolio size
-    const getInvestorType = (portfolioCount: number, stages: string) => {
-      if (portfolioCount > 200) return 'Major VC Firm';
-      if (portfolioCount > 50) return 'Mid-size VC';
-      if (stages && stages.toLowerCase().includes('angel')) return 'Angel Investor';
-      if (stages && stages.toLowerCase().includes('seed')) return 'Seed Fund';
-      return 'VC Fund';
-    };
-
-    // Helper function to estimate fund size based on portfolio and stages
-    const estimateFundSize = (portfolioCount: number, stages: string) => {
-      if (portfolioCount > 300) return '$500M+';
-      if (portfolioCount > 150) return '$100M-500M';
-      if (portfolioCount > 50) return '$50M-100M';
-      if (stages && stages.toLowerCase().includes('seed')) return '$10M-50M';
-      return 'Not Available';
-    };
-
-    // Helper function to estimate check size based on stages
-    const estimateCheckSize = (stages: string) => {
-      if (!stages) return 'Not Available';
-      const stagesLower = stages.toLowerCase();
-      if (stagesLower.includes('series c') || stagesLower.includes('series d')) return '$5M-20M';
-      if (stagesLower.includes('series b')) return '$2M-10M';
-      if (stagesLower.includes('series a')) return '$500K-5M';
-      if (stagesLower.includes('seed')) return '$100K-1M';
-      if (stagesLower.includes('angel')) return '$25K-500K';
-      return 'Varies';
-    };
-
-    // Helper function to generate website URL
-    const generateWebsite = (investorName: string) => {
-      const cleanName = investorName.toLowerCase()
-        .replace(/[^a-z0-9\s]/g, '')
-        .replace(/\s+/g, '')
-        .replace(/(ventures?|capital|partners?|fund|investments?)/, '');
-      return cleanName ? `${cleanName}.com` : 'Not Available';
-    };
-
-    const matches: VCMatch[] = scoredVCs.map(vc => {
-      const portfolioCount = vc['Portfolio Count - Overall'] || 0;
-      const stages = vc['Stages of Entry - Overall'] || '';
-      const investorName = vc['Investor Name'] || '';
-
-      return {
-        'Investor Name': investorName,
-        'Sectors of Investments - Overall': vc['Sectors of Investments - Overall'] || '',
-        'Stages of Entry - Overall': stages,
-        'Portfolio Count - Overall': portfolioCount,
-        'Locations of Investment - Overall': vc['Locations of Investment - Overall'] || '',
-        'Investor Type': getInvestorType(portfolioCount, stages),
-        'Fund Size - Overall': estimateFundSize(portfolioCount, stages),
-        'Target Check Size - Overall': estimateCheckSize(stages),
-        'Website': generateWebsite(investorName),
-        'Rounds of Investment - Overall': vc['Rounds of Investment - Overall'] || 0,
-        'Portfolio IPOs - Overall': vc['Portfolio IPOs - Overall'] || 'Not Available'
-      };
-    });
+    const matches: VCMatch[] = scoredVCs.map(vc => ({
+      'Investor Name': vc['Investor Name'] || '',
+      'Sectors of Investments - Overall': vc['Sectors of Investments - Overall'] || '',
+      'Stages of Entry - Overall': vc['Stages of Entry - Overall'] || '',
+      'Portfolio Count - Overall': vc['Portfolio Count - Overall'] || 0,
+      'Locations of Investment - Overall': vc['Locations of Investment - Overall'] || '',
+      'Portfolio IPOs - Overall': vc['Portfolio IPOs - Overall'] || ''
+    }));
 
     console.log(`Found ${matches.length} matching VCs for company ${companyData.name}`);
 

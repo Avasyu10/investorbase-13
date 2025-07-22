@@ -19,11 +19,6 @@ interface VCMatch {
   'Stages of Entry - Overall': string;
   'Portfolio Count - Overall': number;
   'Locations of Investment - Overall': string;
-  'Investor Type': string;
-  'Fund Size - Overall': string;
-  'Target Check Size - Overall': string;
-  'Website': string;
-  'Rounds of Investment - Overall': number;
   'Portfolio IPOs - Overall': string;
 }
 
@@ -60,6 +55,32 @@ const parseAndShowTop = (data: string | null, topCount: number = 3) => {
     .filter(item => item.count > 0)
     .sort((a, b) => b.count - a.count)
     .slice(0, topCount);
+};
+
+// Helper function to format Portfolio IPOs
+const formatPortfolioIPOs = (ipos: string | null) => {
+  if (!ipos || ipos === 'Not Available' || ipos.trim() === '') {
+    return <span className="text-muted-foreground">No IPOs</span>;
+  }
+  
+  // Split IPOs and take first 3-4, then add "... and many more" if there are more
+  const ipoList = ipos.split(',').map(ipo => ipo.trim()).filter(ipo => ipo.length > 0);
+  
+  if (ipoList.length === 0) {
+    return <span className="text-muted-foreground">No IPOs</span>;
+  }
+  
+  if (ipoList.length <= 4) {
+    return <span className="font-medium">{ipoList.join(', ')}</span>;
+  }
+  
+  const firstFew = ipoList.slice(0, 3);
+  return (
+    <span className="font-medium">
+      {firstFew.join(', ')}
+      <span className="text-muted-foreground"> ... and {ipoList.length - 3} more</span>
+    </span>
+  );
 };
 
 export function IBConnectDialog({ companyId, companyName }: IBConnectDialogProps) {
@@ -213,89 +234,49 @@ export function IBConnectDialog({ companyId, companyName }: IBConnectDialogProps
                             ))}
                           </div>
                         </div>
+                      </div>
 
-                        {/* Additional VC Info */}
-                        <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t border-muted">
-                          {/* Fund Size */}
-                          {vc['Fund Size - Overall'] && (
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                <DollarSign className="h-3 w-3 text-purple-500" />
-                                Fund Size
-                              </div>
-                              <p className="text-sm font-medium">
-                                {vc['Fund Size - Overall']}
-                              </p>
-                            </div>
-                          )}
-
-                          {/* Check Size */}
-                          {vc['Target Check Size - Overall'] && (
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                <Target className="h-3 w-3 text-orange-500" />
-                                Check Size
-                              </div>
-                              <p className="text-sm font-medium">
-                                {vc['Target Check Size - Overall']}
-                              </p>
-                            </div>
-                          )}
-
-                          {/* Investor Type */}
-                          {vc['Investor Type'] && (
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                <Building2 className="h-3 w-3 text-indigo-500" />
-                                Type
-                              </div>
-                              <p className="text-sm font-medium">
-                                {vc['Investor Type']}
-                              </p>
-                            </div>
-                          )}
-
-                          {/* Website */}
-                          {vc['Website'] && (
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                <Globe className="h-3 w-3 text-teal-500" />
-                                Website
-                              </div>
-                              <a 
-                                href={vc['Website'].startsWith('http') ? vc['Website'] : `https://${vc['Website']}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-sm font-medium text-blue-600 hover:text-blue-800 underline"
-                              >
-                                {vc['Website']}
-                              </a>
-                            </div>
-                          )}
-
-                          {/* Portfolio Count */}
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                              <Users className="h-3 w-3 text-rose-500" />
-                              Portfolio
-                            </div>
-                            <p className="text-sm font-medium">
-                              {vc['Portfolio Count - Overall'] || 0} companies
-                            </p>
+                      {/* Additional VC Info Row */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t border-muted">
+                        {/* Entry Stages */}
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                            <TrendingUp className="h-4 w-4 text-amber-500" />
+                            Entry Stages
                           </div>
-
-                          {/* Entry Stages */}
-                          {vc['Stages of Entry - Overall'] && (
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                <TrendingUp className="h-3 w-3 text-amber-500" />
-                                Entry Stages
+                          <div className="space-y-1">
+                            {parseAndShowTop(vc['Stages of Entry - Overall'], 4).map((item, idx) => (
+                              <div key={idx} className="flex items-center justify-between text-sm">
+                                <span className="font-medium">{item.name}</span>
+                                <Badge variant="outline" className="text-xs">
+                                  {item.count}
+                                </Badge>
                               </div>
-                              <p className="text-sm font-medium">
-                                {vc['Stages of Entry - Overall']}
-                              </p>
-                            </div>
-                          )}
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Portfolio Count */}
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                            <Users className="h-4 w-4 text-rose-500" />
+                            Portfolio
+                          </div>
+                          <div className="text-2xl font-bold text-primary">
+                            {vc['Portfolio Count - Overall'] || 0}
+                            <span className="text-sm font-normal text-muted-foreground ml-1">companies</span>
+                          </div>
+                        </div>
+
+                        {/* Portfolio IPOs */}
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                            <Building2 className="h-4 w-4 text-purple-500" />
+                            Portfolio IPOs
+                          </div>
+                          <div className="text-sm">
+                            {formatPortfolioIPOs(vc['Portfolio IPOs - Overall'])}
+                          </div>
                         </div>
                       </div>
                     </CardContent>
