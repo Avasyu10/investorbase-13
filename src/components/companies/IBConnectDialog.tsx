@@ -211,8 +211,8 @@ export function IBConnectDialog({ companyId, companyName }: IBConnectDialogProps
                             </div>
                             <div className="space-y-3">
                               {parseAndShowTop(vc['Sectors of Investments - Overall'], 3).map((item, idx) => (
-                                <div key={idx} className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl border border-blue-200 shadow-sm hover:shadow-md transition-all duration-200">
-                                  <span className="font-semibold text-blue-900">{item.name}</span>
+                                <div key={idx} className="flex items-center justify-between p-4 bg-slate-800 rounded-xl border border-slate-700 shadow-sm hover:bg-slate-700 transition-all duration-200">
+                                  <span className="font-semibold text-slate-100">{item.name}</span>
                                   <Badge className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 text-sm font-medium">
                                     {item.count}
                                   </Badge>
@@ -229,9 +229,9 @@ export function IBConnectDialog({ companyId, companyName }: IBConnectDialogProps
                             </div>
                             <div className="space-y-3">
                               {parseAndShowTop(vc['Locations of Investment - Overall'], 3).map((item, idx) => (
-                                <div key={idx} className="flex items-center justify-between p-4 bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-xl border border-emerald-200 shadow-sm hover:shadow-md transition-all duration-200">
-                                  <span className="font-semibold text-emerald-900">{item.name}</span>
-                                  <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 text-sm font-medium">
+                                <div key={idx} className="flex items-center justify-between p-4 bg-slate-800 rounded-xl border border-slate-700 shadow-sm hover:bg-slate-700 transition-all duration-200">
+                                  <span className="font-semibold text-slate-100">{item.name}</span>
+                                  <Badge className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 text-sm font-medium">
                                     {item.count}
                                   </Badge>
                                 </div>
@@ -250,9 +250,9 @@ export function IBConnectDialog({ companyId, companyName }: IBConnectDialogProps
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                               {parseAndShowTop(vc['Stages of Entry - Overall'], 4).map((item, idx) => (
-                                <div key={idx} className="p-4 bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl border border-amber-200 text-center shadow-sm hover:shadow-md transition-all duration-200">
-                                  <div className="font-semibold text-amber-900 text-sm mb-2">{item.name}</div>
-                                  <Badge className="bg-amber-600 text-white text-xs px-2 py-1">
+                                <div key={idx} className="p-4 bg-slate-800 rounded-xl border border-slate-700 text-center shadow-sm hover:bg-slate-700 transition-all duration-200">
+                                  <div className="font-semibold text-slate-100 text-sm mb-2">{item.name}</div>
+                                  <Badge className="bg-blue-600 text-white text-xs px-2 py-1">
                                     {item.count}
                                   </Badge>
                                 </div>
@@ -266,11 +266,11 @@ export function IBConnectDialog({ companyId, companyName }: IBConnectDialogProps
                               <Users className="h-5 w-5 text-rose-600" />
                               <h5 className="text-lg font-medium">Portfolio</h5>
                             </div>
-                            <div className="text-center p-6 bg-gradient-to-br from-rose-50 to-rose-100 rounded-xl border border-rose-200 shadow-sm hover:shadow-md transition-all duration-200">
-                              <div className="text-4xl font-bold text-rose-600 mb-2">
+                            <div className="text-center p-6 bg-slate-800 rounded-xl border border-slate-700 shadow-sm hover:bg-slate-700 transition-all duration-200">
+                              <div className="text-4xl font-bold text-blue-400 mb-2">
                                 {vc['Portfolio Count - Overall'] || 0}
                               </div>
-                              <div className="text-sm font-semibold text-rose-700">companies</div>
+                              <div className="text-sm font-semibold text-slate-300">companies</div>
                             </div>
                           </div>
 
@@ -280,8 +280,8 @@ export function IBConnectDialog({ companyId, companyName }: IBConnectDialogProps
                               <Building2 className="h-5 w-5 text-purple-600" />
                               <h5 className="text-lg font-medium">Portfolio IPOs</h5>
                             </div>
-                            <div className="p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl border border-purple-200 shadow-sm hover:shadow-md transition-all duration-200">
-                              <div className="text-sm text-purple-900 leading-relaxed font-medium">
+                            <div className="p-4 bg-slate-800 rounded-xl border border-slate-700 shadow-sm hover:bg-slate-700 transition-all duration-200">
+                              <div className="text-sm text-slate-100 leading-relaxed font-medium">
                                 {formatPortfolioIPOs(vc['Portfolio IPOs - Overall'])}
                               </div>
                             </div>
