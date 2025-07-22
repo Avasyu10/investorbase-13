@@ -218,13 +218,13 @@ export function IBConnectDialog({
                                        <div className="text-sm font-medium">{vc['Website']}</div>
                                      </div>
                                    </div>}
-                                 {vc['LinkedIn'] && <div className="flex items-center gap-2">
-                                     <Building2 className="h-4 w-4 text-blue-700" />
-                                     <div>
-                                       <span className="text-xs text-muted-foreground">LinkedIn:</span>
-                                       <div className="text-sm font-medium">{vc['LinkedIn']}</div>
-                                     </div>
-                                   </div>}
+                                  {vc['LinkedIn'] && <div className="flex items-center gap-2">
+                                      <Building2 className="h-4 w-4 text-blue-700" />
+                                      <div className="min-w-0 flex-1">
+                                        <span className="text-xs text-muted-foreground">LinkedIn:</span>
+                                        <div className="text-sm font-medium break-words">{vc['LinkedIn']}</div>
+                                      </div>
+                                    </div>}
                                </div>
 
                                {vc['Description'] && <div className="pt-4 border-t">
