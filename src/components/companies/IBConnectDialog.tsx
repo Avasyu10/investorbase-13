@@ -137,23 +137,7 @@ export function IBConnectDialog({
 
         {vcMatches && <div className="space-y-6">
             {/* Company matching criteria */}
-            <div className="bg-muted/50 p-4 rounded-lg">
-              <h3 className="font-medium mb-2">Matching Criteria</h3>
-              <div className="space-y-2">
-                {vcMatches.companySectors && <div>
-                    <span className="text-sm font-medium">Sectors: </span>
-                    <span className="text-sm text-muted-foreground">
-                      {vcMatches.companySectors}
-                    </span>
-                  </div>}
-                {vcMatches.companyStages && <div>
-                    <span className="text-sm font-medium">Stages: </span>
-                    <span className="text-sm text-muted-foreground">
-                      {vcMatches.companyStages}
-                    </span>
-                  </div>}
-              </div>
-            </div>
+            
 
             {/* Results summary */}
             <div className="flex items-center justify-between">
