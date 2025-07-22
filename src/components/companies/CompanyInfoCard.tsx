@@ -11,6 +11,7 @@ import { VCEvaluationBot } from "./VCEvaluationBot";
 import { useProfile } from "@/hooks/useProfile";
 import { InvestmentMemo } from "./InvestmentMemo"; // Import the InvestmentMemo component
 import { VCMatchmakingDialog } from "./VCMatchmakingDialog";
+import { IBConnectDialog } from "./IBConnectDialog";
 
 type CompanyInfoProps = {
   website?: string;
@@ -303,6 +304,14 @@ export function CompanyInfoCard({
           {/* VC Matchmaking button for non-IIT Bombay users with score > 65 */}
           {shouldShowVCMatchmaking && (
             <VCMatchmakingDialog 
+              companyId={companyData.id} 
+              companyName={companyData.name || companyName} 
+            />
+          )}
+
+          {/* IB Connect button for general users */}
+          {companyData?.id && isGeneralUser && (
+            <IBConnectDialog 
               companyId={companyData.id} 
               companyName={companyData.name || companyName} 
             />

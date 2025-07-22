@@ -124,7 +124,9 @@ Return your analysis in EXACTLY this JSON format:
     "stage": "<extract funding stage from pitch deck content - look for mentions like 'seed', 'series A', 'pre-seed', 'growth stage', etc.>",
     "industry": "<extract industry/sector from pitch deck content - look for business domain, market category, technology sector>",
     "website": "<extract website URL if mentioned in the deck>",
-    "description": "<create a concise 2-3 sentence description of what the company does based on the pitch content>"
+    "description": "<create a concise 2-3 sentence description of what the company does based on the pitch content>",
+    "sectors": "<extract primary business sectors/industries that match VC investment sectors like Consumer, Enterprise Applications, Retail, High Tech, etc. - format as comma-separated list>",
+    "investmentStages": "<extract current funding stage that matches VC entry stages like Seed, Series A, Series B, Angel, etc. - format as comma-separated list if multiple applicable>"
   },
   "sections": [
     {
@@ -405,7 +407,9 @@ COMPANY INFORMATION EXTRACTION REQUIREMENTS:
 - Industry: Identify the business sector/domain (fintech, healthcare, edtech, saas, marketplace, etc.)
 - Website: Extract any website URLs mentioned in the deck
 - Description: Create a brief company description based on the pitch content
-**Important**: Make sure the industry, website and stage are extracted properly and try to make it 1-2 words.
+- Sectors: Extract business sectors that would match VC investment categories like "Consumer", "Enterprise Applications", "Retail", "High Tech", "Healthcare", "Financial Services", "Education", "Energy", etc. - use standard VC sector terminology
+- Investment Stages: Extract funding stages that match VC entry points like "Seed", "Series A", "Series B", "Angel", "Series C", "Post IPO", "Series D", etc. - use standard VC stage terminology
+**Important**: Make sure the industry, website, stage, sectors, and investment stages are extracted properly. Use standard VC terminology for sectors and stages.
 
 SECTION CHECKLIST REQUIREMENTS:
 - For each section, provide a brief description of what content was found (if any)
