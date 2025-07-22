@@ -168,70 +168,85 @@ export function IBConnectDialog({
 
                        {/* Main Content Layout */}
                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                         {/* Left Section: VC Contact Info */}
-                         <div className="lg:col-span-2">
-                           {(vc['Founded Year'] || vc['City'] || vc['Investment Score'] || vc['Emails'] || vc['Phone Numbers'] || vc['Website'] || vc['LinkedIn']) && <div className="p-4 border rounded-lg h-full">
-                               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm mb-4">
-                                 {vc['Founded Year'] && <div className="flex items-center gap-2">
-                                     <Calendar className="h-4 w-4 text-blue-600" />
-                                     <div>
-                                       <span className="text-muted-foreground">Founded:</span>
-                                       <div className="font-medium">{vc['Founded Year']}</div>
-                                     </div>
-                                   </div>}
-                                 {vc['City'] && <div className="flex items-center gap-2">
-                                     <MapPin className="h-4 w-4 text-green-600" />
-                                     <div>
-                                       <span className="text-muted-foreground">City:</span>
-                                       <div className="font-medium">{vc['City']}</div>
-                                     </div>
-                                   </div>}
-                                 {vc['Investment Score'] && <div className="flex items-center gap-2">
-                                     <Award className="h-4 w-4 text-amber-600" />
-                                     <div>
-                                       <span className="text-muted-foreground">Investment Score:</span>
-                                       <div className="font-medium">{vc['Investment Score']}</div>
-                                     </div>
-                                   </div>}
-                               </div>
-
-                               {/* Contact Details */}
-                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                                 {vc['Emails'] && <div className="flex items-center gap-2">
-                                     <Mail className="h-4 w-4 text-blue-600" />
-                                     <div>
-                                       <span className="text-xs text-muted-foreground">Email:</span>
-                                       <div className="text-sm font-medium">{vc['Emails']}</div>
-                                     </div>
-                                   </div>}
-                                 {vc['Phone Numbers'] && <div className="flex items-center gap-2">
-                                     <Phone className="h-4 w-4 text-green-600" />
-                                     <div>
-                                       <span className="text-xs text-muted-foreground">Phone:</span>
-                                       <div className="text-sm font-medium">{vc['Phone Numbers']}</div>
-                                     </div>
-                                   </div>}
-                                  {vc['Website'] && <div className="flex items-center gap-2">
-                                      <Globe className="h-4 w-4 text-purple-600" />
-                                      <div className="min-w-0 flex-1">
-                                        <span className="text-xs text-muted-foreground">Website:</span>
-                                        <div className="text-sm font-medium break-words">{vc['Website']}</div>
+                          {/* Left Section: VC Contact Info */}
+                          <div className="lg:col-span-2">
+                            {(vc['Founded Year'] || vc['City'] || vc['Investment Score'] || vc['Emails'] || vc['Phone Numbers'] || vc['Website'] || vc['LinkedIn']) && <div className="p-4 border rounded-lg h-full">
+                                {/* Basic Info */}
+                                <div className="grid grid-cols-3 gap-4 mb-4">
+                                  {vc['Founded Year'] && <div className="flex items-center gap-2">
+                                      <Calendar className="h-4 w-4 text-blue-600" />
+                                      <div>
+                                        <span className="text-xs text-muted-foreground block">Founded</span>
+                                        <div className="text-sm font-medium">{vc['Founded Year']}</div>
                                       </div>
                                     </div>}
-                                  {vc['LinkedIn'] && <div className="flex items-center gap-2">
-                                      <Building2 className="h-4 w-4 text-blue-700" />
-                                      <div className="min-w-0 flex-1">
-                                        <span className="text-xs text-muted-foreground">LinkedIn:</span>
-                                        <div className="text-sm font-medium break-words">{vc['LinkedIn']}</div>
+                                  {vc['City'] && <div className="flex items-center gap-2">
+                                      <MapPin className="h-4 w-4 text-green-600" />
+                                      <div>
+                                        <span className="text-xs text-muted-foreground block">City</span>
+                                        <div className="text-sm font-medium">{vc['City']}</div>
                                       </div>
                                     </div>}
-                               </div>
+                                  {vc['Investment Score'] && <div className="flex items-center gap-2">
+                                      <Award className="h-4 w-4 text-amber-600" />
+                                      <div>
+                                        <span className="text-xs text-muted-foreground block">Score</span>
+                                        <div className="text-sm font-medium">{vc['Investment Score']}</div>
+                                      </div>
+                                    </div>}
+                                </div>
 
-                               {vc['Description'] && <div className="pt-4 border-t">
-                                   <h6 className="text-sm font-medium mb-2">About</h6>
-                                   <p className="text-sm text-muted-foreground leading-relaxed">{vc['Description']}</p>
-                                 </div>}
-                             </div>}
+                                {/* Contact Details */}
+                                <div className="space-y-3 mb-4">
+                                  {vc['Emails'] && <div className="flex items-start gap-2">
+                                      <Mail className="h-4 w-4 text-blue-600 mt-0.5" />
+                                      <div className="min-w-0 flex-1">
+                                        <span className="text-xs text-muted-foreground block">Email</span>
+                                        <div className="text-sm font-medium break-words">{vc['Emails']}</div>
+                                      </div>
+                                    </div>}
+                                  {vc['Phone Numbers'] && <div className="flex items-start gap-2">
+                                      <Phone className="h-4 w-4 text-green-600 mt-0.5" />
+                                      <div className="min-w-0 flex-1">
+                                        <span className="text-xs text-muted-foreground block">Phone</span>
+                                        <div className="text-sm font-medium break-words">{vc['Phone Numbers']}</div>
+                                      </div>
+                                    </div>}
+                                   {vc['Website'] && <div className="flex items-start gap-2">
+                                       <Globe className="h-4 w-4 text-purple-600 mt-0.5" />
+                                       <div className="min-w-0 flex-1">
+                                         <span className="text-xs text-muted-foreground block">Website</span>
+                                         <a 
+                                           href={vc['Website'].startsWith('http') ? vc['Website'] : `https://${vc['Website']}`}
+                                           target="_blank"
+                                           rel="noopener noreferrer"
+                                           className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline break-words"
+                                         >
+                                           {vc['Website']}
+                                         </a>
+                                       </div>
+                                     </div>}
+                                   {vc['LinkedIn'] && <div className="flex items-start gap-2">
+                                       <Building2 className="h-4 w-4 text-blue-700 mt-0.5" />
+                                       <div className="min-w-0 flex-1">
+                                         <span className="text-xs text-muted-foreground block">LinkedIn</span>
+                                         <a 
+                                           href={vc['LinkedIn'].startsWith('http') ? vc['LinkedIn'] : `https://${vc['LinkedIn']}`}
+                                           target="_blank"
+                                           rel="noopener noreferrer"
+                                           className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline break-words"
+                                         >
+                                           {vc['LinkedIn']}
+                                         </a>
+                                       </div>
+                                     </div>}
+                                </div>
+
+                                {vc['Description'] && <div className="pt-4 border-t">
+                                    <h6 className="text-sm font-medium mb-2">About</h6>
+                                    <p className="text-sm text-muted-foreground leading-relaxed">{vc['Description']}</p>
+                                  </div>}
+                              </div>}
                          </div>
 
                          {/* Right Section: Portfolio */}
@@ -270,18 +285,18 @@ export function IBConnectDialog({
                            </div>
                          </div>
 
-                         {/* Top Investment Locations */}
-                         <div className="border rounded-lg p-4">
-                           <div className="flex items-center gap-2 mb-3">
-                             <MapPin className="h-4 w-4 text-green-600" />
-                             <h6 className="text-base font-bold">Top Locations Invested in</h6>
-                           </div>
-                           <div className="space-y-2">
-                             {parseAndShowTop(vc['Locations of Investment - Overall'], 3).map((item, idx) => <div key={idx} className="text-sm">
-                                 {item.name}
-                               </div>)}
-                           </div>
-                         </div>
+                          {/* Top Investment Stages */}
+                          <div className="border rounded-lg p-4">
+                            <div className="flex items-center gap-2 mb-3">
+                              <Target className="h-4 w-4 text-purple-600" />
+                              <h6 className="text-base font-bold">Top Stages Invested in</h6>
+                            </div>
+                            <div className="space-y-2">
+                              {parseAndShowTop(vc['Stages of Entry - Overall'], 3).map((item, idx) => <div key={idx} className="text-sm">
+                                  {item.name}
+                                </div>)}
+                            </div>
+                          </div>
                        </div>
                     </CardContent>
                   </Card>)}
