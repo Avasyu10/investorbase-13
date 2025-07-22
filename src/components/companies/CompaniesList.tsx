@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { useProfile } from "@/hooks/useProfile";
 
 interface CompaniesListProps {
   isGeneralUser?: boolean;
@@ -15,6 +16,7 @@ export function CompaniesList({ isGeneralUser = false }: CompaniesListProps) {
   const [sortBy, setSortBy] = useState<string>('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const navigate = useNavigate();
+  const { isVC } = useProfile();
   
   const { companies, isLoading, error, refetch } = useCompanies(
     1, // page
@@ -66,6 +68,7 @@ export function CompaniesList({ isGeneralUser = false }: CompaniesListProps) {
       onSortChange={handleSortChange}
       currentSort={{ field: sortBy, order: sortOrder }}
       isGeneralUser={isGeneralUser}
+      isVC={isVC}
     />
   );
 }
