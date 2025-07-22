@@ -237,18 +237,18 @@ export function IBConnectDialog({ companyId, companyName }: IBConnectDialogProps
                       </div>
 
                       {/* Additional VC Info Row */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t border-muted">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6 pt-4 border-t border-muted/50">
                         {/* Entry Stages */}
                         <div className="space-y-3">
                           <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                             <TrendingUp className="h-4 w-4 text-amber-500" />
                             Entry Stages
                           </div>
-                          <div className="space-y-1">
+                          <div className="space-y-2">
                             {parseAndShowTop(vc['Stages of Entry - Overall'], 4).map((item, idx) => (
-                              <div key={idx} className="flex items-center justify-between text-sm">
-                                <span className="font-medium">{item.name}</span>
-                                <Badge variant="outline" className="text-xs">
+                              <div key={idx} className="flex items-center justify-between p-2 bg-amber-50/50 rounded-md border border-amber-100/50">
+                                <span className="text-sm font-medium text-amber-900">{item.name}</span>
+                                <Badge variant="secondary" className="bg-amber-100 text-amber-800 text-xs">
                                   {item.count}
                                 </Badge>
                               </div>
@@ -262,9 +262,11 @@ export function IBConnectDialog({ companyId, companyName }: IBConnectDialogProps
                             <Users className="h-4 w-4 text-rose-500" />
                             Portfolio
                           </div>
-                          <div className="text-2xl font-bold text-primary">
-                            {vc['Portfolio Count - Overall'] || 0}
-                            <span className="text-sm font-normal text-muted-foreground ml-1">companies</span>
+                          <div className="text-center p-4 bg-rose-50/50 rounded-lg border border-rose-100/50">
+                            <div className="text-3xl font-bold text-rose-600">
+                              {vc['Portfolio Count - Overall'] || 0}
+                            </div>
+                            <div className="text-sm font-medium text-rose-700 mt-1">companies</div>
                           </div>
                         </div>
 
@@ -274,8 +276,10 @@ export function IBConnectDialog({ companyId, companyName }: IBConnectDialogProps
                             <Building2 className="h-4 w-4 text-purple-500" />
                             Portfolio IPOs
                           </div>
-                          <div className="text-sm">
-                            {formatPortfolioIPOs(vc['Portfolio IPOs - Overall'])}
+                          <div className="p-3 bg-purple-50/50 rounded-lg border border-purple-100/50">
+                            <div className="text-sm text-purple-900">
+                              {formatPortfolioIPOs(vc['Portfolio IPOs - Overall'])}
+                            </div>
                           </div>
                         </div>
                       </div>

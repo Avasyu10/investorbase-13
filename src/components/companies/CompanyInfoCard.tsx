@@ -233,8 +233,8 @@ export function CompanyInfoCard({
     displayWebsite = prioritizedWebsite && prioritizedWebsite !== "" ? prioritizedWebsite.replace(/^https?:\/\/(www\.)?/, '') : "Not available";
     websiteUrl = prioritizedWebsite && prioritizedWebsite !== "" ? prioritizedWebsite.startsWith('http') ? prioritizedWebsite : `https://${prioritizedWebsite}` : null;
 
-    // Display stage and industry with prioritized data sources
-    displayStage = responseReceivedData?.stage || analysisCompanyInfo?.stage || stage || "Not specified";
+    // Display stage and industry with prioritized data sources - prioritize analysisCompanyInfo over responseReceived for stage
+    displayStage = analysisCompanyInfo?.stage || stage || "Not specified";
     displayIndustry = responseReceivedData?.industry || analysisCompanyInfo?.industry || industry || "Not specified";
   }
 
