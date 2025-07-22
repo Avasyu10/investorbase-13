@@ -79,9 +79,9 @@ const formatPortfolioIPOs = (ipos: string | null) => {
     return <span className="text-muted-foreground">No IPOs</span>;
   }
   
-  // Show all IPOs with comma separation
+  // Show all IPOs with comma separation, fitting naturally in container
   return (
-    <div className="text-xs leading-relaxed font-medium max-h-24 overflow-y-auto">
+    <div className="text-xs leading-relaxed font-medium">
       {ipoList.join(', ')}
     </div>
   );
