@@ -72,37 +72,17 @@ const formatPortfolioIPOs = (ipos: string | null) => {
     return <span className="text-muted-foreground">No IPOs</span>;
   }
   
-  // Split IPOs and take more entries to fill the space better
+  // Split IPOs and clean them
   const ipoList = ipos.split(',').map(ipo => ipo.trim()).filter(ipo => ipo.length > 0);
   
   if (ipoList.length === 0) {
     return <span className="text-muted-foreground">No IPOs</span>;
   }
   
-  // Show up to 8-10 IPOs to fill the space, then add "... and more" if there are more
-  if (ipoList.length <= 10) {
-    return (
-      <div className="space-y-1">
-        {ipoList.map((ipo, index) => (
-          <div key={index} className="font-medium text-xs">
-            {ipo}
-          </div>
-        ))}
-      </div>
-    );
-  }
-  
-  const firstBatch = ipoList.slice(0, 8);
+  // Show all IPOs with comma separation
   return (
-    <div className="space-y-1">
-      {firstBatch.map((ipo, index) => (
-        <div key={index} className="font-medium text-xs">
-          {ipo}
-        </div>
-      ))}
-      <div className="text-xs text-muted-foreground font-medium">
-        ... and {ipoList.length - 8} more
-      </div>
+    <div className="text-xs leading-relaxed font-medium max-h-24 overflow-y-auto">
+      {ipoList.join(', ')}
     </div>
   );
 };
