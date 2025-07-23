@@ -13,6 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 interface Conversation {
   founder_id: string;
   founder_name: string;
+  founder_email?: string;
+  company_name?: string;
   last_message: string;
   last_message_time: Date;
   unread_count: number;
@@ -98,34 +100,73 @@ export function VCFounderChats() {
         return;
       }
 
-      // Group messages by conversation (founder)
+      // Group messages by conversation (founder) and get proper founder names
       const conversationMap = new Map<string, Conversation>();
+      const founderIds = new Set<string>();
 
       for (const message of messageData || []) {
         // Determine the founder ID (the one who is not the current VC)
         const founderId = message.user_id === user.id ? message.recipient_id : message.user_id;
-        const founderName = message.user_id === user.id ? 
-          (message.to_recipient === 'group_chat' ? message.name : message.name) : 
-          message.name;
-
+        
         if (!founderId) continue;
+        founderIds.add(founderId);
 
         const existing = conversationMap.get(founderId);
         
         if (!existing || new Date(message.created_at) > existing.last_message_time) {
           conversationMap.set(founderId, {
             founder_id: founderId,
-            founder_name: founderName,
+            founder_name: 'Loading...', // We'll update this below
             last_message: message.message,
             last_message_time: new Date(message.created_at),
-            unread_count: 0 // We'll calculate this properly if needed
+            unread_count: 0
           });
         }
       }
 
-      setConversations(Array.from(conversationMap.values()).sort(
-        (a, b) => b.last_message_time.getTime() - a.last_message_time.getTime()
-      ));
+      // Now fetch proper founder names and company information
+      if (founderIds.size > 0) {
+        const founderIdsArray = Array.from(founderIds);
+        
+        // Get founder profiles
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, full_name, username, email')
+          .in('id', founderIdsArray);
+
+        if (profilesError) {
+          console.error('Error fetching founder profiles:', profilesError);
+        }
+
+        // Get company information from reports or companies tables
+        const { data: companies, error: companiesError } = await supabase
+          .from('companies')
+          .select('user_id, name')
+          .in('user_id', founderIdsArray);
+
+        if (companiesError) {
+          console.error('Error fetching company information:', companiesError);
+        }
+
+        // Update conversation data with proper names and company info
+        const updatedConversations = Array.from(conversationMap.values()).map(conversation => {
+          const profile = profiles?.find(p => p.id === conversation.founder_id);
+          const company = companies?.find(c => c.user_id === conversation.founder_id);
+          
+          return {
+            ...conversation,
+            founder_name: profile?.full_name || profile?.username || profile?.email || 'Unknown User',
+            founder_email: profile?.email,
+            company_name: company?.name
+          };
+        });
+
+        setConversations(updatedConversations.sort(
+          (a, b) => b.last_message_time.getTime() - a.last_message_time.getTime()
+        ));
+      } else {
+        setConversations([]);
+      }
     } catch (error) {
       console.error('Error in loadConversations:', error);
       toast({
@@ -295,6 +336,11 @@ export function VCFounderChats() {
                           {formatDate(conversation.last_message_time)}
                         </span>
                       </div>
+                      {conversation.company_name && (
+                        <p className="text-xs text-primary font-medium truncate">
+                          {conversation.company_name}
+                        </p>
+                      )}
                       <p className="text-sm text-muted-foreground truncate">
                         {conversation.last_message}
                       </p>
@@ -325,6 +371,11 @@ export function VCFounderChats() {
                   <h3 className="font-semibold">
                     {selectedConversationData?.founder_name}
                   </h3>
+                  {selectedConversationData?.company_name && (
+                    <p className="text-sm text-primary font-medium">
+                      {selectedConversationData.company_name}
+                    </p>
+                  )}
                   <p className="text-sm text-muted-foreground">Founder</p>
                 </div>
               </div>
