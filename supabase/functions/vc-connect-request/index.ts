@@ -84,7 +84,8 @@ Deno.serve(async (req) => {
         company_id: companyId,
         company_name: companyName,
         vc_name: vcData['Investor Name'],
-        vc_email: vcData['Emails'] || null,
+        vc_email: vcData['Emails'] && vcData['Emails'].trim() ? vcData['Emails'] : null,
+        vc_phone: vcData['Phone Numbers'] || null,
         vc_website: vcData['Website'] || null,
         vc_linkedin: vcData['LinkedIn'] || null,
         message: message || `${companyName} would like to connect with ${vcData['Investor Name']}`
