@@ -1,7 +1,10 @@
 
+import { useState } from "react";
 import { useProfile } from "@/hooks/useProfile";
 import { ViewOnlyCompaniesList } from "@/components/companies/ViewOnlyCompaniesList";
-import { Building2 } from "lucide-react";
+import { VCConnectNotifications } from "@/components/vc/VCConnectNotifications";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Building2, MessageCircle } from "lucide-react";
 import { Navigate } from "react-router-dom";
 
 export default function ViewOnlyDashboard() {
@@ -26,17 +29,33 @@ export default function ViewOnlyDashboard() {
     <div className="container mx-auto px-4 py-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
         <div>
-          <div className="flex items-center gap-3 mb-2">
-            <Building2 className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-bold tracking-tight">Companies Overview</h1>
-          </div>
+          <h1 className="text-2xl font-bold tracking-tight">View-Only Dashboard</h1>
           <p className="text-muted-foreground">
-            View all companies in the system
+            View companies and VC connection requests
           </p>
         </div>
       </div>
 
-      <ViewOnlyCompaniesList />
+      <Tabs defaultValue="companies" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="companies" className="flex items-center gap-2">
+            <Building2 className="h-4 w-4" />
+            Companies
+          </TabsTrigger>
+          <TabsTrigger value="connections" className="flex items-center gap-2">
+            <MessageCircle className="h-4 w-4" />
+            VC Connections
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="companies" className="mt-6">
+          <ViewOnlyCompaniesList />
+        </TabsContent>
+        
+        <TabsContent value="connections" className="mt-6">
+          <VCConnectNotifications />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

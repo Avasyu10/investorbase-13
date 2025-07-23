@@ -242,6 +242,9 @@ export type Database = {
           introduction: string | null
           linkedin_url: string | null
           notes: string | null
+          pipeline_stage:
+            | Database["public"]["Enums"]["pipeline_stage_enum"]
+            | null
           point_of_contact: string | null
           source_of_introduction: string | null
           stage: string | null
@@ -261,6 +264,9 @@ export type Database = {
           introduction?: string | null
           linkedin_url?: string | null
           notes?: string | null
+          pipeline_stage?:
+            | Database["public"]["Enums"]["pipeline_stage_enum"]
+            | null
           point_of_contact?: string | null
           source_of_introduction?: string | null
           stage?: string | null
@@ -280,6 +286,9 @@ export type Database = {
           introduction?: string | null
           linkedin_url?: string | null
           notes?: string | null
+          pipeline_stage?:
+            | Database["public"]["Enums"]["pipeline_stage_enum"]
+            | null
           point_of_contact?: string | null
           source_of_introduction?: string | null
           stage?: string | null
@@ -1266,6 +1275,54 @@ export type Database = {
         }
         Relationships: []
       }
+      vc_connection_requests: {
+        Row: {
+          company_id: string
+          company_name: string
+          created_at: string
+          founder_email: string
+          founder_name: string
+          founder_user_id: string
+          id: string
+          message: string | null
+          status: string
+          vc_email: string | null
+          vc_linkedin: string | null
+          vc_name: string
+          vc_website: string | null
+        }
+        Insert: {
+          company_id: string
+          company_name: string
+          created_at?: string
+          founder_email: string
+          founder_name: string
+          founder_user_id: string
+          id?: string
+          message?: string | null
+          status?: string
+          vc_email?: string | null
+          vc_linkedin?: string | null
+          vc_name: string
+          vc_website?: string | null
+        }
+        Update: {
+          company_id?: string
+          company_name?: string
+          created_at?: string
+          founder_email?: string
+          founder_name?: string
+          founder_user_id?: string
+          id?: string
+          message?: string | null
+          status?: string
+          vc_email?: string | null
+          vc_linkedin?: string | null
+          vc_name?: string
+          vc_website?: string | null
+        }
+        Relationships: []
+      }
       vc_notifications: {
         Row: {
           company_id: string
@@ -1344,6 +1401,114 @@ export type Database = {
           investment_stage?: string[] | null
           updated_at?: string
           website_url?: string | null
+        }
+        Relationships: []
+      }
+      vccontact: {
+        Row: {
+          City: string | null
+          Description: string | null
+          Emails: string | null
+          "Feed Name": string | null
+          "Founded Year": number | null
+          "Investment Score": number | null
+          "Investor Name": string | null
+          "Investor Type": string | null
+          LinkedIn: string | null
+          Overview: string | null
+          "Phone Numbers": string | null
+          "Practice Areas": string | null
+          "SNo.": number | null
+          State: string | null
+          Twitter: string | null
+          Website: string | null
+          "Website Status": number | null
+          "Website Status Last Updated": string | null
+        }
+        Insert: {
+          City?: string | null
+          Description?: string | null
+          Emails?: string | null
+          "Feed Name"?: string | null
+          "Founded Year"?: number | null
+          "Investment Score"?: number | null
+          "Investor Name"?: string | null
+          "Investor Type"?: string | null
+          LinkedIn?: string | null
+          Overview?: string | null
+          "Phone Numbers"?: string | null
+          "Practice Areas"?: string | null
+          "SNo."?: number | null
+          State?: string | null
+          Twitter?: string | null
+          Website?: string | null
+          "Website Status"?: number | null
+          "Website Status Last Updated"?: string | null
+        }
+        Update: {
+          City?: string | null
+          Description?: string | null
+          Emails?: string | null
+          "Feed Name"?: string | null
+          "Founded Year"?: number | null
+          "Investment Score"?: number | null
+          "Investor Name"?: string | null
+          "Investor Type"?: string | null
+          LinkedIn?: string | null
+          Overview?: string | null
+          "Phone Numbers"?: string | null
+          "Practice Areas"?: string | null
+          "SNo."?: number | null
+          State?: string | null
+          Twitter?: string | null
+          Website?: string | null
+          "Website Status"?: number | null
+          "Website Status Last Updated"?: string | null
+        }
+        Relationships: []
+      }
+      vcdata: {
+        Row: {
+          "Investor Name": string | null
+          "Locations of Investment - as per applied filters": string | null
+          "Locations of Investment - Overall": string | null
+          "Portfolio Count - as per applied filters": number | null
+          "Portfolio Count - Overall": number | null
+          "Portfolio IPOs - as per applied filters": string | null
+          "Portfolio IPOs - Overall": string | null
+          "Rounds of Investment - as per applied filters": number | null
+          "Rounds of Investment - Overall": number | null
+          "Sectors of Investments - Overall": string | null
+          "SNo.": number | null
+          "Stages of Entry - Overall": string | null
+        }
+        Insert: {
+          "Investor Name"?: string | null
+          "Locations of Investment - as per applied filters"?: string | null
+          "Locations of Investment - Overall"?: string | null
+          "Portfolio Count - as per applied filters"?: number | null
+          "Portfolio Count - Overall"?: number | null
+          "Portfolio IPOs - as per applied filters"?: string | null
+          "Portfolio IPOs - Overall"?: string | null
+          "Rounds of Investment - as per applied filters"?: number | null
+          "Rounds of Investment - Overall"?: number | null
+          "Sectors of Investments - Overall"?: string | null
+          "SNo."?: number | null
+          "Stages of Entry - Overall"?: string | null
+        }
+        Update: {
+          "Investor Name"?: string | null
+          "Locations of Investment - as per applied filters"?: string | null
+          "Locations of Investment - Overall"?: string | null
+          "Portfolio Count - as per applied filters"?: number | null
+          "Portfolio Count - Overall"?: number | null
+          "Portfolio IPOs - as per applied filters"?: string | null
+          "Portfolio IPOs - Overall"?: string | null
+          "Rounds of Investment - as per applied filters"?: number | null
+          "Rounds of Investment - Overall"?: number | null
+          "Sectors of Investments - Overall"?: string | null
+          "SNo."?: number | null
+          "Stages of Entry - Overall"?: string | null
         }
         Relationships: []
       }
@@ -1526,7 +1691,17 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      pipeline_stage_enum:
+        | "pitch_received"
+        | "initial_review"
+        | "deck_evaluated"
+        | "shortlisted"
+        | "due_diligence"
+        | "term_sheet_offer"
+        | "negotiation"
+        | "investment_decision"
+        | "closed_won"
+        | "closed_lost"
     }
     CompositeTypes: {
       http_header: {
@@ -1669,6 +1844,19 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      pipeline_stage_enum: [
+        "pitch_received",
+        "initial_review",
+        "deck_evaluated",
+        "shortlisted",
+        "due_diligence",
+        "term_sheet_offer",
+        "negotiation",
+        "investment_decision",
+        "closed_won",
+        "closed_lost",
+      ],
+    },
   },
 } as const
