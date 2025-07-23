@@ -5,6 +5,7 @@ import { VCChatInterface } from "@/components/vc/VCChatInterface";
 import { VCDashboard } from "@/components/dashboard/VCDashboard"; // Keep VCDashboard import
 import { VCNotifications } from "@/components/dashboard/VCNotifications";
 import { FounderChatDashboard } from "@/components/chat/FounderChatDashboard";
+import { VCFounderChats } from "@/components/chat/VCFounderChats";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useEffect, useState } from "react";
@@ -189,6 +190,12 @@ const Dashboard = () => {
               <TabsTrigger value="submissions">New Applications</TabsTrigger>
               {!isIITBombay && <TabsTrigger value="reports">Pitch Decks</TabsTrigger>}
               {isVC && !isVCAndBits && <TabsTrigger value="notifications">Notifications</TabsTrigger>}
+              {isVC && !isVCAndBits && (
+                <TabsTrigger value="founder-chats" className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4" />
+                  Founder Chats
+                </TabsTrigger>
+              )}
             </TabsList>
           </Tabs>
           
@@ -231,6 +238,9 @@ const Dashboard = () => {
           </TabsContent>}
           {isVC && !isVCAndBits && <TabsContent value="notifications">
             <VCNotifications />
+          </TabsContent>}
+          {isVC && !isVCAndBits && <TabsContent value="founder-chats">
+            <VCFounderChats />
           </TabsContent>}
         </div>
       </Tabs>
