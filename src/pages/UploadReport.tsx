@@ -260,7 +260,7 @@ const UploadReport = () => {
                       Analyzing Content
                     </h3>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      Analyzing your pitch deck. Kindly wait while we process the information — this typically takes 20–30 seconds.
+                      Analyzing your pitch deck. Kindly wait while we process the information — this typically takes 40-50 seconds.
                     </p>
                     <div className="flex justify-center space-x-1 mt-4">
                       <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
