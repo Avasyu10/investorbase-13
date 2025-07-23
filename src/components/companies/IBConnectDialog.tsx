@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, Building2, MapPin, TrendingUp, Users, DollarSign, Globe, Target, Mail, Phone, Calendar, Award } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 interface IBConnectDialogProps {
   companyId: string;
   companyName: string;
@@ -82,6 +83,8 @@ export function IBConnectDialog({
   companyName
 }: IBConnectDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [connectingTo, setConnectingTo] = useState<string | null>(null);
+  const { user } = useAuth();
   const {
     data: vcMatches,
     isLoading,
@@ -109,6 +112,39 @@ export function IBConnectDialog({
     setIsOpen(open);
     if (open && error) {
       toast.error("Failed to load VC matches. Please try again.");
+    }
+  };
+
+  const handleConnect = async (vcName: string, vcIndex: number) => {
+    if (!user) {
+      toast.error("You must be logged in to connect with VCs");
+      return;
+    }
+
+    setConnectingTo(vcName);
+    
+    try {
+      const { error } = await supabase.functions.invoke('vc-connect-request', {
+        body: {
+          vcName,
+          vcIndex,
+          companyId,
+          companyName,
+          founderUserId: user.id
+        }
+      });
+
+      if (error) {
+        console.error('Connect error:', error);
+        toast.error("Failed to send connection request. Please try again.");
+      } else {
+        toast.success(`Connection request sent to ${vcName}!`);
+      }
+    } catch (error) {
+      console.error('Connect error:', error);
+      toast.error("Failed to send connection request. Please try again.");
+    } finally {
+      setConnectingTo(null);
     }
   };
   return <Dialog open={isOpen} onOpenChange={handleOpenChange}>
@@ -161,9 +197,18 @@ export function IBConnectDialog({
                         <h4 className="text-xl font-semibold text-foreground">
                           {vc['Investor Name']}
                         </h4>
-                        <Badge variant="secondary" className="bg-primary/10 text-primary font-medium">
-                          #{index + 1}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="bg-primary/10 text-primary font-medium">
+                            #{index + 1}
+                          </Badge>
+                          <Button
+                            size="sm"
+                            onClick={() => handleConnect(vc['Investor Name'], index)}
+                            className="bg-primary hover:bg-primary/90"
+                          >
+                            Connect
+                          </Button>
+                        </div>
                       </div>
 
                        {/* Main Content Layout */}
