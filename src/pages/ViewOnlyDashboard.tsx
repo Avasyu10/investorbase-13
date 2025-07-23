@@ -3,12 +3,13 @@ import { useState } from "react";
 import { useProfile } from "@/hooks/useProfile";
 import { ViewOnlyCompaniesList } from "@/components/companies/ViewOnlyCompaniesList";
 import { VCConnectNotifications } from "@/components/vc/VCConnectNotifications";
+import { VCChatDashboard } from "@/components/vc/VCChatDashboard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, MessageCircle } from "lucide-react";
+import { Building2, MessageCircle, MessagesSquare } from "lucide-react";
 import { Navigate } from "react-router-dom";
 
 export default function ViewOnlyDashboard() {
-  const { profile, isLoading } = useProfile();
+  const { profile, isLoading, isVC } = useProfile();
 
   if (isLoading) {
     return (
@@ -37,7 +38,7 @@ export default function ViewOnlyDashboard() {
       </div>
 
       <Tabs defaultValue="companies" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className={`grid w-full ${isVC ? 'grid-cols-3' : 'grid-cols-2'}`}>
           <TabsTrigger value="companies" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             Companies
@@ -46,6 +47,12 @@ export default function ViewOnlyDashboard() {
             <MessageCircle className="h-4 w-4" />
             VC Alerts
           </TabsTrigger>
+          {isVC && (
+            <TabsTrigger value="chats" className="flex items-center gap-2">
+              <MessagesSquare className="h-4 w-4" />
+              Founder Chats
+            </TabsTrigger>
+          )}
         </TabsList>
         
         <TabsContent value="companies" className="mt-6">
@@ -55,6 +62,12 @@ export default function ViewOnlyDashboard() {
         <TabsContent value="connections" className="mt-6">
           <VCConnectNotifications />
         </TabsContent>
+        
+        {isVC && (
+          <TabsContent value="chats" className="mt-6">
+            <VCChatDashboard />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
