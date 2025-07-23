@@ -125,8 +125,7 @@ Return your analysis in EXACTLY this JSON format:
     "industry": "<extract industry/sector from pitch deck content - look for business domain, market category, technology sector>",
     "website": "<extract website URL if mentioned in the deck>",
     "description": "<create a concise 2-3 sentence description of what the company does based on the pitch content>",
-    "sectors": "<extract primary business sectors/industries that match VC investment sectors like Consumer, Enterprise Applications, Retail, High Tech, etc. - format as comma-separated list>",
-    "investmentStages": "<extract current funding stage that matches VC entry stages like Seed, Series A, Series B, etc. - format as comma-separated list if multiple applicable>"
+    "sectors": "<extract primary business sectors/industries that match VC investment sectors like Consumer, Enterprise Applications, Retail, High Tech, etc. - format as comma-separated list>"
   },
   "sections": [
     {
