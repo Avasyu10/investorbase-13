@@ -11,7 +11,6 @@ interface VCMatchRequest {
 }
 
 interface VCMatch {
-  id?: string;
   'Investor Name': string;
   'Sectors of Investments - Overall': string;
   'Stages of Entry - Overall': string;
@@ -203,7 +202,6 @@ serve(async (req) => {
     .slice(0, 10); // Top 10 matches
 
     const matches: VCMatch[] = scoredVCs.map(vc => ({
-      id: vc.id || vc.vccontact?.id || `vc_${vc['Investor Name']?.replace(/\s+/g, '_').toLowerCase()}`,
       'Investor Name': vc['Investor Name'] || '',
       'Sectors of Investments - Overall': vc['Sectors of Investments - Overall'] || '',
       'Stages of Entry - Overall': vc['Stages of Entry - Overall'] || '',
