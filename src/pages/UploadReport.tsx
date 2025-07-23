@@ -40,6 +40,29 @@ const UploadReport = () => {
   const [progress, setProgress] = useState(0);
   const [isScrapingWebsite, setIsScrapingWebsite] = useState(false);
   const [progressInterval, setProgressInterval] = useState<NodeJS.Timeout | null>(null);
+
+  // Smooth progress animation function
+  const animateProgress = (startProgress: number, endProgress: number, duration: number) => {
+    const startTime = Date.now();
+    const progressDiff = endProgress - startProgress;
+    
+    const updateProgress = () => {
+      const elapsed = Date.now() - startTime;
+      const progressRatio = Math.min(elapsed / duration, 1);
+      
+      // Use easing function for smooth animation
+      const easedProgress = progressRatio * progressRatio * (3 - 2 * progressRatio);
+      const currentProgress = Math.round(startProgress + (progressDiff * easedProgress));
+      
+      setProgress(currentProgress);
+      
+      if (progressRatio < 1) {
+        requestAnimationFrame(updateProgress);
+      }
+    };
+    
+    requestAnimationFrame(updateProgress);
+  };
   useEffect(() => {
     if (!isLoading && !user) {
       navigate('/login', {
@@ -151,7 +174,9 @@ const UploadReport = () => {
     try {
       setIsUploading(true);
       setProgressStage("Uploading pitch deck...");
-      setProgress(10);
+      
+      // Smooth animation for upload progress
+      animateProgress(0, 25, 1500);
       
       // Initialize description as an empty string or with company email directly
       let description = `Company Email: ${companyEmail}`;
@@ -180,7 +205,7 @@ const UploadReport = () => {
 
       const report = await uploadReport(file, title, description, companyWebsite);
       console.log("Upload complete, report:", report);
-      setProgress(30);
+      animateProgress(25, 35, 800);
       setProgressStage("Upload complete");
       
       toast.success("Upload complete", {
@@ -190,12 +215,14 @@ const UploadReport = () => {
       setIsUploading(false);
       setIsAnalyzing(true);
       setProgressStage("Starting AI analysis...");
-      setProgress(40);
+      animateProgress(35, 45, 1000);
       
       if (companyWebsite) {
         setIsScrapingWebsite(true);
         setProgressStage("Scraping website content...");
-        setProgress(50);
+        animateProgress(45, 60, 2000);
+      } else {
+        animateProgress(45, 60, 1000);
       }
       
       toast.info("Analysis started", {
@@ -205,28 +232,15 @@ const UploadReport = () => {
         console.log("Starting analysis with report ID:", report.id);
         setIsScrapingWebsite(false);
         setProgressStage("Analyzing pitch deck content...");
-        setProgress(70);
         
-        // Start smooth progress animation from 70% to 85% during analysis
-        let currentProgress = 70;
-        const interval = setInterval(() => {
-          currentProgress += Math.random() * 2; // Increment by 0-2% randomly
-          if (currentProgress < 85) {
-            setProgress(Math.min(currentProgress, 85));
-          }
-        }, 1000); // Update every second
-        setProgressInterval(interval);
+        // Smooth analysis progress with varying speeds
+        animateProgress(60, 85, 8000);
         
         const result = await analyzeReport(report.id);
         
-        // Clear the interval once analysis is complete
-        if (interval) {
-          clearInterval(interval);
-          setProgressInterval(null);
-        }
         console.log("Analysis complete, result:", result);
         
-        setProgress(90);
+        animateProgress(85, 95, 1000);
 
         // Update the company with email after analysis
         if (result && result.companyId && companyEmail) {
@@ -235,7 +249,7 @@ const UploadReport = () => {
           }).eq('id', result.companyId);
         }
         setProgressStage("Analysis complete!");
-        setProgress(100);
+        animateProgress(95, 100, 500);
         
         toast.success("Analysis complete", {
           description: "Your pitch deck has been analyzed successfully!"
@@ -248,11 +262,6 @@ const UploadReport = () => {
           navigate('/dashboard');
         }
       } catch (analysisError: any) {
-        // Clear the interval on error
-        if (progressInterval) {
-          clearInterval(progressInterval);
-          setProgressInterval(null);
-        }
         console.error("Error analyzing report:", analysisError);
         if (analysisError.message?.includes("Analysis limit reached")) {
           setIsLimitModalOpen(true);
@@ -276,11 +285,6 @@ const UploadReport = () => {
         handleError(error instanceof Error ? error.message : "Failed to process pitch deck");
       }
     } finally {
-      // Clear any running progress interval
-      if (progressInterval) {
-        clearInterval(progressInterval);
-        setProgressInterval(null);
-      }
       setIsUploading(false);
       setIsAnalyzing(false);
       setProgress(0);
