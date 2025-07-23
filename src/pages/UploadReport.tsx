@@ -14,6 +14,7 @@ import { uploadReport, analyzeReport } from "@/lib/supabase";
 import { FileUploadZone } from "@/components/reports/upload/FileUploadZone"; // FileUploadZone is not used in the provided snippet
 import { supabase } from '@/integrations/supabase/client';
 import { AnalysisLimitModal } from "@/components/reports/AnalysisLimitModal";
+import { ProgressIndicator } from "@/components/reports/upload/ProgressIndicator";
 const UploadReport = () => {
   const {
     user,
@@ -35,6 +36,9 @@ const UploadReport = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
   const [isCheckingLimits, setIsCheckingLimits] = useState(false);
+  const [progressStage, setProgressStage] = useState("");
+  const [progress, setProgress] = useState(0);
+  const [isScrapingWebsite, setIsScrapingWebsite] = useState(false);
   useEffect(() => {
     if (!isLoading && !user) {
       navigate('/login', {
@@ -145,6 +149,9 @@ const UploadReport = () => {
     }
     try {
       setIsUploading(true);
+      setProgressStage("Uploading pitch deck...");
+      setProgress(10);
+      
       // Initialize description as an empty string or with company email directly
       let description = `Company Email: ${companyEmail}`;
 
@@ -172,17 +179,37 @@ const UploadReport = () => {
 
       const report = await uploadReport(file, title, description, companyWebsite);
       console.log("Upload complete, report:", report);
+      setProgress(30);
+      setProgressStage("Upload complete");
+      
       toast.success("Upload complete", {
         description: "Your pitch deck has been uploaded successfully"
       });
+      
+      setIsUploading(false);
       setIsAnalyzing(true);
+      setProgressStage("Starting AI analysis...");
+      setProgress(40);
+      
+      if (companyWebsite) {
+        setIsScrapingWebsite(true);
+        setProgressStage("Scraping website content...");
+        setProgress(50);
+      }
+      
       toast.info("Analysis started", {
         description: "This may take a few minutes depending on the size of your deck"
       });
       try {
         console.log("Starting analysis with report ID:", report.id);
+        setIsScrapingWebsite(false);
+        setProgressStage("Analyzing pitch deck content...");
+        setProgress(70);
+        
         const result = await analyzeReport(report.id);
         console.log("Analysis complete, result:", result);
+        
+        setProgress(90);
 
         // Update the company with email after analysis
         if (result && result.companyId && companyEmail) {
@@ -190,9 +217,13 @@ const UploadReport = () => {
             email: companyEmail
           }).eq('id', result.companyId);
         }
+        setProgressStage("Analysis complete!");
+        setProgress(100);
+        
         toast.success("Analysis complete", {
           description: "Your pitch deck has been analyzed successfully!"
         });
+        
         if (result && result.companyId) {
           navigate(`/company/${result.companyId}`);
         } else {
@@ -225,6 +256,9 @@ const UploadReport = () => {
     } finally {
       setIsUploading(false);
       setIsAnalyzing(false);
+      setProgress(0);
+      setProgressStage("");
+      setIsScrapingWebsite(false);
     }
   };
   if (isLoading) {
@@ -367,6 +401,18 @@ const UploadReport = () => {
                 </div>
               </div>
             </div>
+
+            {/* Progress Bar */}
+            {isProcessing && progressStage && (
+              <div className="pt-4">
+                <ProgressIndicator
+                  progressStage={progressStage}
+                  progress={progress}
+                  isScrapingWebsite={isScrapingWebsite}
+                  isAnalyzing={isAnalyzing}
+                />
+              </div>
+            )}
 
             {/* Submit Button (remains) */}
             <div className="pt-2">
