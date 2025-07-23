@@ -192,8 +192,8 @@ const Dashboard = () => {
               {isVC && !isVCAndBits && <TabsTrigger value="notifications">Notifications</TabsTrigger>}
               {isVC && !isVCAndBits && (
                 <TabsTrigger value="founder-chats" className="flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4" />
-                  Founder Chats
+                  
+                 Chats
                 </TabsTrigger>
               )}
             </TabsList>
