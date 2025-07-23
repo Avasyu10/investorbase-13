@@ -1289,6 +1289,7 @@ export type Database = {
           vc_email: string | null
           vc_linkedin: string | null
           vc_name: string
+          vc_phone: string | null
           vc_website: string | null
         }
         Insert: {
@@ -1304,6 +1305,7 @@ export type Database = {
           vc_email?: string | null
           vc_linkedin?: string | null
           vc_name: string
+          vc_phone?: string | null
           vc_website?: string | null
         }
         Update: {
@@ -1319,6 +1321,7 @@ export type Database = {
           vc_email?: string | null
           vc_linkedin?: string | null
           vc_name?: string
+          vc_phone?: string | null
           vc_website?: string | null
         }
         Relationships: []

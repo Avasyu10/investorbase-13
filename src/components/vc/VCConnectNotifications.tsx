@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
-import { Building2, Mail, Globe, Linkedin, MessageCircle, User, Calendar } from "lucide-react";
+import { Building2, Mail, Globe, Linkedin, MessageCircle, User, Calendar, Phone } from "lucide-react";
 
 interface VCConnectionRequest {
   id: string;
@@ -14,6 +14,7 @@ interface VCConnectionRequest {
   company_name: string;
   vc_name: string;
   vc_email: string | null;
+  vc_phone: string | null;
   vc_website: string | null;
   vc_linkedin: string | null;
   message: string | null;
@@ -127,15 +128,23 @@ export function VCConnectNotifications() {
                     <span className="ml-2 font-medium">{request.vc_name}</span>
                   </div>
                   
-                  {request.vc_email && (
-                    <div className="text-sm flex items-center gap-2">
-                      <Mail className="h-3 w-3 text-blue-600" />
-                      <span className="text-muted-foreground">Email:</span>
-                      <span className="font-medium">{request.vc_email}</span>
-                    </div>
-                  )}
-                  
-                  {request.vc_website && (
+                   {request.vc_email && (
+                     <div className="text-sm flex items-center gap-2">
+                       <Mail className="h-3 w-3 text-blue-600" />
+                       <span className="text-muted-foreground">Email:</span>
+                       <span className="font-medium">{request.vc_email}</span>
+                     </div>
+                   )}
+                   
+                   {request.vc_phone && (
+                     <div className="text-sm flex items-center gap-2">
+                       <Phone className="h-3 w-3 text-green-600" />
+                       <span className="text-muted-foreground">Phone:</span>
+                       <span className="font-medium">{request.vc_phone}</span>
+                     </div>
+                   )}
+                   
+                   {request.vc_website && (
                     <div className="text-sm flex items-center gap-2">
                       <Globe className="h-3 w-3 text-purple-600" />
                       <span className="text-muted-foreground">Website:</span>
