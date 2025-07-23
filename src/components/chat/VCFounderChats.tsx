@@ -423,10 +423,7 @@ export function VCFounderChats() {
                           }`}
                         >
                           <p className="text-sm">{message.content}</p>
-                          <div className="flex items-center justify-between mt-1 gap-2">
-                            <span className="text-xs opacity-70">
-                              {message.sender_name}
-                            </span>
+                          <div className="flex justify-end mt-1">
                             <span className="text-xs opacity-70">
                               {formatTime(message.timestamp)}
                             </span>
