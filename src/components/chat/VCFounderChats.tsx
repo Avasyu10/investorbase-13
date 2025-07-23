@@ -61,11 +61,20 @@ export function VCFounderChats() {
           table: 'vc_chat_messages',
           filter: `conversation_type=eq.vc_founder`
         },
-        () => {
-          // Reload conversations and messages when there are changes
-          loadConversations();
-          if (selectedConversation) {
-            loadMessages(selectedConversation);
+        (payload: any) => {
+          // Only reload if the message is not from the current user (to avoid disrupting optimistic updates)
+          if (payload.new && payload.new.user_id !== user.id) {
+            loadConversations();
+            if (selectedConversation) {
+              loadMessages(selectedConversation);
+            }
+          } else if (payload.new && payload.new.user_id === user.id) {
+            // For current user's messages, just refresh to replace optimistic message with real one
+            setTimeout(() => {
+              if (selectedConversation) {
+                loadMessages(selectedConversation);
+              }
+            }, 100);
           }
         }
       )
@@ -236,15 +245,40 @@ export function VCFounderChats() {
       return;
     }
 
+    const messageText = newMessage.trim();
+    const tempMessage: Message = {
+      id: `temp-${Date.now()}`,
+      sender_name: profile.full_name || profile.username || 'VC User',
+      sender_id: user.id,
+      content: messageText,
+      timestamp: new Date(),
+      is_from_vc: true
+    };
+
     try {
       setIsSending(true);
+      setNewMessage("");
+      
+      // Optimistically add the message to UI immediately
+      setMessages(prev => [...prev, tempMessage]);
+      
+      // Update the conversation list optimistically
+      setConversations(prev => prev.map(conv => 
+        conv.founder_id === selectedConversation 
+          ? {
+              ...conv,
+              last_message: messageText,
+              last_message_time: new Date()
+            }
+          : conv
+      ).sort((a, b) => b.last_message_time.getTime() - a.last_message_time.getTime()));
       
       const { error } = await supabase
         .from('vc_chat_messages')
         .insert({
           user_id: user.id,
           recipient_id: selectedConversation,
-          message: newMessage.trim(),
+          message: messageText,
           name: profile.full_name || profile.username || 'VC User',
           conversation_type: 'vc_founder',
           to_recipient: 'private'
@@ -252,6 +286,9 @@ export function VCFounderChats() {
 
       if (error) {
         console.error('Error sending message:', error);
+        // Remove the optimistic message on error
+        setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
+        setNewMessage(messageText);
         toast({
           title: "Error",
           description: "Failed to send message",
@@ -260,10 +297,12 @@ export function VCFounderChats() {
         return;
       }
 
-      setNewMessage("");
-      // Messages will be reloaded via real-time subscription
+      // Message sent successfully - the real-time subscription will handle the final update
     } catch (error) {
       console.error('Error in sendMessage:', error);
+      // Remove the optimistic message on error
+      setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
+      setNewMessage(messageText);
       toast({
         title: "Error",
         description: "Failed to send message",
