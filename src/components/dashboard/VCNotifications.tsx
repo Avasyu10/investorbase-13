@@ -673,7 +673,7 @@ export const VCNotifications = () => {
                         </Dialog>
                       )}
                       
-                      {acceptedNotifications.has(notification.id) && (
+                      {(acceptedNotifications.has(notification.id) || notification.is_read) && (
                         <Button
                           variant="outline"
                           size="sm"
