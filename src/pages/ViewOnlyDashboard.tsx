@@ -31,7 +31,7 @@ export default function ViewOnlyDashboard() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">View-Only Dashboard</h1>
           <p className="text-muted-foreground">
-            View companies and VC connection requests
+            View companies and VC connection alerts
           </p>
         </div>
       </div>
@@ -44,7 +44,7 @@ export default function ViewOnlyDashboard() {
           </TabsTrigger>
           <TabsTrigger value="connections" className="flex items-center gap-2">
             <MessageCircle className="h-4 w-4" />
-            VC Connections
+            VC Alerts
           </TabsTrigger>
         </TabsList>
         

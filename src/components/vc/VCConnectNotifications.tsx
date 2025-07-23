@@ -47,7 +47,7 @@ export function VCConnectNotifications() {
     return (
       <div className="flex items-center justify-center py-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        <span className="ml-2">Loading connection requests...</span>
+        <span className="ml-2">Loading notifications...</span>
       </div>
     );
   }
@@ -55,7 +55,7 @@ export function VCConnectNotifications() {
   if (error) {
     return (
       <div className="text-center py-8 text-red-600">
-        <p>Failed to load connection requests. Please try again.</p>
+        <p>Failed to load notifications. Please try again.</p>
       </div>
     );
   }
@@ -64,9 +64,9 @@ export function VCConnectNotifications() {
     return (
       <div className="text-center py-8 text-muted-foreground">
         <MessageCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
-        <p>No connection requests yet.</p>
+        <p>No notifications yet.</p>
         <p className="text-sm mt-1">
-          When founders send connection requests to VCs, they'll appear here.
+          When founders connect with VCs, notifications will appear here.
         </p>
       </div>
     );
@@ -75,10 +75,7 @@ export function VCConnectNotifications() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">VC Connection Requests</h2>
-        <Badge variant="secondary" className="text-sm">
-          {connectionRequests.length} request{connectionRequests.length !== 1 ? 's' : ''}
-        </Badge>
+        <h2 className="text-2xl font-bold">VC Connection Notifications</h2>
       </div>
 
       <div className="grid gap-4">
@@ -91,12 +88,6 @@ export function VCConnectNotifications() {
                   {request.company_name} → {request.vc_name}
                 </CardTitle>
                 <div className="flex items-center gap-2">
-                  <Badge 
-                    variant={request.status === 'pending' ? 'default' : 'secondary'}
-                    className="capitalize"
-                  >
-                    {request.status}
-                  </Badge>
                   <span className="text-sm text-muted-foreground flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
                     {formatDistanceToNow(new Date(request.created_at), { addSuffix: true })}
@@ -176,18 +167,6 @@ export function VCConnectNotifications() {
                 </div>
               </div>
 
-              {/* Message */}
-              {request.message && (
-                <div className="bg-muted/30 rounded-lg p-4">
-                  <h4 className="font-medium mb-2 flex items-center gap-2">
-                    <MessageCircle className="h-4 w-4 text-amber-600" />
-                    Message
-                  </h4>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {request.message}
-                  </p>
-                </div>
-              )}
             </CardContent>
           </Card>
         ))}
