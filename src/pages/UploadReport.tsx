@@ -248,16 +248,24 @@ const UploadReport = () => {
         <div className="max-w-3xl mx-auto bg-card rounded-lg border shadow-sm p-6 relative">
           {/* Loading Overlay */}
           {isProcessing && (
-            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm rounded-lg flex flex-col items-center justify-center z-10">
-              <div className="flex flex-col items-center justify-center space-y-4 py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <div className="text-center">
-                  <p className="text-sm font-medium">
-                    {isUploading ? "Uploading your pitch deck..." : "Analyzing your pitch deck..."}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    This may take a few minutes depending on the size of your deck
-                  </p>
+            <div className="absolute inset-0 bg-background/95 rounded-lg flex flex-col items-center justify-center z-10">
+              <div className="bg-card border rounded-lg shadow-lg p-8 max-w-sm w-full mx-4">
+                <div className="flex flex-col items-center space-y-6">
+                  <div className="relative">
+                    <div className="w-16 h-16 border-4 border-muted rounded-full"></div>
+                    <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
+                  </div>
+                  <div className="text-center space-y-2">
+                    <h3 className="text-lg font-semibold">
+                      {isUploading ? "Uploading Pitch Deck" : "Analyzing Content"}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {isUploading 
+                        ? "Securely uploading your document..." 
+                        : "Our AI is analyzing your pitch deck. This typically takes 2-3 minutes."
+                      }
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
