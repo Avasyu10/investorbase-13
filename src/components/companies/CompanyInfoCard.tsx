@@ -275,8 +275,8 @@ export function CompanyInfoCard({
     enabled: !!companyData?.id
   });
 
-  // Determine if VC Matchmaking button should be shown (non-IIT Bombay users with score > 65)
-  const shouldShowVCMatchmaking = companyData?.id && !isIITBombayUser && !isVC && !isBits && companyWithScore?.overall_score > 65;
+  // Determine if VC Matchmaking button should be shown (non-IIT Bombay users with score > 50)
+  const shouldShowVCMatchmaking = companyData?.id && !isIITBombayUser && !isVC && !isBits && companyWithScore?.overall_score > 50;
   return <div className="mb-7">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-8">
