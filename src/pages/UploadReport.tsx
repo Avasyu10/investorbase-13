@@ -39,6 +39,7 @@ const UploadReport = () => {
   const [progressStage, setProgressStage] = useState("");
   const [progress, setProgress] = useState(0);
   const [isScrapingWebsite, setIsScrapingWebsite] = useState(false);
+  const [progressInterval, setProgressInterval] = useState<NodeJS.Timeout | null>(null);
   useEffect(() => {
     if (!isLoading && !user) {
       navigate('/login', {
@@ -206,7 +207,23 @@ const UploadReport = () => {
         setProgressStage("Analyzing pitch deck content...");
         setProgress(70);
         
+        // Start smooth progress animation from 70% to 85% during analysis
+        let currentProgress = 70;
+        const interval = setInterval(() => {
+          currentProgress += Math.random() * 2; // Increment by 0-2% randomly
+          if (currentProgress < 85) {
+            setProgress(Math.min(currentProgress, 85));
+          }
+        }, 1000); // Update every second
+        setProgressInterval(interval);
+        
         const result = await analyzeReport(report.id);
+        
+        // Clear the interval once analysis is complete
+        if (interval) {
+          clearInterval(interval);
+          setProgressInterval(null);
+        }
         console.log("Analysis complete, result:", result);
         
         setProgress(90);
@@ -231,6 +248,11 @@ const UploadReport = () => {
           navigate('/dashboard');
         }
       } catch (analysisError: any) {
+        // Clear the interval on error
+        if (progressInterval) {
+          clearInterval(progressInterval);
+          setProgressInterval(null);
+        }
         console.error("Error analyzing report:", analysisError);
         if (analysisError.message?.includes("Analysis limit reached")) {
           setIsLimitModalOpen(true);
@@ -254,6 +276,11 @@ const UploadReport = () => {
         handleError(error instanceof Error ? error.message : "Failed to process pitch deck");
       }
     } finally {
+      // Clear any running progress interval
+      if (progressInterval) {
+        clearInterval(progressInterval);
+        setProgressInterval(null);
+      }
       setIsUploading(false);
       setIsAnalyzing(false);
       setProgress(0);
