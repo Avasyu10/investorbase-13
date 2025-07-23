@@ -252,19 +252,15 @@ const UploadReport = () => {
               <div className="bg-card/95 border border-border/50 rounded-xl shadow-2xl p-8 max-w-sm w-full mx-4 backdrop-blur-md">
                 <div className="flex flex-col items-center space-y-6">
                   <div className="relative">
-                    <div className="w-20 h-20 border-4 border-muted/30 rounded-full"></div>
-                    <div className="w-20 h-20 border-4 border-primary border-t-transparent rounded-full animate-spin absolute top-0 left-0 shadow-lg"></div>
-                    <div className="w-16 h-16 border-2 border-primary/30 rounded-full absolute top-2 left-2 animate-pulse"></div>
+                    <div className="w-16 h-16 border-4 border-muted/20 rounded-full"></div>
+                    <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
                   </div>
                   <div className="text-center space-y-3">
                     <h3 className="text-xl font-semibold text-foreground">
-                      {isUploading ? "Uploading Pitch Deck" : "Analyzing Content"}
+                      Analyzing Content
                     </h3>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      {isUploading 
-                        ? "Securely uploading your document..." 
-                        : "Analyzing your pitch deck. Kindly wait while we process the information — this typically takes 20–30 seconds."
-                      }
+                      Analyzing your pitch deck. Kindly wait while we process the information — this typically takes 20–30 seconds.
                     </p>
                     <div className="flex justify-center space-x-1 mt-4">
                       <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
