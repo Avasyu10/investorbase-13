@@ -248,23 +248,29 @@ const UploadReport = () => {
         <div className="max-w-3xl mx-auto bg-card rounded-lg border shadow-sm p-6 relative">
           {/* Loading Overlay */}
           {isProcessing && (
-            <div className="absolute inset-0 bg-background/95 rounded-lg flex flex-col items-center justify-center z-10">
-              <div className="bg-card border rounded-lg shadow-lg p-8 max-w-sm w-full mx-4">
+            <div className="absolute inset-0 bg-background/40 backdrop-blur-sm rounded-lg flex flex-col items-center justify-center z-10">
+              <div className="bg-card/95 border border-border/50 rounded-xl shadow-2xl p-8 max-w-sm w-full mx-4 backdrop-blur-md">
                 <div className="flex flex-col items-center space-y-6">
                   <div className="relative">
-                    <div className="w-16 h-16 border-4 border-muted rounded-full"></div>
-                    <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
+                    <div className="w-20 h-20 border-4 border-muted/30 rounded-full"></div>
+                    <div className="w-20 h-20 border-4 border-primary border-t-transparent rounded-full animate-spin absolute top-0 left-0 shadow-lg"></div>
+                    <div className="w-16 h-16 border-2 border-primary/30 rounded-full absolute top-2 left-2 animate-pulse"></div>
                   </div>
-                  <div className="text-center space-y-2">
-                    <h3 className="text-lg font-semibold">
+                  <div className="text-center space-y-3">
+                    <h3 className="text-xl font-semibold text-foreground">
                       {isUploading ? "Uploading Pitch Deck" : "Analyzing Content"}
                     </h3>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
                       {isUploading 
                         ? "Securely uploading your document..." 
                         : "Analyzing your pitch deck. Kindly wait while we process the information — this typically takes 20–30 seconds."
                       }
                     </p>
+                    <div className="flex justify-center space-x-1 mt-4">
+                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    </div>
                   </div>
                 </div>
               </div>
