@@ -233,14 +233,12 @@ const UploadReport = () => {
         setIsScrapingWebsite(false);
         setProgressStage("Analyzing pitch deck content...");
         
-        // Set progress to 75% immediately, then animate to 85% during analysis
-        animateProgress(60, 75, 1000);
+        // Smooth analysis progress that continues to completion
+        animateProgress(60, 100, 10000);
         
         const result = await analyzeReport(report.id);
         
         console.log("Analysis complete, result:", result);
-        
-        animateProgress(75, 95, 1000);
 
         // Update the company with email after analysis
         if (result && result.companyId && companyEmail) {
