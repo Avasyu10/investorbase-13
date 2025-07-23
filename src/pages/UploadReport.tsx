@@ -262,7 +262,7 @@ const UploadReport = () => {
                     <p className="text-sm text-muted-foreground">
                       {isUploading 
                         ? "Securely uploading your document..." 
-                        : "Our AI is analyzing your pitch deck. This typically takes 2-3 minutes."
+                        : "Analyzing your pitch deck. Kindly wait while we process the information — this typically takes 20–30 seconds."
                       }
                     </p>
                   </div>
