@@ -103,26 +103,39 @@ export function VCFounderChats() {
       // Group messages by conversation (founder) and extract founder names from messages
       const conversationMap = new Map<string, Conversation>();
       const founderIds = new Set<string>();
+      const founderNameMap = new Map<string, string>(); // Cache founder names from messages
 
+      // First pass: collect all founder names from messages where founders are senders
       for (const message of messageData || []) {
-        // Determine the founder ID and name (the one who is not the current VC)
         const isMessageFromVC = message.user_id === user.id;
         const founderId = isMessageFromVC ? message.recipient_id : message.user_id;
-        const founderName = isMessageFromVC ? 
-          // If VC sent the message, we need to get founder name from recipient data
-          (message.to_recipient !== 'group_chat' ? message.to_recipient : 'Unknown User') :
-          // If founder sent the message, get name from sender
-          message.name;
         
         if (!founderId) continue;
+        
+        // If this message is from a founder (not VC), store their name
+        if (!isMessageFromVC && message.name && message.name !== 'Unknown User') {
+          founderNameMap.set(founderId, message.name);
+        }
+        
         founderIds.add(founderId);
+      }
+
+      // Second pass: build conversations using the founder names we collected
+      for (const message of messageData || []) {
+        const isMessageFromVC = message.user_id === user.id;
+        const founderId = isMessageFromVC ? message.recipient_id : message.user_id;
+        
+        if (!founderId) continue;
 
         const existing = conversationMap.get(founderId);
         
         if (!existing || new Date(message.created_at) > existing.last_message_time) {
+          // Use the founder name we found from their messages, or fall back to 'Unknown User'
+          const founderName = founderNameMap.get(founderId) || 'Unknown User';
+          
           conversationMap.set(founderId, {
             founder_id: founderId,
-            founder_name: founderName || 'Unknown User',
+            founder_name: founderName,
             last_message: message.message,
             last_message_time: new Date(message.created_at),
             unread_count: 0
