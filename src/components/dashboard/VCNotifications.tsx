@@ -299,6 +299,7 @@ interface VCNotification {
 export const VCNotifications = () => {
   const [notifications, setNotifications] = useState<VCNotification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [acceptedNotifications, setAcceptedNotifications] = useState<Set<string>>(new Set());
   const [selectedChatFounder, setSelectedChatFounder] = useState<{
     userId: string;
     name: string;
@@ -397,19 +398,20 @@ export const VCNotifications = () => {
     }
   };
 
-  const markAsRead = async (notificationId: string) => {
+  const acceptNotification = async (notificationId: string) => {
     try {
+      // Mark as read in database
       const { error } = await supabase
         .from('vc_notifications')
         .update({ is_read: true, read_at: new Date().toISOString() })
         .eq('id', notificationId);
 
       if (error) {
-        console.error('Error marking notification as read:', error);
+        console.error('Error accepting notification:', error);
         return;
       }
 
-      // Update local state
+      // Update local states
       setNotifications(prev => 
         prev.map(notification => 
           notification.id === notificationId 
@@ -417,8 +419,15 @@ export const VCNotifications = () => {
             : notification
         )
       );
+      
+      setAcceptedNotifications(prev => new Set([...prev, notificationId]));
+      
+      toast({
+        title: "Notification Accepted",
+        description: "You can now connect with the founder.",
+      });
     } catch (error) {
-      console.error('Error in markAsRead:', error);
+      console.error('Error in acceptNotification:', error);
     }
   };
 
@@ -465,7 +474,7 @@ export const VCNotifications = () => {
             </p>
           </div>
         ) : (
-          <div className="space-y-4 max-h-96 overflow-y-auto">
+          <div className="space-y-4">
             {notifications.map((notification) => (
               <div
                 key={notification.id}
@@ -664,19 +673,21 @@ export const VCNotifications = () => {
                         </Dialog>
                       )}
                       
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-1"
-                        onClick={() => setSelectedChatFounder({
-                          userId: notification.founder_user_id,
-                          name: 'Founder',
-                          companyName: notification.company_name
-                        })}
-                      >
-                        <MessageCircle className="h-3 w-3" />
-                        Connect with Founder
-                      </Button>
+                      {acceptedNotifications.has(notification.id) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex items-center gap-1"
+                          onClick={() => setSelectedChatFounder({
+                            userId: notification.founder_user_id,
+                            name: 'Founder',
+                            companyName: notification.company_name
+                          })}
+                        >
+                          <MessageCircle className="h-3 w-3" />
+                          Connect with Founder
+                        </Button>
+                      )}
                     </div>
                   </div>
                   
@@ -684,11 +695,11 @@ export const VCNotifications = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => markAsRead(notification.id)}
+                      onClick={() => acceptNotification(notification.id)}
                       className="flex items-center gap-1"
                     >
                       <CheckCircle className="h-3 w-3" />
-                      Mark Read
+                      Accept
                     </Button>
                   )}
                 </div>
