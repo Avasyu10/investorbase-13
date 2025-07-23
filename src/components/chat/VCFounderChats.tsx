@@ -100,13 +100,19 @@ export function VCFounderChats() {
         return;
       }
 
-      // Group messages by conversation (founder) and get proper founder names
+      // Group messages by conversation (founder) and extract founder names from messages
       const conversationMap = new Map<string, Conversation>();
       const founderIds = new Set<string>();
 
       for (const message of messageData || []) {
-        // Determine the founder ID (the one who is not the current VC)
-        const founderId = message.user_id === user.id ? message.recipient_id : message.user_id;
+        // Determine the founder ID and name (the one who is not the current VC)
+        const isMessageFromVC = message.user_id === user.id;
+        const founderId = isMessageFromVC ? message.recipient_id : message.user_id;
+        const founderName = isMessageFromVC ? 
+          // If VC sent the message, we need to get founder name from recipient data
+          (message.to_recipient !== 'group_chat' ? message.to_recipient : 'Unknown User') :
+          // If founder sent the message, get name from sender
+          message.name;
         
         if (!founderId) continue;
         founderIds.add(founderId);
@@ -116,7 +122,7 @@ export function VCFounderChats() {
         if (!existing || new Date(message.created_at) > existing.last_message_time) {
           conversationMap.set(founderId, {
             founder_id: founderId,
-            founder_name: 'Loading...', // We'll update this below
+            founder_name: founderName || 'Unknown User',
             last_message: message.message,
             last_message_time: new Date(message.created_at),
             unread_count: 0
@@ -124,49 +130,51 @@ export function VCFounderChats() {
         }
       }
 
-      // Now fetch proper founder names and company information
+      // Try to get better founder names from profiles table
       if (founderIds.size > 0) {
         const founderIdsArray = Array.from(founderIds);
         
-        // Get founder profiles
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, full_name, username, email')
-          .in('id', founderIdsArray);
+        try {
+          // Get founder profiles
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, full_name, username, email')
+            .in('id', founderIdsArray);
 
-        if (profilesError) {
-          console.error('Error fetching founder profiles:', profilesError);
+          // Get company information
+          const { data: companies } = await supabase
+            .from('companies')
+            .select('user_id, name')
+            .in('user_id', founderIdsArray);
+
+          // Update conversation data with profile info if available
+          conversationMap.forEach((conversation, founderId) => {
+            const profile = profiles?.find(p => p.id === founderId);
+            const company = companies?.find(c => c.user_id === founderId);
+            
+            // Use profile name if available, otherwise keep the name from messages
+            if (profile) {
+              const profileName = profile.full_name || profile.username || profile.email;
+              if (profileName && profileName !== 'Unknown User') {
+                conversation.founder_name = profileName;
+              }
+            }
+            
+            if (company?.name) {
+              conversation.company_name = company.name;
+            }
+            
+            conversation.founder_email = profile?.email;
+          });
+        } catch (profileError) {
+          console.error('Error fetching additional founder data:', profileError);
+          // Continue with the names we already have from messages
         }
-
-        // Get company information from reports or companies tables
-        const { data: companies, error: companiesError } = await supabase
-          .from('companies')
-          .select('user_id, name')
-          .in('user_id', founderIdsArray);
-
-        if (companiesError) {
-          console.error('Error fetching company information:', companiesError);
-        }
-
-        // Update conversation data with proper names and company info
-        const updatedConversations = Array.from(conversationMap.values()).map(conversation => {
-          const profile = profiles?.find(p => p.id === conversation.founder_id);
-          const company = companies?.find(c => c.user_id === conversation.founder_id);
-          
-          return {
-            ...conversation,
-            founder_name: profile?.full_name || profile?.username || profile?.email || 'Unknown User',
-            founder_email: profile?.email,
-            company_name: company?.name
-          };
-        });
-
-        setConversations(updatedConversations.sort(
-          (a, b) => b.last_message_time.getTime() - a.last_message_time.getTime()
-        ));
-      } else {
-        setConversations([]);
       }
+
+      setConversations(Array.from(conversationMap.values()).sort(
+        (a, b) => b.last_message_time.getTime() - a.last_message_time.getTime()
+      ));
     } catch (error) {
       console.error('Error in loadConversations:', error);
       toast({
