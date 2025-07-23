@@ -14,7 +14,6 @@ import { uploadReport, analyzeReport } from "@/lib/supabase";
 import { FileUploadZone } from "@/components/reports/upload/FileUploadZone"; // FileUploadZone is not used in the provided snippet
 import { supabase } from '@/integrations/supabase/client';
 import { AnalysisLimitModal } from "@/components/reports/AnalysisLimitModal";
-import { ProgressIndicator } from "@/components/reports/upload/ProgressIndicator";
 const UploadReport = () => {
   const {
     user,
@@ -23,11 +22,7 @@ const UploadReport = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [title, setTitle] = useState("");
-  // REMOVED: briefIntroduction state
-  // const [briefIntroduction, setBriefIntroduction] = useState("");
   const [companyWebsite, setCompanyWebsite] = useState("");
-  // REMOVED: founderLinkedIns state
-  // const [founderLinkedIns, setFounderLinkedIns] = useState<string[]>([""]);
   const [companyStage, setCompanyStage] = useState("");
   const [sector, setSector] = useState("");
   const [companyEmail, setCompanyEmail] = useState("");
@@ -36,33 +31,6 @@ const UploadReport = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
   const [isCheckingLimits, setIsCheckingLimits] = useState(false);
-  const [progressStage, setProgressStage] = useState("");
-  const [progress, setProgress] = useState(0);
-  const [isScrapingWebsite, setIsScrapingWebsite] = useState(false);
-  const [progressInterval, setProgressInterval] = useState<NodeJS.Timeout | null>(null);
-
-  // Smooth progress animation function
-  const animateProgress = (startProgress: number, endProgress: number, duration: number) => {
-    const startTime = Date.now();
-    const progressDiff = endProgress - startProgress;
-    
-    const updateProgress = () => {
-      const elapsed = Date.now() - startTime;
-      const progressRatio = Math.min(elapsed / duration, 1);
-      
-      // Use easing function for smooth animation
-      const easedProgress = progressRatio * progressRatio * (3 - 2 * progressRatio);
-      const currentProgress = Math.round(startProgress + (progressDiff * easedProgress));
-      
-      setProgress(currentProgress);
-      
-      if (progressRatio < 1) {
-        requestAnimationFrame(updateProgress);
-      }
-    };
-    
-    requestAnimationFrame(updateProgress);
-  };
   useEffect(() => {
     if (!isLoading && !user) {
       navigate('/login', {
@@ -173,18 +141,9 @@ const UploadReport = () => {
     }
     try {
       setIsUploading(true);
-      setProgressStage("Uploading pitch deck...");
-      
-      // Smooth animation for upload progress
-      animateProgress(0, 25, 1500);
       
       // Initialize description as an empty string or with company email directly
       let description = `Company Email: ${companyEmail}`;
-
-      // REMOVED: briefIntroduction concatenation
-      // if (briefIntroduction) {
-      //   description += `\n\nBrief Introduction: ${briefIntroduction}`;
-      // }
 
       if (companyStage) {
         description += `\n\nCompany Stage: ${companyStage}`;
@@ -192,21 +151,9 @@ const UploadReport = () => {
       if (sector) {
         description += `\n\nSector: ${sector}`;
       }
-      // REMOVED: companyEmail concatenation (already added at the start)
-      // if (companyEmail) {
-      //   description += `\n\nCompany Email: ${companyEmail}`;
-      // }
-
-      // REMOVED: founderLinkedIns concatenation
-      // const validLinkedInProfiles = founderLinkedIns.filter(url => url.trim());
-      // if (validLinkedInProfiles.length > 0) {
-      //   description += `\n\nFounder LinkedIn Profiles:\n${validLinkedInProfiles.join('\n')}`;
-      // }
 
       const report = await uploadReport(file, title, description, companyWebsite);
       console.log("Upload complete, report:", report);
-      animateProgress(25, 35, 800);
-      setProgressStage("Upload complete");
       
       toast.success("Upload complete", {
         description: "Your pitch deck has been uploaded successfully"
@@ -214,27 +161,13 @@ const UploadReport = () => {
       
       setIsUploading(false);
       setIsAnalyzing(true);
-      setProgressStage("Starting AI analysis...");
-      animateProgress(35, 45, 1000);
-      
-      if (companyWebsite) {
-        setIsScrapingWebsite(true);
-        setProgressStage("Scraping website content...");
-        animateProgress(45, 60, 2000);
-      } else {
-        animateProgress(45, 60, 1000);
-      }
       
       toast.info("Analysis started", {
         description: "This may take a few minutes depending on the size of your deck"
       });
+      
       try {
         console.log("Starting analysis with report ID:", report.id);
-        setIsScrapingWebsite(false);
-        setProgressStage("Analyzing pitch deck content...");
-        
-        // Smooth analysis progress that continues to completion
-        animateProgress(60, 100, 10000);
         
         const result = await analyzeReport(report.id);
         
@@ -246,8 +179,6 @@ const UploadReport = () => {
             email: companyEmail
           }).eq('id', result.companyId);
         }
-        setProgressStage("Analysis complete!");
-        animateProgress(95, 100, 500);
         
         toast.success("Analysis complete", {
           description: "Your pitch deck has been analyzed successfully!"
@@ -285,9 +216,6 @@ const UploadReport = () => {
     } finally {
       setIsUploading(false);
       setIsAnalyzing(false);
-      setProgress(0);
-      setProgressStage("");
-      setIsScrapingWebsite(false);
     }
   };
   if (isLoading) {
@@ -431,15 +359,20 @@ const UploadReport = () => {
               </div>
             </div>
 
-            {/* Progress Bar */}
-            {isProcessing && progressStage && (
+            {/* Loading UI during processing */}
+            {isProcessing && (
               <div className="pt-4">
-                <ProgressIndicator
-                  progressStage={progressStage}
-                  progress={progress}
-                  isScrapingWebsite={isScrapingWebsite}
-                  isAnalyzing={isAnalyzing}
-                />
+                <div className="flex flex-col items-center justify-center space-y-4 py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <div className="text-center">
+                    <p className="text-sm font-medium">
+                      {isUploading ? "Uploading your pitch deck..." : "Analyzing your pitch deck..."}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      This may take a few minutes depending on the size of your deck
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
 
