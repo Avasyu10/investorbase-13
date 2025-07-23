@@ -245,7 +245,24 @@ const UploadReport = () => {
           </p>
         </div>
 
-        <div className="max-w-3xl mx-auto bg-card rounded-lg border shadow-sm p-6">
+        <div className="max-w-3xl mx-auto bg-card rounded-lg border shadow-sm p-6 relative">
+          {/* Loading Overlay */}
+          {isProcessing && (
+            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm rounded-lg flex flex-col items-center justify-center z-10">
+              <div className="flex flex-col items-center justify-center space-y-4 py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <div className="text-center">
+                  <p className="text-sm font-medium">
+                    {isUploading ? "Uploading your pitch deck..." : "Analyzing your pitch deck..."}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    This may take a few minutes depending on the size of your deck
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="mb-4">
             <h2 className="text-xl font-semibold mb-1">Submit Your Pitch</h2>
             <p className="text-sm text-muted-foreground">Upload your pitch here to be reviewed</p>
@@ -358,23 +375,6 @@ const UploadReport = () => {
                 </div>
               </div>
             </div>
-
-            {/* Loading UI during processing */}
-            {isProcessing && (
-              <div className="pt-4">
-                <div className="flex flex-col items-center justify-center space-y-4 py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  <div className="text-center">
-                    <p className="text-sm font-medium">
-                      {isUploading ? "Uploading your pitch deck..." : "Analyzing your pitch deck..."}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      This may take a few minutes depending on the size of your deck
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Submit Button (remains) */}
             <div className="pt-2">
