@@ -193,7 +193,7 @@ export function IBConnectDialog({
                                   {vc['Investment Score'] && <div className="flex items-center gap-2">
                                       <Award className="h-4 w-4 text-amber-600" />
                                       <div>
-                                        <span className="text-xs text-muted-foreground block">Score</span>
+                                        <span className="text-xs text-muted-foreground block">Investment Score:</span>
                                         <div className="text-sm font-medium">{vc['Investment Score']}</div>
                                       </div>
                                     </div>}
