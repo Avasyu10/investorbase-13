@@ -3,8 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { MapPin, TrendingUp, Users, Globe, Target, Mail, Phone, Calendar, Award, Building2, MessageCircle } from "lucide-react";
-import { toast } from "sonner";
+import { MapPin, TrendingUp, Users, Globe, Target, Mail, Phone, Calendar, Award, Building2 } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 interface VCMatch {
   'Investor Name': string;
@@ -86,14 +86,25 @@ export function VCMatchCard({ vc, index, companyId, companyName }: VCMatchCardPr
 
       if (error) {
         console.error('Connection request error:', error);
-        toast.error('Failed to send connection request. Please try again.');
+        toast({
+          title: "Error",
+          description: "Failed to send connection request. Please try again.",
+          variant: "destructive",
+        });
         return;
       }
 
-      toast.success(`Connection request sent to ${vc['Investor Name']}!`);
+      toast({
+        title: "Success!",
+        description: `Connection request sent to ${vc['Investor Name']}!`,
+      });
     } catch (err) {
       console.error('Unexpected error:', err);
-      toast.error('Failed to send connection request. Please try again.');
+      toast({
+        title: "Error",
+        description: "Failed to send connection request. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsConnecting(false);
     }
@@ -112,9 +123,8 @@ export function VCMatchCard({ vc, index, companyId, companyName }: VCMatchCardPr
               onClick={handleConnect}
               disabled={isConnecting}
               size="sm"
-              className="bg-green-600 hover:bg-green-700 text-white"
+              className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium"
             >
-              <MessageCircle className="h-4 w-4 mr-2" />
               {isConnecting ? 'Connecting...' : 'Connect'}
             </Button>
             <Badge variant="secondary" className="bg-primary/10 text-primary font-medium">
