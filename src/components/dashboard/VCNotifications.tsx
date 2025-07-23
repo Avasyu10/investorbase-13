@@ -299,6 +299,7 @@ interface VCNotification {
 export const VCNotifications = () => {
   const [notifications, setNotifications] = useState<VCNotification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [acceptedNotifications, setAcceptedNotifications] = useState<Set<string>>(new Set());
   const [selectedChatFounder, setSelectedChatFounder] = useState<{
     userId: string;
     name: string;
@@ -420,6 +421,14 @@ export const VCNotifications = () => {
     } catch (error) {
       console.error('Error in markAsRead:', error);
     }
+  };
+
+  const handleAcceptNotification = (notificationId: string) => {
+    setAcceptedNotifications(prev => new Set([...prev, notificationId]));
+    toast({
+      title: "Notification Accepted",
+      description: "You can now chat with that founder!",
+    });
   };
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
@@ -664,19 +673,31 @@ export const VCNotifications = () => {
                         </Dialog>
                       )}
                       
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-1"
-                        onClick={() => setSelectedChatFounder({
-                          userId: notification.founder_user_id,
-                          name: 'Founder',
-                          companyName: notification.company_name
-                        })}
-                      >
-                        <MessageCircle className="h-3 w-3" />
-                        Connect with Founder
-                      </Button>
+                      {acceptedNotifications.has(notification.id) ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex items-center gap-1"
+                          onClick={() => setSelectedChatFounder({
+                            userId: notification.founder_user_id,
+                            name: 'Founder',
+                            companyName: notification.company_name
+                          })}
+                        >
+                          <MessageCircle className="h-3 w-3" />
+                          Connect with Founder
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="flex items-center gap-1"
+                          onClick={() => handleAcceptNotification(notification.id)}
+                        >
+                          <CheckCircle className="h-3 w-3" />
+                          Accept
+                        </Button>
+                      )}
                     </div>
                   </div>
                   
