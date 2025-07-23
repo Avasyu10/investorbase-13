@@ -142,7 +142,7 @@ export function IBConnectDialog({
             {/* Results summary */}
             <div className="flex items-center justify-between">
               <h3 className="font-medium">
-                Found {vcMatches.totalMatches} matching VCs
+                Found Top {vcMatches.totalMatches} matching VCs
               </h3>
             </div>
 
