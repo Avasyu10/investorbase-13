@@ -70,6 +70,7 @@ const formatPortfolioIPOs = (ipos: string | null) => {
 
 export function VCMatchCard({ vc, index, companyId, companyName }: VCMatchCardProps) {
   const [isConnecting, setIsConnecting] = useState(false);
+  const [requestSent, setRequestSent] = useState(false);
 
   const handleConnect = async () => {
     try {
@@ -94,6 +95,7 @@ export function VCMatchCard({ vc, index, companyId, companyName }: VCMatchCardPr
         return;
       }
 
+      setRequestSent(true);
       toast({
         title: "Success!",
         description: `Connection request sent to ${vc['Investor Name']}!`,
@@ -121,11 +123,11 @@ export function VCMatchCard({ vc, index, companyId, companyName }: VCMatchCardPr
           <div className="flex items-center gap-2">
             <Button
               onClick={handleConnect}
-              disabled={isConnecting}
+              disabled={isConnecting || requestSent}
               size="sm"
               className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium"
             >
-              {isConnecting ? 'Connecting...' : 'Connect'}
+              {requestSent ? 'Request Sent' : isConnecting ? 'Connecting...' : 'Connect'}
             </Button>
             <Badge variant="secondary" className="bg-primary/10 text-primary font-medium">
               #{index + 1}
