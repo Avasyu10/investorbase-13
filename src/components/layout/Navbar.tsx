@@ -50,7 +50,7 @@ export function Navbar() {
   const isCompanyOrSectionPage = location.pathname.includes('/company/');
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-slate-800 text-white backdrop-blur-lg transition-all shadow-sm">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-lg transition-all">
       <div className="container flex h-16 items-center justify-between px-3 sm:px-4 md:px-8">
         <Link to={user ? (isViewOnly ? "/view-dashboard" : "/dashboard") : "/"} className="flex items-center space-x-2 transition-transform hover:scale-[1.01]">
           <img 
@@ -190,7 +190,7 @@ export function Navbar() {
               </DropdownMenu>
               
               {/* Desktop nav items */}
-              <span className="text-sm text-gray-300 hidden md:inline-block">
+              <span className="text-sm text-muted-foreground hidden md:inline-block">
                 {user.email}
               </span>
               <Button 
