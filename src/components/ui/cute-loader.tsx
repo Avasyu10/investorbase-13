@@ -1,282 +1,4 @@
-import { useEffect, useRef } from 'react';
-import Lottie from 'lottie-react';
-
-// Simple cute loading animation data (animated dots with a friendly character)
-const cuteLoadingAnimation = {
-  "v": "5.7.4",
-  "fr": 30,
-  "ip": 0,
-  "op": 90,
-  "w": 200,
-  "h": 200,
-  "nm": "Cute Loading",
-  "ddd": 0,
-  "assets": [],
-  "layers": [
-    {
-      "ddd": 0,
-      "ind": 1,
-      "ty": 4,
-      "nm": "Face",
-      "sr": 1,
-      "ks": {
-        "o": {"a": 0, "k": 100},
-        "r": {"a": 0, "k": 0},
-        "p": {"a": 0, "k": [100, 80, 0]},
-        "a": {"a": 0, "k": [0, 0, 0]},
-        "s": {"a": 0, "k": [100, 100, 100]}
-      },
-      "ao": 0,
-      "shapes": [
-        {
-          "ty": "gr",
-          "it": [
-            {
-              "d": 1,
-              "ty": "el",
-              "s": {"a": 0, "k": [60, 60]},
-              "p": {"a": 0, "k": [0, 0]},
-              "nm": "Head"
-            },
-            {
-              "ty": "fl",
-              "c": {"a": 0, "k": [1, 0.8, 0.4, 1]},
-              "o": {"a": 0, "k": 100},
-              "r": 1,
-              "bm": 0,
-              "nm": "Fill"
-            }
-          ],
-          "nm": "Head",
-          "bm": 0
-        },
-        {
-          "ty": "gr",
-          "it": [
-            {
-              "d": 1,
-              "ty": "el",
-              "s": {"a": 0, "k": [6, 6]},
-              "p": {"a": 0, "k": [-12, -8]},
-              "nm": "Left Eye"
-            },
-            {
-              "ty": "fl",
-              "c": {"a": 0, "k": [0.2, 0.2, 0.2, 1]},
-              "o": {"a": 0, "k": 100},
-              "r": 1,
-              "bm": 0,
-              "nm": "Fill"
-            }
-          ],
-          "nm": "Left Eye",
-          "bm": 0
-        },
-        {
-          "ty": "gr",
-          "it": [
-            {
-              "d": 1,
-              "ty": "el",
-              "s": {"a": 0, "k": [6, 6]},
-              "p": {"a": 0, "k": [12, -8]},
-              "nm": "Right Eye"
-            },
-            {
-              "ty": "fl",
-              "c": {"a": 0, "k": [0.2, 0.2, 0.2, 1]},
-              "o": {"a": 0, "k": 100},
-              "r": 1,
-              "bm": 0,
-              "nm": "Fill"
-            }
-          ],
-          "nm": "Right Eye",
-          "bm": 0
-        }
-      ],
-      "ip": 0,
-      "op": 90,
-      "st": 0,
-      "bm": 0
-    },
-    {
-      "ddd": 0,
-      "ind": 2,
-      "ty": 4,
-      "nm": "Dot 1",
-      "sr": 1,
-      "ks": {
-        "o": {"a": 0, "k": 100},
-        "r": {"a": 0, "k": 0},
-        "p": {
-          "a": 1,
-          "k": [
-            {"i": {"x": [0.42], "y": [1]}, "o": {"x": [0.58], "y": [0]}, "t": 0, "s": [60, 140, 0]},
-            {"i": {"x": [0.42], "y": [1]}, "o": {"x": [0.58], "y": [0]}, "t": 15, "s": [60, 130, 0]},
-            {"i": {"x": [0.42], "y": [1]}, "o": {"x": [0.58], "y": [0]}, "t": 30, "s": [60, 140, 0]},
-            {"t": 90, "s": [60, 140, 0]}
-          ]
-        },
-        "a": {"a": 0, "k": [0, 0, 0]},
-        "s": {
-          "a": 1,
-          "k": [
-            {"i": {"x": [0.42, 0.42, 0.42], "y": [1, 1, 1]}, "o": {"x": [0.58, 0.58, 0.58], "y": [0, 0, 0]}, "t": 0, "s": [100, 100, 100]},
-            {"i": {"x": [0.42, 0.42, 0.42], "y": [1, 1, 1]}, "o": {"x": [0.58, 0.58, 0.58], "y": [0, 0, 0]}, "t": 15, "s": [120, 120, 100]},
-            {"t": 30, "s": [100, 100, 100]}
-          ]
-        }
-      },
-      "ao": 0,
-      "shapes": [
-        {
-          "ty": "gr",
-          "it": [
-            {
-              "d": 1,
-              "ty": "el",
-              "s": {"a": 0, "k": [12, 12]},
-              "p": {"a": 0, "k": [0, 0]},
-              "nm": "Dot"
-            },
-            {
-              "ty": "fl",
-              "c": {"a": 0, "k": [0.3, 0.7, 1, 1]},
-              "o": {"a": 0, "k": 100},
-              "r": 1,
-              "bm": 0,
-              "nm": "Fill"
-            }
-          ],
-          "nm": "Dot",
-          "bm": 0
-        }
-      ],
-      "ip": 0,
-      "op": 90,
-      "st": 0,
-      "bm": 0
-    },
-    {
-      "ddd": 0,
-      "ind": 3,
-      "ty": 4,
-      "nm": "Dot 2",
-      "sr": 1,
-      "ks": {
-        "o": {"a": 0, "k": 100},
-        "r": {"a": 0, "k": 0},
-        "p": {
-          "a": 1,
-          "k": [
-            {"i": {"x": [0.42], "y": [1]}, "o": {"x": [0.58], "y": [0]}, "t": 10, "s": [100, 140, 0]},
-            {"i": {"x": [0.42], "y": [1]}, "o": {"x": [0.58], "y": [0]}, "t": 25, "s": [100, 130, 0]},
-            {"i": {"x": [0.42], "y": [1]}, "o": {"x": [0.58], "y": [0]}, "t": 40, "s": [100, 140, 0]},
-            {"t": 90, "s": [100, 140, 0]}
-          ]
-        },
-        "a": {"a": 0, "k": [0, 0, 0]},
-        "s": {
-          "a": 1,
-          "k": [
-            {"i": {"x": [0.42, 0.42, 0.42], "y": [1, 1, 1]}, "o": {"x": [0.58, 0.58, 0.58], "y": [0, 0, 0]}, "t": 10, "s": [100, 100, 100]},
-            {"i": {"x": [0.42, 0.42, 0.42], "y": [1, 1, 1]}, "o": {"x": [0.58, 0.58, 0.58], "y": [0, 0, 0]}, "t": 25, "s": [120, 120, 100]},
-            {"t": 40, "s": [100, 100, 100]}
-          ]
-        }
-      },
-      "ao": 0,
-      "shapes": [
-        {
-          "ty": "gr",
-          "it": [
-            {
-              "d": 1,
-              "ty": "el",
-              "s": {"a": 0, "k": [12, 12]},
-              "p": {"a": 0, "k": [0, 0]},
-              "nm": "Dot"
-            },
-            {
-              "ty": "fl",
-              "c": {"a": 0, "k": [1, 0.6, 0.8, 1]},
-              "o": {"a": 0, "k": 100},
-              "r": 1,
-              "bm": 0,
-              "nm": "Fill"
-            }
-          ],
-          "nm": "Dot",
-          "bm": 0
-        }
-      ],
-      "ip": 0,
-      "op": 90,
-      "st": 0,
-      "bm": 0
-    },
-    {
-      "ddd": 0,
-      "ind": 4,
-      "ty": 4,
-      "nm": "Dot 3",
-      "sr": 1,
-      "ks": {
-        "o": {"a": 0, "k": 100},
-        "r": {"a": 0, "k": 0},
-        "p": {
-          "a": 1,
-          "k": [
-            {"i": {"x": [0.42], "y": [1]}, "o": {"x": [0.58], "y": [0]}, "t": 20, "s": [140, 140, 0]},
-            {"i": {"x": [0.42], "y": [1]}, "o": {"x": [0.58], "y": [0]}, "t": 35, "s": [140, 130, 0]},
-            {"i": {"x": [0.42], "y": [1]}, "o": {"x": [0.58], "y": [0]}, "t": 50, "s": [140, 140, 0]},
-            {"t": 90, "s": [140, 140, 0]}
-          ]
-        },
-        "a": {"a": 0, "k": [0, 0, 0]},
-        "s": {
-          "a": 1,
-          "k": [
-            {"i": {"x": [0.42, 0.42, 0.42], "y": [1, 1, 1]}, "o": {"x": [0.58, 0.58, 0.58], "y": [0, 0, 0]}, "t": 20, "s": [100, 100, 100]},
-            {"i": {"x": [0.42, 0.42, 0.42], "y": [1, 1, 1]}, "o": {"x": [0.58, 0.58, 0.58], "y": [0, 0, 0]}, "t": 35, "s": [120, 120, 100]},
-            {"t": 50, "s": [100, 100, 100]}
-          ]
-        }
-      },
-      "ao": 0,
-      "shapes": [
-        {
-          "ty": "gr",
-          "it": [
-            {
-              "d": 1,
-              "ty": "el",
-              "s": {"a": 0, "k": [12, 12]},
-              "p": {"a": 0, "k": [0, 0]},
-              "nm": "Dot"
-            },
-            {
-              "ty": "fl",
-              "c": {"a": 0, "k": [0.7, 1, 0.5, 1]},
-              "o": {"a": 0, "k": 100},
-              "r": 1,
-              "bm": 0,
-              "nm": "Fill"
-            }
-          ],
-          "nm": "Dot",
-          "bm": 0
-        }
-      ],
-      "ip": 0,
-      "op": 90,
-      "st": 0,
-      "bm": 0
-    }
-  ],
-  "markers": []
-};
+import React from 'react';
 
 interface CuteLoaderProps {
   size?: number;
@@ -284,22 +6,80 @@ interface CuteLoaderProps {
 }
 
 export function CuteLoader({ size = 80, className = "" }: CuteLoaderProps) {
-  const lottieRef = useRef<any>(null);
-
-  useEffect(() => {
-    if (lottieRef.current) {
-      lottieRef.current.setSpeed(0.8); // Slightly slower for a more relaxed feel
-    }
-  }, []);
-
   return (
-    <div className={`flex items-center justify-center ${className}`}>
-      <Lottie
-        lottieRef={lottieRef}
-        animationData={cuteLoadingAnimation}
-        loop={true}
-        style={{ width: size, height: size }}
-      />
+    <div className={`flex flex-col items-center justify-center ${className}`} style={{ width: size, height: size }}>
+      {/* Cute animated character */}
+      <div className="relative mb-3">
+        {/* Head */}
+        <div 
+          className="rounded-full bg-gradient-to-br from-yellow-300 to-yellow-400 relative animate-pulse"
+          style={{ width: size * 0.6, height: size * 0.6 }}
+        >
+          {/* Eyes */}
+          <div className="absolute flex justify-between px-3 pt-2" style={{ top: '25%', left: '20%', right: '20%' }}>
+            <div 
+              className="rounded-full bg-gray-800 animate-bounce"
+              style={{ 
+                width: size * 0.08, 
+                height: size * 0.08,
+                animationDelay: '0s',
+                animationDuration: '1s'
+              }}
+            />
+            <div 
+              className="rounded-full bg-gray-800 animate-bounce"
+              style={{ 
+                width: size * 0.08, 
+                height: size * 0.08,
+                animationDelay: '0.1s',
+                animationDuration: '1s'
+              }}
+            />
+          </div>
+          
+          {/* Mouth - cute smile */}
+          <div 
+            className="absolute left-1/2 transform -translate-x-1/2 border-b-2 border-gray-800 rounded-full animate-pulse"
+            style={{ 
+              bottom: '30%',
+              width: size * 0.15,
+              height: size * 0.08,
+              animationDelay: '0.5s'
+            }}
+          />
+        </div>
+      </div>
+      
+      {/* Animated dots below */}
+      <div className="flex space-x-1">
+        <div 
+          className="rounded-full bg-blue-400 animate-bounce"
+          style={{ 
+            width: size * 0.12, 
+            height: size * 0.12,
+            animationDelay: '0s',
+            animationDuration: '1.4s'
+          }}
+        />
+        <div 
+          className="rounded-full bg-pink-400 animate-bounce"
+          style={{ 
+            width: size * 0.12, 
+            height: size * 0.12,
+            animationDelay: '0.2s',
+            animationDuration: '1.4s'
+          }}
+        />
+        <div 
+          className="rounded-full bg-green-400 animate-bounce"
+          style={{ 
+            width: size * 0.12, 
+            height: size * 0.12,
+            animationDelay: '0.4s',
+            animationDuration: '1.4s'
+          }}
+        />
+      </div>
     </div>
   );
 }
