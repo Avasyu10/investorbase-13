@@ -34,7 +34,6 @@ function mapDbCompanyToApi(company: any) {
     report_id: company.report_id,
     source: source,
     scoring_reason: company.scoring_reason,
-    deck_url: company.deck_url,
     // FIXED: Keep contact information from companies table and don't set to null
     poc_name: company.poc_name,
     phonenumber: company.phonenumber,
@@ -161,7 +160,7 @@ export function useCompanies(
           .select(`
             id, name, overall_score, created_at, updated_at, 
             assessment_points, report_id, response_received, user_id, source,
-            poc_name, phonenumber, email, industry, scoring_reason, deck_url,
+            poc_name, phonenumber, email, industry, scoring_reason,
             report:report_id (
               pdf_url, 
               is_public_submission

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Company } from "@/lib/api/apiContract";
 import { formatDistanceToNow, format } from "date-fns"; // Import 'format'
-import { Star, Trash2, Phone, Mail, Globe, Download, Edit, ArrowUpDown, ArrowUp, ArrowDown, Link } from "lucide-react";
+import { Star, Trash2, Phone, Mail, Globe, Download, Edit, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { EditCompanyDialog } from "./EditCompanyDialog";
 import { useState, useEffect } from "react";
 import { useDeleteCompany } from "@/hooks/useDeleteCompany";
@@ -24,7 +24,6 @@ interface CompaniesTableProps {
   isVCAndBits?: boolean;
   isGeneralUser?: boolean;
   isBitsQuestion?: boolean;
-  isVC?: boolean;
 }
 
 export function CompaniesTable({
@@ -36,8 +35,7 @@ export function CompaniesTable({
   isIITBombay = false,
   isVCAndBits = false,
   isGeneralUser = false,
-  isBitsQuestion = false,
-  isVC = false
+  isBitsQuestion = false
 }: CompaniesTableProps) {
   const [localCompanies, setLocalCompanies] = useState(companies);
   const [deletingCompanies, setDeletingCompanies] = useState<Set<string>>(new Set());
@@ -461,7 +459,6 @@ export function CompaniesTable({
                 </TableHead>
                 <TableHead className="font-semibold w-[100px]">Status</TableHead>
                 <TableHead className="font-semibold w-[140px]">Team POC</TableHead>
-                {isVC && <TableHead className="font-semibold w-[100px]">Deck</TableHead>}
                 <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -529,24 +526,6 @@ export function CompaniesTable({
                     <TableCell>
                       <span className="text-sm">{teamMemberName || "—"}</span>
                     </TableCell>
-                    {isVC && <TableCell>
-                      {(company as any).deck_url ? (
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.open((company as any).deck_url, '_blank');
-                          }}
-                          className="flex items-center gap-1 text-blue-600 hover:text-blue-800"
-                        >
-                          <Link className="h-3 w-3" />
-                          <span className="text-xs">View</span>
-                        </Button>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">—</span>
-                      )}
-                    </TableCell>}
                     <TableCell>
                       <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
                         <Button variant="ghost" size="sm" onClick={e => handleEditClick(e, company)} className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50">

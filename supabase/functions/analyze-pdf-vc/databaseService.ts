@@ -9,9 +9,6 @@ export async function saveAnalysisResults(supabase: any, analysis: AnalysisResul
     const contactInfo = analysis.companyInfo?.contactInfo || {};
     const companyInfo = analysis.companyInfo || {};
     
-    // Create the deck URL from storage path
-    const deckUrl = `https://jhtnruktmtjqrfoiyrep.supabase.co/storage/v1/object/public/Report%20PDFs/${report.user_id}/${report.pdf_url}`;
-    
     // Create company record with extracted contact information
     const { data: company, error: companyError } = await supabase
       .from('companies')
@@ -22,7 +19,6 @@ export async function saveAnalysisResults(supabase: any, analysis: AnalysisResul
         report_id: report.id,
         user_id: report.user_id,
         source: 'vc_analysis',
-        deck_url: deckUrl,
         // Contact information fields
         phonenumber: contactInfo.phoneNumber || null,
         email: contactInfo.email || null,

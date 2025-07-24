@@ -9,9 +9,6 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
     const companyInfo = analysis.companyInfo || {};
     console.log("Extracted company info:", companyInfo);
     
-    // Create the deck URL from storage path
-    const deckUrl = `https://jhtnruktmtjqrfoiyrep.supabase.co/storage/v1/object/public/Report%20PDFs/${report.user_id}/${report.pdf_url}`;
-    
     // Create company entry
     const { data: company, error: companyError } = await supabase
       .from('companies')
@@ -23,7 +20,6 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
         user_id: report.user_id,
         source: report.is_public_submission ? 'public_submission' : 'dashboard',
         industry: companyInfo.industry || null,
-        deck_url: deckUrl,
         // Note: stage is stored in company_details table if needed
       })
       .select()

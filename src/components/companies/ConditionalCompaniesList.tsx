@@ -21,11 +21,6 @@ export function ConditionalCompaniesList() {
     return <VCAndBitsCompaniesList />;
   }
   
-  // For VC users, show the regular companies list with VC features
-  if (isVC && !isBits) {
-    return <CompaniesList isVC={true} />;
-  }
-  
   // For general users, pass the isGeneralUser flag
   return <CompaniesList isGeneralUser={isGeneralUser} />;
 }
