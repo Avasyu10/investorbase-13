@@ -51,15 +51,15 @@ const Dashboard = () => {
         }
       });
     } else if (user && !profileLoading) {
-      // Redirect Eximius users directly to VC analysis
-      if (isEximius) {
+      // Redirect Eximius users directly to VC analysis (ONLY if not already there)
+      if (isEximius && window.location.pathname === '/dashboard') {
         console.log("Eximius user detected, redirecting to VC analysis");
         navigate('/vc-analysis');
         return;
       }
 
       // Check if this is a general user (not any special user type)
-      const isGeneralUser = !isIITBombay && !isVC && !isVCAndBits && !isViewOnly && !isBitsQuestion;
+      const isGeneralUser = !isIITBombay && !isVC && !isVCAndBits && !isViewOnly && !isBitsQuestion && !isEximius;
       // Remove the redirect for general users so they can see the dashboard with chat
       // if (isGeneralUser) {
       //   console.log("General user detected, redirecting to upload page");
@@ -135,8 +135,8 @@ const Dashboard = () => {
     );
   }
 
-  // Check if this is a general user (founder)
-  const isGeneralUser = !isIITBombay && !isVC && !isVCAndBits && !isViewOnly && !isBitsQuestion;
+  // Check if this is a general user (founder) - exclude Eximius users since they should be on VC analysis
+  const isGeneralUser = !isIITBombay && !isVC && !isVCAndBits && !isViewOnly && !isBitsQuestion && !isEximius;
 
   // Simplified dashboard for general users (founders)
   if (isGeneralUser) {

@@ -6,15 +6,15 @@ import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
 
 const VCAnalysis = () => {
-  const { isVC, isLoading } = useProfile();
+  const { isVC, isEximius, isLoading } = useProfile();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isLoading && !isVC) {
-      console.log("Non-VC user attempted to access VC analysis page, redirecting");
+    if (!isLoading && !isVC && !isEximius) {
+      console.log("Non-VC and non-Eximius user attempted to access VC analysis page, redirecting");
       navigate('/dashboard');
     }
-  }, [isVC, isLoading, navigate]);
+  }, [isVC, isEximius, isLoading, navigate]);
 
   if (isLoading) {
     return (
@@ -24,7 +24,7 @@ const VCAnalysis = () => {
     );
   }
 
-  if (!isVC) {
+  if (!isVC && !isEximius) {
     return null; // Will redirect in useEffect
   }
 
