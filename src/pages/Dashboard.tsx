@@ -29,6 +29,7 @@ const Dashboard = () => {
     isVCAndBits,
     isViewOnly,
     isBitsQuestion,
+    isEximius,
     isLoading: profileLoading
   } = useProfile();
   const navigate = useNavigate();
@@ -50,6 +51,13 @@ const Dashboard = () => {
         }
       });
     } else if (user && !profileLoading) {
+      // Redirect Eximius users directly to VC analysis
+      if (isEximius) {
+        console.log("Eximius user detected, redirecting to VC analysis");
+        navigate('/vc-analysis');
+        return;
+      }
+
       // Check if this is a general user (not any special user type)
       const isGeneralUser = !isIITBombay && !isVC && !isVCAndBits && !isViewOnly && !isBitsQuestion;
       // Remove the redirect for general users so they can see the dashboard with chat
@@ -74,7 +82,7 @@ const Dashboard = () => {
 
     // Scroll to top when dashboard loads
     window.scrollTo(0, 0);
-  }, [user, isLoading, navigate, profile, isIITBombay, isVC, isViewOnly, profileLoading, isVCAndBits, isBitsQuestion]);
+  }, [user, isLoading, navigate, profile, isIITBombay, isVC, isViewOnly, profileLoading, isVCAndBits, isBitsQuestion, isEximius]);
 
   const checkAdminStatus = async () => {
     if (!user) return;
