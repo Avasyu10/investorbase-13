@@ -212,11 +212,15 @@ const Dashboard = () => {
           )}
         </div>
         
-        {/* Upload Deck and News Feed buttons on the right */}
+        {/* Upload Deck, Internal VC Chat, and News Feed buttons on the right */}
         <div className="flex gap-2">
           {isVC && !isVCAndBits && <Button onClick={() => navigate("/vc-analysis")} variant="outline" className="flex items-center">
             <FileUp className="mr-2 h-4 w-4" />
             Upload Deck
+          </Button>}
+          {isVC && !isVCAndBits && <Button onClick={() => setChatOpen(true)} variant="outline" className="flex items-center">
+            <MessageSquare className="mr-2 h-4 w-4" />
+            Internal VC Chat
           </Button>}
           <Button onClick={() => navigate("/news-feed")} variant="outline" className="flex items-center">
             <Newspaper className="mr-2 h-4 w-4" />
