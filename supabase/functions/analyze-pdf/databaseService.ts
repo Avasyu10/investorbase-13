@@ -10,7 +10,7 @@ export async function saveAnalysisResults(supabase: any, analysis: any, report: 
     console.log("Extracted company info:", companyInfo);
     
     // Create the deck URL from storage path
-    const deckUrl = `https://jhtnruktmtjqrfoiyrep.supabase.co/storage/v1/object/public/report-pdfs/${report.user_id}/${report.pdf_url}`;
+    const deckUrl = `https://jhtnruktmtjqrfoiyrep.supabase.co/storage/v1/object/public/Report%20PDFs/${report.user_id}/${report.pdf_url}`;
     
     // Create company entry
     const { data: company, error: companyError } = await supabase
