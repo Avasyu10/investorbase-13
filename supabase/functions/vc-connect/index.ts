@@ -1,31 +1,37 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface VCMatchRequest {
-  companyId: string;
+interface VCContactMatch {
+  'SNo.': number;
+  'Investor Name': string;
+  'Overview': string;
+  'Founded Year': number;
+  'State': string;
+  'City': string;
+  'Description': string;
+  'Investor Type': string;
+  'Practice Areas': string;
+  'Investment Score': number;
+  'Emails': string;
+  'Phone Numbers': string;
+  'Website': string;
+  'LinkedIn': string;
+  'Twitter': string;
+  match_score?: number;
+  match_reasons?: string[];
 }
 
-interface VCMatch {
-  'Investor Name': string;
-  'Sectors of Investments - Overall': string;
-  'Stages of Entry - Overall': string;
-  'Portfolio Count - Overall': number;
-  'Locations of Investment - Overall': string;
-  'Portfolio IPOs - Overall': string;
-  // From vccontact table
-  'Founded Year'?: number;
-  'City'?: string;
-  'Description'?: string;
-  'Investment Score'?: number;
-  'Emails'?: string;
-  'Phone Numbers'?: string;
-  'Website'?: string;
-  'LinkedIn'?: string;
+interface VCConnectRequest {
+  companyId: string;
+  companyStage?: string;
+  companyIndustry?: string;
+  minInvestmentScore?: number;
 }
 
 serve(async (req) => {
@@ -35,212 +41,216 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Initialize Supabase client
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
-    // Validate request method
     if (req.method !== 'POST') {
       return new Response(JSON.stringify({ error: 'Method not allowed' }), {
         status: 405,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // Parse request body
-    const { companyId }: VCMatchRequest = await req.json();
+    const { companyId, companyStage, companyIndustry, minInvestmentScore = 50 }: VCConnectRequest = await req.json();
 
     if (!companyId) {
       return new Response(JSON.stringify({ error: 'Company ID is required' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    console.log(`Processing VC matching request for company: ${companyId}`);
+    console.log('Processing VC connect for company:', companyId);
 
-    // Fetch company data and analysis
-    const { data: companyData, error: companyError } = await supabase
-      .from('companies')
-      .select('id, name, report_id')
-      .eq('id', companyId)
-      .single();
+    // Get company details if stage/industry not provided
+    let stage = companyStage;
+    let industry = companyIndustry;
 
-    if (companyError || !companyData) {
-      console.error('Company not found:', companyError);
-      return new Response(JSON.stringify({ error: 'Company not found' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    if (!stage || !industry) {
+      const { data: company, error: companyError } = await supabase
+        .from('companies')
+        .select('report_id, overall_score')
+        .eq('id', companyId)
+        .single();
+
+      if (company?.report_id) {
+        const { data: report } = await supabase
+          .from('reports')
+          .select('analysis_result')
+          .eq('id', company.report_id)
+          .single();
+
+        if (report?.analysis_result) {
+          const analysisResult = report.analysis_result as any;
+          const companyInfo = analysisResult?.company_Info || analysisResult?.companyInfo || {};
+          stage = stage || companyInfo.stage || companyInfo.funding_stage;
+          industry = industry || companyInfo.industry || companyInfo.sector;
+        }
+      }
     }
 
-    // Get the analysis result from the report
-    const { data: reportData, error: reportError } = await supabase
-      .from('reports')
-      .select('analysis_result')
-      .eq('id', companyData.report_id)
-      .single();
+    console.log('Company stage:', stage);
+    console.log('Company industry:', industry);
 
-    if (reportError || !reportData?.analysis_result) {
-      console.error('Report analysis not found:', reportError);
-      return new Response(JSON.stringify({ error: 'Company analysis not found' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    // Enhanced matching algorithms
+    const normalizeIndustry = (industry: string): string[] => {
+      if (!industry) return [];
+      
+      const variations = [industry.toLowerCase()];
+      const industryMap: Record<string, string[]> = {
+        'fintech': ['fintech', 'financial technology', 'finance', 'payments', 'banking', 'financial services'],
+        'saas': ['saas', 'software as a service', 'enterprise software', 'b2b software', 'cloud', 'software'],
+        'ai': ['ai', 'artificial intelligence', 'machine learning', 'ml', 'ai-ml', 'deep learning', 'data science'],
+        'healthcare': ['healthcare', 'health tech', 'biotech', 'medical', 'pharma', 'life sciences'],
+        'cybersecurity': ['cybersecurity', 'security', 'cyber security', 'infosec', 'data security'],
+        'edtech': ['edtech', 'education technology', 'education', 'learning', 'online learning'],
+        'blockchain': ['blockchain', 'crypto', 'web3', 'defi', 'cryptocurrency'],
+        'ecommerce': ['ecommerce', 'e-commerce', 'retail', 'marketplace', 'online retail'],
+        'mobility': ['mobility', 'transportation', 'automotive', 'logistics', 'supply chain'],
+        'energy': ['energy', 'cleantech', 'renewable energy', 'sustainability', 'clean tech'],
+        'real estate': ['real estate', 'proptech', 'property', 'construction', 'real-estate'],
+        'food': ['food tech', 'agtech', 'agriculture', 'food', 'agri'],
+        'gaming': ['gaming', 'game', 'entertainment', 'media', 'digital entertainment']
+      };
+      
+      for (const [key, values] of Object.entries(industryMap)) {
+        if (values.some(v => industry.toLowerCase().includes(v))) {
+          variations.push(...values, key);
+        }
+      }
+      return [...new Set(variations)];
+    };
 
-    const analysisResult = reportData.analysis_result;
-    
-    // Extract company sectors and stages from analysis
-    const companySectors = analysisResult.companyInfo?.sectors || '';
-    const companyStages = analysisResult.companyInfo?.investmentStages || '';
+    const calculateMatchScore = (vc: VCContactMatch, companyStage?: string, companyIndustry?: string): { score: number, reasons: string[] } => {
+      let score = 0;
+      const reasons: string[] = [];
+      
+      // Investment Score (30% weight)
+      if (vc['Investment Score'] && vc['Investment Score'] >= minInvestmentScore) {
+        const scoreBonus = Math.min(30, (vc['Investment Score'] - minInvestmentScore) / 2);
+        score += scoreBonus;
+        reasons.push(`High investment score: ${vc['Investment Score']}`);
+      }
+      
+      // Industry matching (40% weight)
+      if (companyIndustry && vc['Practice Areas']) {
+        const industryVariations = normalizeIndustry(companyIndustry);
+        const practiceAreas = vc['Practice Areas'].toLowerCase();
+        
+        const industryMatch = industryVariations.some(variation => 
+          practiceAreas.includes(variation)
+        );
+        
+        if (industryMatch) {
+          score += 40;
+          reasons.push(`Invests in ${companyIndustry} sector`);
+        }
+      }
+      
+      // Contact completeness (20% weight)
+      let contactScore = 0;
+      if (vc['Emails'] && vc['Emails'].trim()) {
+        contactScore += 8;
+        reasons.push('Email available');
+      }
+      if (vc['Phone Numbers'] && vc['Phone Numbers'].trim()) {
+        contactScore += 4;
+      }
+      if (vc['Website'] && vc['Website'].trim()) {
+        contactScore += 4;
+      }
+      if (vc['LinkedIn'] && vc['LinkedIn'].trim()) {
+        contactScore += 4;
+      }
+      score += contactScore;
+      
+      // Geographic preference (10% weight)
+      if (vc['State'] && (vc['State'].includes('California') || vc['State'].includes('New York') || vc['State'].includes('London'))) {
+        score += 10;
+        reasons.push('Located in major investment hub');
+      }
+      
+      return { score, reasons };
+    };
 
-    console.log('Company sectors:', companySectors);
-    console.log('Company stages:', companyStages);
-
-    if (!companySectors && !companyStages) {
-      return new Response(JSON.stringify({ 
-        error: 'No sectors or stages data found in company analysis',
-        matches: [],
-        totalMatches: 0 
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Convert sectors and stages to arrays for matching
-    const sectorsList = companySectors ? companySectors.split(',').map(s => s.trim()) : [];
-    const stagesList = companyStages ? companyStages.split(',').map(s => s.trim()) : [];
-
-    // Query VCs from vcdata table
-    const { data: vcdataRecords, error: vcError } = await supabase
-      .from('vcdata')
-      .select('*')
-      .limit(100);
+    // Get VC contacts with comprehensive data
+    const { data: vcContacts, error: vcError } = await supabase
+      .from('vccontact')
+      .select(`
+        "SNo.",
+        "Investor Name",
+        "Overview",
+        "Founded Year",
+        "State",
+        "City",
+        "Description",
+        "Investor Type",
+        "Practice Areas",
+        "Investment Score",
+        "Emails",
+        "Phone Numbers",
+        "Website",
+        "LinkedIn",
+        "Twitter"
+      `)
+      .gte('Investment Score', minInvestmentScore)
+      .not('Emails', 'is', null)
+      .neq('Emails', '');
 
     if (vcError) {
-      console.error('Error fetching VC data:', vcError);
-      return new Response(JSON.stringify({ error: 'Failed to fetch VC data' }), {
+      console.error('Error fetching VC contacts:', vcError);
+      return new Response(JSON.stringify({ error: 'Error fetching VC contacts' }), {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // Get corresponding vccontact data
-    const investorNames = vcdataRecords?.map(vc => vc['Investor Name']).filter(Boolean) || [];
-    
-    const { data: vccontactRecords, error: contactError } = await supabase
-      .from('vccontact')
-      .select('*')
-      .in('Investor Name', investorNames);
+    // Score and rank VCs
+    const scoredMatches = (vcContacts || [])
+      .map(vc => {
+        const matchData = calculateMatchScore(vc, stage, industry);
+        return {
+          ...vc,
+          match_score: matchData.score,
+          match_reasons: matchData.reasons
+        };
+      })
+      .filter(vc => vc.match_score > 10) // Only VCs with decent match
+      .sort((a, b) => b.match_score - a.match_score) // Sort by score descending
+      .slice(0, 20); // Get top 20 matches
 
-    if (contactError) {
-      console.log('Warning: Could not fetch VC contact data:', contactError);
-    }
-
-    // Merge the data
-    const allVCs = vcdataRecords?.map(vcdata => {
-      const contact = vccontactRecords?.find(contact => 
-        contact['Investor Name'] === vcdata['Investor Name']
-      );
-      return {
-        ...vcdata,
-        vccontact: contact || null
-      };
-    }) || [];
-
-
-    if (!allVCs || allVCs.length === 0) {
-      return new Response(JSON.stringify({ 
-        matches: [], 
-        totalMatches: 0,
-        companySectors,
-        companyStages 
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Score and filter VCs based on sector and stage matching
-    const scoredVCs = allVCs.map(vc => {
-      let score = 0;
-      const vcSectors = vc['Sectors of Investments - Overall'] || '';
-      const vcStages = vc['Stages of Entry - Overall'] || '';
-
-      // Sector matching (50% weight)
-      if (sectorsList.length > 0 && vcSectors) {
-        for (const companySector of sectorsList) {
-          if (vcSectors.toLowerCase().includes(companySector.toLowerCase())) {
-            score += 50;
-            break; // Only count once per VC
-          }
-        }
-      }
-
-      // Stage matching (50% weight)
-      if (stagesList.length > 0 && vcStages) {
-        for (const companyStage of stagesList) {
-          if (vcStages.toLowerCase().includes(companyStage.toLowerCase())) {
-            score += 50;
-            break; // Only count once per VC
-          }
-        }
-      }
-
-      return { ...vc, score };
-    })
-    .filter(vc => vc.score > 0) // Only include VCs with some match
-    .sort((a, b) => {
-      // Sort by score first, then by portfolio count as tiebreaker
-      if (b.score !== a.score) {
-        return b.score - a.score;
-      }
-      return (b['Portfolio Count - Overall'] || 0) - (a['Portfolio Count - Overall'] || 0);
-    })
-    .slice(0, 10); // Top 10 matches
-
-    const matches: VCMatch[] = scoredVCs.map(vc => ({
-      'Investor Name': vc['Investor Name'] || '',
-      'Sectors of Investments - Overall': vc['Sectors of Investments - Overall'] || '',
-      'Stages of Entry - Overall': vc['Stages of Entry - Overall'] || '',
-      'Portfolio Count - Overall': vc['Portfolio Count - Overall'] || 0,
-      'Locations of Investment - Overall': vc['Locations of Investment - Overall'] || '',
-      'Portfolio IPOs - Overall': vc['Portfolio IPOs - Overall'] || '',
-      // Include vccontact data
-      'Founded Year': vc.vccontact?.['Founded Year'] || null,
-      'City': vc.vccontact?.['City'] || '',
-      'Description': vc.vccontact?.['Description'] || '',
-      'Investment Score': vc.vccontact?.['Investment Score'] || null,
-      'Emails': vc.vccontact?.['Emails'] || '',
-      'Phone Numbers': vc.vccontact?.['Phone Numbers'] || '',
-      'Website': vc.vccontact?.['Website'] || '',
-      'LinkedIn': vc.vccontact?.['LinkedIn'] || ''
-    }));
-
-    console.log(`Found ${matches.length} matching VCs for company ${companyData.name}`);
+    console.log('Found VC contacts:', scoredMatches.length);
+    console.log('Top matches:', scoredMatches.slice(0, 3).map(m => ({ 
+      name: m['Investor Name'], 
+      score: m.match_score,
+      email: m['Emails'],
+      investment_score: m['Investment Score']
+    })));
 
     return new Response(JSON.stringify({
-      matches,
-      totalMatches: matches.length,
-      companySectors,
-      companyStages,
-      companyName: companyData.name
+      matches: scoredMatches,
+      totalMatches: scoredMatches.length,
+      searchCriteria: {
+        companyStage: stage,
+        companyIndustry: industry,
+        minInvestmentScore
+      }
     }), {
       status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
-    console.error('Error in vc-connect function:', error);
+    console.error('Error in VC connect function:', error);
     return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : 'An unexpected error occurred',
-      matches: [],
-      totalMatches: 0 
+      error: 'Internal server error',
+      details: error.message 
     }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 });

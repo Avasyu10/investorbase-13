@@ -7,20 +7,23 @@ import { MapPin, TrendingUp, Users, Globe, Target, Mail, Phone, Calendar, Award,
 import { toast } from "@/hooks/use-toast";
 
 interface VCMatch {
+  'SNo.': number;
   'Investor Name': string;
-  'Sectors of Investments - Overall': string;
-  'Stages of Entry - Overall': string;
-  'Portfolio Count - Overall': number;
-  'Locations of Investment - Overall': string;
-  'Portfolio IPOs - Overall': string;
-  'Founded Year'?: number;
-  'City'?: string;
-  'Description'?: string;
-  'Investment Score'?: number;
-  'Emails'?: string;
-  'Phone Numbers'?: string;
-  'Website'?: string;
-  'LinkedIn'?: string;
+  'Overview': string;
+  'Founded Year': number;
+  'State': string;
+  'City': string;
+  'Description': string;
+  'Investor Type': string;
+  'Practice Areas': string;
+  'Investment Score': number;
+  'Emails': string;
+  'Phone Numbers': string;
+  'Website': string;
+  'LinkedIn': string;
+  'Twitter': string;
+  match_score?: number;
+  match_reasons?: string[];
 }
 
 interface VCMatchCardProps {
@@ -115,9 +118,16 @@ export function VCMatchCard({ vc, index, companyId, companyName }: VCMatchCardPr
       <CardContent className="p-6">
         {/* VC Header */}
         <div className="flex items-center justify-between mb-6">
-          <h4 className="text-xl font-semibold text-foreground">
-            {vc['Investor Name']}
-          </h4>
+          <div>
+            <h4 className="text-xl font-semibold text-foreground">
+              {vc['Investor Name']}
+            </h4>
+            {vc.match_score && (
+              <div className="text-sm text-green-600 font-medium">
+                Match Score: {vc.match_score}%
+              </div>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <Button
               onClick={handleConnect}
@@ -139,6 +149,19 @@ export function VCMatchCard({ vc, index, companyId, companyName }: VCMatchCardPr
           <div className="lg:col-span-2">
             {(vc['Founded Year'] || vc['City'] || vc['Investment Score'] || vc['Emails'] || vc['Phone Numbers'] || vc['Website'] || vc['LinkedIn']) && (
               <div className="p-4 border rounded-lg h-full">
+                
+                {/* Match Reasons */}
+                {vc.match_reasons && vc.match_reasons.length > 0 && (
+                  <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <h6 className="text-sm font-medium text-green-800 mb-2">Why this VC matches:</h6>
+                    <ul className="text-xs text-green-700 space-y-1">
+                      {vc.match_reasons.map((reason, idx) => (
+                        <li key={idx}>• {reason}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 {/* Basic Info */}
                 <div className="grid grid-cols-3 gap-4 mb-4">
                   {vc['Founded Year'] && (
@@ -154,11 +177,8 @@ export function VCMatchCard({ vc, index, companyId, companyName }: VCMatchCardPr
                     <div className="flex items-center gap-2">
                       <MapPin className="h-4 w-4 text-green-600" />
                       <div>
-                        <span className="text-xs text-muted-foreground block">City</span>
-                        <div className="text-sm font-medium">
-                          {vc['City'].split(',').slice(0, 3).map(city => city.trim()).join(', ')}
-                          {vc['City'].split(',').length > 3 && ` +${vc['City'].split(',').length - 3} more`}
-                        </div>
+                        <span className="text-xs text-muted-foreground block">Location</span>
+                        <div className="text-sm font-medium">{vc['City']}, {vc['State']}</div>
                       </div>
                     </div>
                   )}
@@ -237,59 +257,43 @@ export function VCMatchCard({ vc, index, companyId, companyName }: VCMatchCardPr
             )}
           </div>
 
-          {/* Right Section: Portfolio */}
+          {/* Right Section: Practice Areas & Overview */}
           <div className="border rounded-lg p-4 h-full">
             <div className="flex items-center gap-2 mb-4">
-              <Users className="h-4 w-4 text-rose-600" />
-              <h6 className="text-base font-bold">Portfolio</h6>
+              <Target className="h-4 w-4 text-rose-600" />
+              <h6 className="text-base font-bold">Investment Focus</h6>
             </div>
-            <div className="text-center mb-4">
-              <div className="text-3xl font-bold text-foreground">
-                {vc['Portfolio Count - Overall'] || 0}
-              </div>
-              <div className="text-sm text-muted-foreground">companies</div>
-            </div>
-            {vc['Portfolio IPOs - Overall'] && (
-              <div className="pt-4 border-t">
-                <h6 className="text-sm font-medium mb-2">Notable IPOs</h6>
-                <div className="text-xs leading-relaxed">
-                  {formatPortfolioIPOs(vc['Portfolio IPOs - Overall'])}
+            
+            {vc['Practice Areas'] && (
+              <div className="mb-4">
+                <h6 className="text-sm font-medium mb-2">Practice Areas</h6>
+                <div className="flex flex-wrap gap-1">
+                  {vc['Practice Areas'].split(',').slice(0, 5).map((area, idx) => (
+                    <Badge key={idx} variant="secondary" className="text-xs">
+                      {area.trim()}
+                    </Badge>
+                  ))}
                 </div>
               </div>
             )}
-          </div>
-        </div>
 
-        {/* Bottom Section: Investment Areas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-          {/* Top Investment Sectors */}
-          <div className="border rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <TrendingUp className="h-4 w-4 text-blue-600" />
-              <h6 className="text-base font-bold">Top Sectors Invested in</h6>
-            </div>
-            <div className="space-y-2">
-              {parseAndShowTop(vc['Sectors of Investments - Overall'], 3).map((item, idx) => (
-                <div key={idx} className="text-sm">
-                  {item.name}
-                </div>
-              ))}
-            </div>
-          </div>
+            {vc['Investor Type'] && (
+              <div className="mb-4">
+                <h6 className="text-sm font-medium mb-2">Investor Type</h6>
+                <Badge variant="outline" className="text-xs">
+                  {vc['Investor Type']}
+                </Badge>
+              </div>
+            )}
 
-          {/* Top Investment Stages */}
-          <div className="border rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Target className="h-4 w-4 text-purple-600" />
-              <h6 className="text-base font-bold">Top Stages Invested in</h6>
-            </div>
-            <div className="space-y-2">
-              {parseAndShowTop(vc['Stages of Entry - Overall'], 3).map((item, idx) => (
-                <div key={idx} className="text-sm">
-                  {item.name}
-                </div>
-              ))}
-            </div>
+            {vc['Overview'] && (
+              <div className="pt-4 border-t">
+                <h6 className="text-sm font-medium mb-2">Overview</h6>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {vc['Overview'].length > 200 ? `${vc['Overview'].substring(0, 200)}...` : vc['Overview']}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </CardContent>
