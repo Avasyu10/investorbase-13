@@ -166,17 +166,25 @@ serve(async (req) => {
       });
     }
 
-    // Enhanced personalized matching with deterministic scoring
+    // AI-powered sophisticated matching with Gemini
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
     console.log('Gemini API available:', !!geminiApiKey);
     
-    // Process VCs with personalized scoring
-    const scoredVCs = [];
-    
-    for (let i = 0; i < allVCs.length; i++) {
-      const vc = allVCs[i];
-      let score = 0;
-      let matchFactors = [];
+    if (!geminiApiKey) {
+      console.error('GEMINI_API_KEY not found in environment variables');
+      return new Response(JSON.stringify({ 
+        error: 'AI matching service unavailable',
+        matches: [],
+        totalMatches: 0 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // First, do basic filtering and scoring
+    const preFilteredVCs = allVCs.map(vc => {
+      let preliminaryScore = 0;
       const vcSectors = vc['Sectors of Investments - Overall'] || '';
       const vcStages = vc['Stages of Entry - Overall'] || '';
       const portfolioCount = vc['Portfolio Count - Overall'] || 0;
@@ -184,163 +192,187 @@ serve(async (req) => {
         contact['Investor Name'] === vc['Investor Name']
       );
 
-      // Use VC name hash for consistent but varied scoring
-      const nameHash = vc['Investor Name'].split('').reduce((a, b) => {
-        a = ((a << 5) - a) + b.charCodeAt(0);
-        return a & a;
-      }, 0);
-      const hashMod = Math.abs(nameHash) % 100;
-
-      // Sector matching with VC-specific variance
-      let sectorScore = 0;
+      // Basic sector relevance check
       if (sectorsList.length > 0 && vcSectors) {
-        for (const companySector of sectorsList) {
-          const sectorLower = companySector.toLowerCase();
-          const vcSectorsLower = vcSectors.toLowerCase();
-          
-          if (vcSectorsLower.includes(sectorLower)) {
-            sectorScore = 35 + (hashMod % 8); // 35-42 range
-            matchFactors.push(`${companySector} investment focus`);
-            break;
-          }
-          else if (sectorLower.includes('tech') && vcSectorsLower.includes('technology')) {
-            sectorScore = 25 + (hashMod % 6);
-            matchFactors.push(`Technology sector alignment`);
-            break;
-          }
-          else if (sectorLower.includes('enterprise') && (vcSectorsLower.includes('b2b') || vcSectorsLower.includes('saas'))) {
-            sectorScore = 20 + (hashMod % 5);
-            matchFactors.push(`B2B/Enterprise expertise`);
+        for (const sector of sectorsList) {
+          if (vcSectors.toLowerCase().includes(sector.toLowerCase())) {
+            preliminaryScore += 40;
             break;
           }
         }
       }
-      score += sectorScore;
 
-      // Stage matching with variance
-      let stageScore = 0;
+      // Basic stage relevance check  
       if (stagesList.length > 0 && vcStages) {
-        for (const companyStage of stagesList) {
-          const stageLower = companyStage.toLowerCase();
-          const vcStagesLower = vcStages.toLowerCase();
-          
-          if (vcStagesLower.includes(stageLower)) {
-            stageScore = 25 + ((hashMod + 30) % 7); // 25-31 range
-            matchFactors.push(`${companyStage} stage specialist`);
-            break;
-          }
-          else if (stageLower.includes('seed') && vcStagesLower.includes('early')) {
-            stageScore = 15 + ((hashMod + 20) % 5);
-            matchFactors.push(`Early-stage investor`);
+        for (const stage of stagesList) {
+          if (vcStages.toLowerCase().includes(stage.toLowerCase())) {
+            preliminaryScore += 30;
             break;
           }
         }
       }
-      score += stageScore;
 
-      // Portfolio activity with variance
-      if (portfolioCount > 100) {
-        score += 12 + (hashMod % 4);
-        matchFactors.push(`Highly active investor`);
-      } else if (portfolioCount > 50) {
-        score += 8 + (hashMod % 3);
-        matchFactors.push(`Active portfolio builder`);
-      } else if (portfolioCount > 20) {
-        score += 5 + (hashMod % 2);
-        matchFactors.push(`Experienced investor`);
-      }
-
-      // Investment score bonus
-      const investmentScore = vcContact?.['Investment Score'] || 0;
-      if (investmentScore > 70) {
-        score += 8 + (hashMod % 3);
-        matchFactors.push(`Strong track record`);
-      } else if (investmentScore > 50) {
-        score += 4 + (hashMod % 2);
-        matchFactors.push(`Proven performance`);
-      }
+      // Portfolio activity points
+      if (portfolioCount > 50) preliminaryScore += 20;
+      else if (portfolioCount > 20) preliminaryScore += 10;
 
       // Contact availability
-      if (vcContact?.['Emails']) {
-        score += 3 + (hashMod % 2);
-        matchFactors.push(`Direct contact available`);
-      }
+      if (vcContact?.['Emails']) preliminaryScore += 10;
 
-      // Calculate unique percentage for each VC
-      const basePercentage = Math.min(Math.round((score / 100) * 100), 88);
-      const uniqueVariance = (hashMod % 12) - 6; // -6 to +6 variance
-      const matchPercentage = Math.max(Math.min(basePercentage + uniqueVariance, 94), 18);
+      return { 
+        ...vc, 
+        preliminaryScore,
+        vccontact: vcContact
+      };
+    })
+    .filter(vc => vc.preliminaryScore > 25) // Only process promising matches
+    .sort((a, b) => b.preliminaryScore - a.preliminaryScore)
+    .slice(0, 15); // Get top 15 for AI processing
 
-      // Create unique match reasons
-      let matchReason = 'Investment profile fit';
+    console.log(`Processing ${preFilteredVCs.length} VCs with AI matching`);
+
+    // Process each VC with Gemini AI for detailed analysis
+    const aiProcessedVCs = [];
+    
+    for (let i = 0; i < Math.min(preFilteredVCs.length, 10); i++) {
+      const vc = preFilteredVCs[i];
       
-      const vcNameWords = vc['Investor Name'].toLowerCase().split(' ');
-      const reasonTemplates = [
-        `Perfect sector-stage alignment`,
-        `Strong ${sectorsList[0] || 'sector'} investment track record`,
-        `Proven ${stagesList[0] || 'growth'} stage expertise`,
-        `Active ${portfolioCount > 50 ? 'portfolio' : 'investment'} builder`,
-        `Strategic ${companySectors.split(',')[0]} investor`,
-        `Ideal ${companyStages || 'stage'} funding partner`,
-        `Sector expertise meets growth stage`,
-        `Perfect investment thesis match`,
-        `Strong market focus alignment`,
-        `Proven ${sectorsList[0] || 'tech'} sector success`
-      ];
-      
-      // Use hash to select consistent but different reasons
-      const reasonIndex = Math.abs(nameHash) % reasonTemplates.length;
-      matchReason = reasonTemplates[reasonIndex];
+      try {
+        // Prepare comprehensive VC profile for AI analysis
+        const vcProfile = {
+          name: vc['Investor Name'],
+          sectors: vc['Sectors of Investments - Overall'] || 'Not specified',
+          stages: vc['Stages of Entry - Overall'] || 'Not specified',
+          portfolioCount: vc['Portfolio Count - Overall'] || 0,
+          locations: vc['Locations of Investment - Overall'] || 'Not specified',
+          ipos: vc['Portfolio IPOs - Overall'] || 'None listed',
+          investmentScore: vc.vccontact?.['Investment Score'] || 'Not available',
+          founded: vc.vccontact?.['Founded Year'] || 'Not available',
+          city: vc.vccontact?.['City'] || 'Not specified',
+          description: vc.vccontact?.['Description'] || 'No description available',
+          hasEmail: !!vc.vccontact?.['Emails'],
+          hasPhone: !!vc.vccontact?.['Phone Numbers']
+        };
 
-      // Try Gemini for top matches only (to avoid rate limits)
-      if (geminiApiKey && i < 5 && matchFactors.length > 1) {
-        try {
-          const prompt = `Generate a brief, compelling investment match reason (35-55 chars) for "${vc['Investor Name']}" and a ${companySectors} company. Key: ${matchFactors[0]}. Be specific and confident.`;
+        // Create detailed prompt for AI analysis
+        const analysisPrompt = `
+You are an expert venture capital matching analyst. Analyze this VC-startup fit:
+
+STARTUP PROFILE:
+- Company: ${companyData.name}
+- Sectors: ${companySectors}
+- Investment Stages: ${companyStages || 'Not specified'}
+- Analysis: ${JSON.stringify(analysisResult.companyInfo || {}).substring(0, 500)}
+
+VC PROFILE:
+- Name: ${vcProfile.name}
+- Investment Sectors: ${vcProfile.sectors}
+- Investment Stages: ${vcProfile.stages}
+- Portfolio Size: ${vcProfile.portfolioCount} companies
+- Geographic Focus: ${vcProfile.locations}
+- Notable IPOs: ${vcProfile.ipos}
+- Investment Score: ${vcProfile.investmentScore}
+- Founded: ${vcProfile.founded}
+- Description: ${vcProfile.description}
+- Contact Available: Email(${vcProfile.hasEmail}), Phone(${vcProfile.hasPhone})
+
+TASK: Provide a JSON response with:
+1. "matchPercentage": Integer 0-95 based on sector alignment, stage fit, portfolio relevance, geographic proximity, track record, and accessibility
+2. "explanation": 120-180 character detailed explanation of why this is a good match, focusing on specific alignment factors
+
+Example format:
+{
+  "matchPercentage": 78,
+  "explanation": "Strong enterprise software focus with 15+ SaaS investments, active in Series A rounds, proven track record with 3 successful exits in security sector, and direct contact available."
+}
+
+Be specific, accurate, and highlight the most compelling match factors.`;
+
+        const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: analysisPrompt }] }],
+            generationConfig: { 
+              maxOutputTokens: 200, 
+              temperature: 0.3,
+              topP: 0.8
+            }
+          })
+        });
+
+        if (geminiResponse.ok) {
+          const geminiData = await geminiResponse.json();
+          const aiResponse = geminiData.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
           
-          const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: { 
-                maxOutputTokens: 30, 
-                temperature: 0.7,
-                topP: 0.8
+          if (aiResponse) {
+            try {
+              // Extract JSON from AI response
+              const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+              if (jsonMatch) {
+                const parsedResponse = JSON.parse(jsonMatch[0]);
+                
+                if (parsedResponse.matchPercentage && parsedResponse.explanation) {
+                  aiProcessedVCs.push({
+                    ...vc,
+                    score: parsedResponse.matchPercentage,
+                    matchPercentage: Math.min(Math.max(parsedResponse.matchPercentage, 15), 95),
+                    matchReason: parsedResponse.explanation.substring(0, 200)
+                  });
+                  
+                  console.log(`AI processed ${vc['Investor Name']}: ${parsedResponse.matchPercentage}% - ${parsedResponse.explanation.substring(0, 50)}...`);
+                  continue;
+                }
               }
-            })
-          });
-
-          if (geminiResponse.ok) {
-            const geminiData = await geminiResponse.json();
-            const aiReason = geminiData.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-            if (aiReason && aiReason.length >= 25 && aiReason.length <= 70) {
-              matchReason = aiReason.replace(/['"]/g, '').replace(/\.$/, '');
-              console.log(`AI reason for ${vc['Investor Name']}: ${matchReason}`);
+            } catch (parseError) {
+              console.log(`JSON parse error for ${vc['Investor Name']}:`, parseError.message);
             }
           }
-        } catch (error) {
-          console.log(`Gemini error for ${vc['Investor Name']}:`, error.message);
         }
+        
+        // Fallback if AI processing fails
+        console.log(`Fallback processing for ${vc['Investor Name']}`);
+        
+      } catch (error) {
+        console.log(`AI processing error for ${vc['Investor Name']}:`, error.message);
+      }
+      
+      // Fallback scoring if AI fails
+      let fallbackScore = vc.preliminaryScore;
+      let fallbackReason = "Investment profile shows alignment with company sector and stage requirements";
+      
+      // Enhanced fallback logic
+      if (sectorsList.some(s => vc['Sectors of Investments - Overall']?.toLowerCase().includes(s.toLowerCase()))) {
+        fallbackReason = `Strong sector alignment in ${sectorsList[0]} with proven investment track record`;
+        fallbackScore += 10;
+      }
+      
+      if (stagesList.some(s => vc['Stages of Entry - Overall']?.toLowerCase().includes(s.toLowerCase()))) {
+        fallbackReason += ` and active ${stagesList[0]} stage investment experience`;
+        fallbackScore += 8;
       }
 
-      scoredVCs.push({ 
-        ...vc, 
-        score, 
-        matchPercentage, 
-        matchReason,
-        vccontact: vcContact
+      const fallbackPercentage = Math.min(Math.max(Math.round(fallbackScore * 0.8), 20), 85);
+      
+      aiProcessedVCs.push({
+        ...vc,
+        score: fallbackScore,
+        matchPercentage: fallbackPercentage,
+        matchReason: fallbackReason
       });
     }
 
-    const filteredAndSortedVCs = scoredVCs
-      .filter(vc => vc.score > 12)
+    // Sort by match percentage and return top 10
+    const filteredAndSortedVCs = aiProcessedVCs
       .sort((a, b) => {
-        if (b.score !== a.score) {
-          return b.score - a.score;
+        if (b.matchPercentage !== a.matchPercentage) {
+          return b.matchPercentage - a.matchPercentage;
         }
         return (b['Portfolio Count - Overall'] || 0) - (a['Portfolio Count - Overall'] || 0);
       })
       .slice(0, 10);
+
+    console.log(`Returning ${filteredAndSortedVCs.length} AI-matched VCs`);
 
     const matches: VCMatch[] = filteredAndSortedVCs.map(vc => ({
       'Investor Name': vc['Investor Name'] || '',
