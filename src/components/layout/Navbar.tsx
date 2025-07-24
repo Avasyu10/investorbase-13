@@ -50,7 +50,7 @@ export function Navbar() {
   const isCompanyOrSectionPage = location.pathname.includes('/company/');
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/60 backdrop-blur-xl shadow-sm transition-all">
+    <header className="sticky top-0 z-50 w-full border-b border-white/10 backdrop-blur-xl shadow-sm transition-all" style={{ backgroundColor: 'rgba(30, 60, 120, 0.85)' }}>
       <div className="container flex h-16 items-center justify-between px-3 sm:px-4 md:px-8">
         <Link to={user ? (isViewOnly ? "/view-dashboard" : "/dashboard") : "/"} className="flex items-center space-x-2 transition-transform hover:scale-[1.01]">
           <img 
