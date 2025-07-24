@@ -190,7 +190,7 @@ export function Navbar() {
               </DropdownMenu>
               
               {/* Desktop nav items */}
-              <span className="text-sm text-muted-foreground hidden md:inline-block">
+              <span className="text-sm text-gray-300 hidden md:inline-block">
                 {user.email}
               </span>
               <Button 
