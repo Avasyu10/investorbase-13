@@ -9,9 +9,10 @@ import { AlertCircle } from "lucide-react";
 
 interface CompaniesListProps {
   isGeneralUser?: boolean;
+  isVC?: boolean;
 }
 
-export function CompaniesList({ isGeneralUser = false }: CompaniesListProps) {
+export function CompaniesList({ isGeneralUser = false, isVC = false }: CompaniesListProps) {
   const [sortBy, setSortBy] = useState<string>('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const navigate = useNavigate();
@@ -75,6 +76,7 @@ export function CompaniesList({ isGeneralUser = false }: CompaniesListProps) {
       onSortChange={handleSortChange}
       currentSort={{ field: sortBy, order: sortOrder }}
       isGeneralUser={isGeneralUser}
+      isVC={isVC}
     />
   );
 }

@@ -21,6 +21,6 @@ export function ConditionalCompaniesList() {
     return <VCAndBitsCompaniesList />;
   }
   
-  // For general users, pass the isGeneralUser flag
-  return <CompaniesList isGeneralUser={isGeneralUser} />;
+  // For general users and VC users, pass the appropriate flags
+  return <CompaniesList isGeneralUser={isGeneralUser} isVC={isVC} />;
 }
