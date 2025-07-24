@@ -48,7 +48,7 @@
   }
 
   :root, html {
-    @apply dark;
+    /* Default to light theme */
   }
 
   .dark {
@@ -97,7 +97,7 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans dark;
+    @apply bg-background text-foreground font-sans;
     font-family: 'Inter', sans-serif;
   }
 }
