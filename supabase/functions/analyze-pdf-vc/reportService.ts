@@ -39,7 +39,7 @@ export async function getReportData(reportId: string) {
     console.log("Downloading PDF from storage:", filePath);
     
     const { data: pdfData, error: downloadError } = await supabase.storage
-      .from('vcdecks')
+      .from('report_pdfs')
       .download(filePath);
     
     if (downloadError) {

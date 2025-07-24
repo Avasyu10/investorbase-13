@@ -24,7 +24,6 @@ interface CompaniesTableProps {
   isVCAndBits?: boolean;
   isGeneralUser?: boolean;
   isBitsQuestion?: boolean;
-  isVC?: boolean;
 }
 
 export function CompaniesTable({
@@ -36,8 +35,7 @@ export function CompaniesTable({
   isIITBombay = false,
   isVCAndBits = false,
   isGeneralUser = false,
-  isBitsQuestion = false,
-  isVC = false
+  isBitsQuestion = false
 }: CompaniesTableProps) {
   const [localCompanies, setLocalCompanies] = useState(companies);
   const [deletingCompanies, setDeletingCompanies] = useState<Set<string>>(new Set());
@@ -459,7 +457,6 @@ export function CompaniesTable({
                     {getSortIcon('overall_score')}
                   </Button>
                 </TableHead>
-                {isVC && <TableHead className="font-semibold w-[80px]">Deck</TableHead>}
                 <TableHead className="font-semibold w-[100px]">Status</TableHead>
                 <TableHead className="font-semibold w-[140px]">Team POC</TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
@@ -521,22 +518,6 @@ export function CompaniesTable({
                         </Badge>
                       </div>
                     </TableCell>
-                    {isVC && <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if ((company as any).pdf_url) {
-                            window.open(`https://jhtnruktmtjqrfoiyrep.supabase.co/storage/v1/object/public/vcdecks/${(company as any).user_id}/${(company as any).pdf_url}`, '_blank');
-                          }
-                        }}
-                        className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
-                        disabled={!(company as any).pdf_url}
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </TableCell>}
                     <TableCell>
                       <Badge className={getStatusBadgeColor(status)}>
                         <span className="text-xs font-medium">{status}</span>

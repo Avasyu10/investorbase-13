@@ -76,8 +76,8 @@ export function VCAnalysisUpload() {
         description += `\n\nFounder LinkedIn Profiles:\n${validLinkedInProfiles.join('\n')}`;
       }
       
-      // Upload the report to vcdecks bucket for VC analysis
-      const report = await uploadReport(selectedFile, title, description, companyWebsite, 'vcdecks');
+      // Upload the report first using the same method as regular upload
+      const report = await uploadReport(selectedFile, title, description, companyWebsite);
       console.log('VCAnalysisUpload - Report uploaded successfully:', report.id);
       
       clearInterval(uploadInterval);

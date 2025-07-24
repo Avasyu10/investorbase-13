@@ -187,8 +187,8 @@ const Dashboard = () => {
               <TabsTrigger value="companies">
                 {isIITBombay ? "Eureka Prospects" : "Prospects"}
               </TabsTrigger>
-              {!isVC && <TabsTrigger value="submissions">New Applications</TabsTrigger>}
-              {!isIITBombay && !isVC && <TabsTrigger value="reports">Pitch Decks</TabsTrigger>}
+              <TabsTrigger value="submissions">New Applications</TabsTrigger>
+              {!isIITBombay && <TabsTrigger value="reports">Pitch Decks</TabsTrigger>}
               {isVC && !isVCAndBits && <TabsTrigger value="notifications">Notifications</TabsTrigger>}
               {isVC && !isVCAndBits && (
                 <TabsTrigger value="founder-chats" className="flex items-center gap-2">
@@ -230,10 +230,10 @@ const Dashboard = () => {
           <TabsContent value="companies">
             <ConditionalCompaniesList />
           </TabsContent>
-          {!isVC && <TabsContent value="submissions">
+          <TabsContent value="submissions">
             <PublicSubmissionsList />
-          </TabsContent>}
-          {!isIITBombay && !isVC && <TabsContent value="reports">
+          </TabsContent>
+          {!isIITBombay && <TabsContent value="reports">
             <ReportsList />
           </TabsContent>}
           {isVC && !isVCAndBits && <TabsContent value="notifications">

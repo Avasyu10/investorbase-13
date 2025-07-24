@@ -106,7 +106,7 @@ export async function downloadReport(fileUrl: string, userId: string) {
   return data;
 }
 
-export async function uploadReport(file: File, title: string, description: string, websiteUrl?: string, bucket: string = 'report_pdfs') {
+export async function uploadReport(file: File, title: string, description: string, websiteUrl?: string) {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     
@@ -176,7 +176,7 @@ export async function uploadReport(file: File, title: string, description: strin
     const filePath = `${user.id}/${fileName}`;
     
     const { error: uploadError } = await supabase.storage
-      .from(bucket)
+      .from('report_pdfs')
       .upload(filePath, file);
       
     if (uploadError) {
