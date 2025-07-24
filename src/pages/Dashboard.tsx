@@ -216,7 +216,7 @@ const Dashboard = () => {
                 className="flex items-center bg-gradient-to-r from-yellow-500 to-yellow-600 text-black border-none hover:from-yellow-600 hover:to-yellow-700 shadow-lg hover:shadow-xl transition-all duration-300 font-semibold px-6 py-2.5"
               >
                 <MessageSquare className="mr-2 h-4 w-4" />
-                Internal VC Chat
+                Internal Communication
               </Button>
             </div>
           )}
