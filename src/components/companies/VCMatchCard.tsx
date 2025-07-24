@@ -21,6 +21,8 @@ interface VCMatch {
   'Phone Numbers'?: string;
   'Website'?: string;
   'LinkedIn'?: string;
+  'Match Percentage'?: number;
+  'Match Reason'?: string;
 }
 
 interface VCMatchCardProps {
@@ -114,10 +116,17 @@ export function VCMatchCard({ vc, index, companyId, companyName }: VCMatchCardPr
     <Card className="border border-muted/20 shadow-sm hover:shadow-md transition-shadow">
       <CardContent className="p-6">
         {/* VC Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h4 className="text-xl font-semibold text-foreground">
-            {vc['Investor Name']}
-          </h4>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <h4 className="text-xl font-semibold text-foreground">
+              {vc['Investor Name']}
+            </h4>
+            {vc['Match Percentage'] && (
+              <Badge variant="outline" className="bg-green-50 border-green-200 text-green-700 font-medium">
+                {vc['Match Percentage']}% match
+              </Badge>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <Button
               onClick={handleConnect}
@@ -132,6 +141,17 @@ export function VCMatchCard({ vc, index, companyId, companyName }: VCMatchCardPr
             </Badge>
           </div>
         </div>
+
+        {/* Match Reason */}
+        {vc['Match Reason'] && (
+          <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Target className="h-4 w-4 text-blue-600" />
+              <span className="text-sm font-medium text-blue-800">Why this match:</span>
+            </div>
+            <p className="text-sm text-blue-700 mt-1">{vc['Match Reason']}</p>
+          </div>
+        )}
 
         {/* Main Content Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
