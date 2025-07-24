@@ -11,11 +11,14 @@ interface VCMatchRequest {
 }
 
 interface VCMatch {
+  id: string;
   fund_name: string;
   areas_of_interest: string[];
   investment_stage: string[];
   fund_size?: string;
   website_url?: string;
+  match_score?: number;
+  match_reasons?: string[];
 }
 
 serve(async (req) => {
@@ -104,62 +107,98 @@ serve(async (req) => {
       });
     }
 
-    // Query VC profiles for matches with multiple fallback strategies
-    let vcMatches: any[] = [];
-    
-    // Strategy 1: Try exact matches for both stage and industry
-    if (stage && industry) {
-      const { data: exactMatches } = await supabase
-        .from('vc_profiles')
-        .select('id, fund_name, areas_of_interest, investment_stage, fund_size, website_url')
-        .overlaps('investment_stage', [stage, stage.toLowerCase(), stage.replace('-', ' ')])
-        .overlaps('areas_of_interest', [industry, industry.toLowerCase(), industry.replace(/([A-Z])/g, '-$1').toLowerCase().substring(1)])
-        .limit(5);
+    // Normalize stage and industry for better matching
+    const normalizeStage = (stage: string): string[] => {
+      const variations = [stage.toLowerCase()];
+      const stageMap: Record<string, string[]> = {
+        'pre-seed': ['pre-seed', 'preseed', 'pre seed'],
+        'seed': ['seed', 'early stage'],
+        'series a': ['series a', 'series-a', 'a', 'early growth'],
+        'series b': ['series b', 'series-b', 'b', 'growth'],
+        'series c': ['series c', 'series-c', 'c', 'expansion'],
+        'growth': ['growth', 'late stage', 'expansion'],
+        'late stage': ['late stage', 'growth', 'expansion']
+      };
       
-      if (exactMatches && exactMatches.length > 0) {
-        vcMatches = exactMatches;
+      for (const [key, values] of Object.entries(stageMap)) {
+        if (values.some(v => stage.toLowerCase().includes(v))) {
+          variations.push(...values, key);
+        }
       }
-    }
-    
-    // Strategy 2: If no exact matches, try stage only
-    if (vcMatches.length === 0 && stage) {
-      const { data: stageMatches } = await supabase
-        .from('vc_profiles')
-        .select('id, fund_name, areas_of_interest, investment_stage, fund_size, website_url')
-        .overlaps('investment_stage', [stage, stage.toLowerCase(), stage.replace('-', ' ')])
-        .limit(5);
-      
-      if (stageMatches && stageMatches.length > 0) {
-        vcMatches = stageMatches;
-      }
-    }
-    
-    // Strategy 3: If still no matches, try industry only
-    if (vcMatches.length === 0 && industry) {
-      const { data: industryMatches } = await supabase
-        .from('vc_profiles')
-        .select('id, fund_name, areas_of_interest, investment_stage, fund_size, website_url')
-        .overlaps('areas_of_interest', [industry, industry.toLowerCase(), industry.replace(/([A-Z])/g, '-$1').toLowerCase().substring(1)])
-        .limit(5);
-      
-      if (industryMatches && industryMatches.length > 0) {
-        vcMatches = industryMatches;
-      }
-    }
-    
-    // Strategy 4: If still no matches, return any 5 VCs
-    if (vcMatches.length === 0) {
-      const { data: anyMatches } = await supabase
-        .from('vc_profiles')
-        .select('id, fund_name, areas_of_interest, investment_stage, fund_size, website_url')
-        .limit(5);
-      
-      if (anyMatches && anyMatches.length > 0) {
-        vcMatches = anyMatches;
-      }
-    }
+      return [...new Set(variations)];
+    };
 
-    const vcError = null; // No error since we're handling fallbacks
+    const normalizeIndustry = (industry: string): string[] => {
+      const variations = [industry.toLowerCase()];
+      const industryMap: Record<string, string[]> = {
+        'fintech': ['fintech', 'financial technology', 'finance', 'payments'],
+        'saas': ['saas', 'software as a service', 'enterprise software', 'b2b software'],
+        'ai': ['ai', 'artificial intelligence', 'machine learning', 'ml', 'ai-ml'],
+        'healthcare': ['healthcare', 'health tech', 'biotech', 'medical'],
+        'cybersecurity': ['cybersecurity', 'security', 'cyber security', 'infosec'],
+        'edtech': ['edtech', 'education technology', 'education', 'learning'],
+        'blockchain': ['blockchain', 'crypto', 'web3', 'defi'],
+        'ecommerce': ['ecommerce', 'e-commerce', 'retail', 'marketplace']
+      };
+      
+      // Add normalized variations
+      const normalized = industry.toLowerCase()
+        .replace(/([A-Z])/g, '-$1')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .trim();
+      variations.push(normalized);
+      
+      for (const [key, values] of Object.entries(industryMap)) {
+        if (values.some(v => industry.toLowerCase().includes(v))) {
+          variations.push(...values, key);
+        }
+      }
+      return [...new Set(variations)];
+    };
+
+    // Calculate match score
+    const calculateMatchScore = (vc: any, companyStage: string, companyIndustry: string): { score: number, reasons: string[] } => {
+      let score = 0;
+      const reasons: string[] = [];
+      
+      const stageVariations = normalizeStage(companyStage);
+      const industryVariations = normalizeIndustry(companyIndustry);
+      
+      // Stage matching (40% weight)
+      const stageMatches = vc.investment_stage?.some((vcStage: string) => 
+        stageVariations.some(variation => vcStage.toLowerCase().includes(variation))
+      );
+      if (stageMatches) {
+        score += 40;
+        reasons.push(`Invests in ${companyStage} stage`);
+      }
+      
+      // Industry matching (50% weight)
+      const industryMatches = vc.areas_of_interest?.some((vcArea: string) => 
+        industryVariations.some(variation => vcArea.toLowerCase().includes(variation))
+      );
+      if (industryMatches) {
+        score += 50;
+        reasons.push(`Focuses on ${companyIndustry} sector`);
+      }
+      
+      // Fund size relevance (10% weight)
+      if (vc.fund_size) {
+        const fundSizeMatch = vc.fund_size.toLowerCase().includes('m') || vc.fund_size.toLowerCase().includes('million');
+        if (fundSizeMatch) {
+          score += 10;
+          reasons.push('Appropriate fund size');
+        }
+      }
+      
+      return { score, reasons };
+    };
+
+    // Get all VC profiles first
+    const { data: allVCs, error: vcError } = await supabase
+      .from('vc_profiles')
+      .select('id, fund_name, areas_of_interest, investment_stage, fund_size, website_url');
 
     if (vcError) {
       console.error('Error fetching VC profiles:', vcError);
@@ -169,9 +208,37 @@ serve(async (req) => {
       });
     }
 
-    console.log('Found VC matches:', vcMatches?.length || 0);
+    // Score and rank all VCs
+    const scoredMatches = (allVCs || [])
+      .map(vc => {
+        const matchData = calculateMatchScore(vc, stage, industry);
+        return {
+          ...vc,
+          match_score: matchData.score,
+          match_reasons: matchData.reasons
+        };
+      })
+      .filter(vc => vc.match_score > 0) // Only include VCs with some match
+      .sort((a, b) => b.match_score - a.match_score) // Sort by score descending
+      .slice(0, 10); // Get top 10 matches
 
-    const matches: VCMatch[] = vcMatches || [];
+    // If no good matches found, get random VCs as fallback
+    let finalMatches = scoredMatches;
+    if (finalMatches.length === 0) {
+      console.log('No scored matches found, using fallback strategy');
+      finalMatches = (allVCs || [])
+        .slice(0, 5)
+        .map(vc => ({
+          ...vc,
+          match_score: 0,
+          match_reasons: ['General VC match']
+        }));
+    }
+
+    console.log('Found VC matches:', finalMatches.length);
+    console.log('Top match scores:', finalMatches.slice(0, 3).map(m => ({ name: m.fund_name, score: m.match_score })));
+
+    const matches: VCMatch[] = finalMatches;
 
     return new Response(JSON.stringify({
       matches,
