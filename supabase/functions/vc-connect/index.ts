@@ -26,6 +26,9 @@ interface VCMatch {
   'Phone Numbers'?: string;
   'Website'?: string;
   'LinkedIn'?: string;
+  // Match details
+  'Match Percentage'?: number;
+  'Match Reason'?: string;
 }
 
 serve(async (req) => {
@@ -163,33 +166,74 @@ serve(async (req) => {
       });
     }
 
-    // Score and filter VCs based on sector and stage matching
+    // Score and filter VCs based on sector and stage matching with better logic
     const scoredVCs = allVCs.map(vc => {
       let score = 0;
+      let matchReasons = [];
       const vcSectors = vc['Sectors of Investments - Overall'] || '';
       const vcStages = vc['Stages of Entry - Overall'] || '';
 
-      // Sector matching (50% weight)
+      // Enhanced sector matching (60% weight) - more weight for sector alignment
+      let sectorMatched = false;
       if (sectorsList.length > 0 && vcSectors) {
         for (const companySector of sectorsList) {
+          // Exact match gets full points
           if (vcSectors.toLowerCase().includes(companySector.toLowerCase())) {
-            score += 50;
-            break; // Only count once per VC
+            score += 60;
+            matchReasons.push(`Invests in ${companySector}`);
+            sectorMatched = true;
+            break;
+          }
+        }
+        
+        // Partial sector matching for broader terms
+        if (!sectorMatched) {
+          const broadSectorTerms = ['Tech', 'Software', 'Enterprise', 'SaaS', 'AI', 'Fintech', 'Healthcare'];
+          for (const term of broadSectorTerms) {
+            if (vcSectors.toLowerCase().includes(term.toLowerCase()) && 
+                sectorsList.some(s => s.toLowerCase().includes(term.toLowerCase()))) {
+              score += 30;
+              matchReasons.push(`Invests in ${term} sector`);
+              break;
+            }
           }
         }
       }
 
-      // Stage matching (50% weight)
+      // Enhanced stage matching (40% weight)
       if (stagesList.length > 0 && vcStages) {
         for (const companyStage of stagesList) {
           if (vcStages.toLowerCase().includes(companyStage.toLowerCase())) {
-            score += 50;
-            break; // Only count once per VC
+            score += 40;
+            matchReasons.push(`Focuses on ${companyStage} stage`);
+            break;
           }
         }
       }
 
-      return { ...vc, score };
+      // Bonus points for portfolio size and investment activity
+      const portfolioCount = vc['Portfolio Count - Overall'] || 0;
+      if (portfolioCount > 50) {
+        score += 5; // Active investor bonus
+      }
+
+      // Bonus for contact information availability
+      const contact = vccontactRecords?.find(contact => 
+        contact['Investor Name'] === vc['Investor Name']
+      );
+      if (contact?.['Emails']) {
+        score += 3; // Contactable bonus
+      }
+
+      const matchReason = matchReasons.length > 0 ? matchReasons.join(' & ') : 'General investment fit';
+      const matchPercentage = Math.min(Math.round(score), 100); // Cap at 100%
+
+      return { 
+        ...vc, 
+        score, 
+        matchPercentage, 
+        matchReason 
+      };
     })
     .filter(vc => vc.score > 0) // Only include VCs with some match
     .sort((a, b) => {
@@ -216,7 +260,10 @@ serve(async (req) => {
       'Emails': vc.vccontact?.['Emails'] || '',
       'Phone Numbers': vc.vccontact?.['Phone Numbers'] || '',
       'Website': vc.vccontact?.['Website'] || '',
-      'LinkedIn': vc.vccontact?.['LinkedIn'] || ''
+      'LinkedIn': vc.vccontact?.['LinkedIn'] || '',
+      // Match details
+      'Match Percentage': vc.matchPercentage || 0,
+      'Match Reason': vc.matchReason || 'General investment fit'
     }));
 
     console.log(`Found ${matches.length} matching VCs for company ${companyData.name}`);
