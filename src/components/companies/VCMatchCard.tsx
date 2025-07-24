@@ -125,7 +125,10 @@ export function VCMatchCard({ vc, index, companyId, companyName }: VCMatchCardPr
               onClick={handleConnect}
               disabled={isConnecting || requestSent}
               size="sm"
-              className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium"
+              className={requestSent 
+                ? "bg-green-100 text-green-800 border border-green-200 hover:bg-green-100" 
+                : "bg-yellow-500 hover:bg-yellow-600 text-black font-medium"
+              }
             >
               {requestSent ? 'Request Sent' : isConnecting ? 'Connecting...' : 'Connect'}
             </Button>
