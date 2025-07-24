@@ -14,6 +14,7 @@ import { uploadReport, analyzeReport } from "@/lib/supabase";
 import { FileUploadZone } from "@/components/reports/upload/FileUploadZone"; // FileUploadZone is not used in the provided snippet
 import { supabase } from '@/integrations/supabase/client';
 import { AnalysisLimitModal } from "@/components/reports/AnalysisLimitModal";
+import { CuteLoader } from "@/components/ui/cute-loader";
 const UploadReport = () => {
   const {
     user,
@@ -251,10 +252,7 @@ const UploadReport = () => {
             <div className="absolute inset-0 bg-background/40 backdrop-blur-sm rounded-lg flex flex-col items-center justify-center z-10">
               <div className="bg-card/95 border border-border/50 rounded-xl shadow-2xl p-8 max-w-sm w-full mx-4 backdrop-blur-md">
                 <div className="flex flex-col items-center space-y-6">
-                  <div className="relative">
-                    <div className="w-16 h-16 border-4 border-muted/20 rounded-full"></div>
-                    <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
-                  </div>
+                  <CuteLoader size={64} />
                   <div className="text-center space-y-3">
                     <h3 className="text-xl font-semibold text-foreground">
                       Analyzing Content
