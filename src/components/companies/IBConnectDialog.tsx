@@ -13,33 +13,29 @@ interface IBConnectDialogProps {
 }
 
 interface VCMatch {
-  'SNo.': number;
   'Investor Name': string;
-  'Overview': string;
-  'Founded Year': number;
-  'State': string;
-  'City': string;
-  'Description': string;
-  'Investor Type': string;
-  'Practice Areas': string;
-  'Investment Score': number;
-  'Emails': string;
-  'Phone Numbers': string;
-  'Website': string;
-  'LinkedIn': string;
-  'Twitter': string;
-  match_score?: number;
-  match_reasons?: string[];
+  'Sectors of Investments - Overall': string;
+  'Stages of Entry - Overall': string;
+  'Portfolio Count - Overall': number;
+  'Locations of Investment - Overall': string;
+  'Portfolio IPOs - Overall': string;
+  // From vccontact table
+  'Founded Year'?: number;
+  'City'?: string;
+  'Description'?: string;
+  'Investment Score'?: number;
+  'Emails'?: string;
+  'Phone Numbers'?: string;
+  'Website'?: string;
+  'LinkedIn'?: string;
 }
 
 interface VCMatchResponse {
   matches: VCMatch[];
   totalMatches: number;
-  searchCriteria: {
-    companyStage?: string;
-    companyIndustry?: string;
-    minInvestmentScore: number;
-  };
+  companySectors: string;
+  companyStages: string;
+  companyName: string;
 }
 
 export function IBConnectDialog({
