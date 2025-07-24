@@ -187,8 +187,8 @@ const Dashboard = () => {
               <TabsTrigger value="companies">
                 {isIITBombay ? "Eureka Prospects" : "Prospects"}
               </TabsTrigger>
-              <TabsTrigger value="submissions">New Applications</TabsTrigger>
-              {!isIITBombay && <TabsTrigger value="reports">Pitch Decks</TabsTrigger>}
+              {!isVC && <TabsTrigger value="submissions">New Applications</TabsTrigger>}
+              {!isIITBombay && !isVC && <TabsTrigger value="reports">Pitch Decks</TabsTrigger>}
               {isVC && !isVCAndBits && <TabsTrigger value="notifications">Notifications</TabsTrigger>}
               {isVC && !isVCAndBits && (
                 <TabsTrigger value="founder-chats" className="flex items-center gap-2">
@@ -199,28 +199,34 @@ const Dashboard = () => {
             </TabsList>
           </Tabs>
           
-          {/* Business Dashboard button right after tabs */}
+          {/* Business Dashboard and Internal VC Chat buttons right after tabs */}
           {isVC && !isVCAndBits && (
-            <Button 
-              onClick={() => setShowVcDashboard(true)} 
-              variant="outline" 
-              className="flex items-center bg-gradient-to-r from-blue-500 to-blue-700 text-white border-none hover:from-blue-600 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-300 font-semibold px-6 py-2.5"
-            >
-              <BarChart3 className="mr-2 h-4 w-4" />
-               Dashboard
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => setShowVcDashboard(true)} 
+                variant="outline" 
+                className="flex items-center bg-gradient-to-r from-blue-500 to-blue-700 text-white border-none hover:from-blue-600 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-300 font-semibold px-6 py-2.5"
+              >
+                <BarChart3 className="mr-2 h-4 w-4" />
+                 Dashboard
+              </Button>
+              <Button 
+                onClick={() => setChatOpen(true)} 
+                variant="outline" 
+                className="flex items-center bg-gradient-to-r from-yellow-500 to-yellow-600 text-black border-none hover:from-yellow-600 hover:to-yellow-700 shadow-lg hover:shadow-xl transition-all duration-300 font-semibold px-6 py-2.5"
+              >
+                <MessageSquare className="mr-2 h-4 w-4" />
+                Internal VC Chat
+              </Button>
+            </div>
           )}
         </div>
         
-        {/* Upload Deck, Internal VC Chat, and News Feed buttons on the right */}
+        {/* Upload Deck and News Feed buttons on the right */}
         <div className="flex gap-2">
           {isVC && !isVCAndBits && <Button onClick={() => navigate("/vc-analysis")} variant="outline" className="flex items-center">
             <FileUp className="mr-2 h-4 w-4" />
             Upload Deck
-          </Button>}
-          {isVC && !isVCAndBits && <Button onClick={() => setChatOpen(true)} variant="outline" className="flex items-center">
-            <MessageSquare className="mr-2 h-4 w-4" />
-            Internal VC Chat
           </Button>}
           <Button onClick={() => navigate("/news-feed")} variant="outline" className="flex items-center">
             <Newspaper className="mr-2 h-4 w-4" />
