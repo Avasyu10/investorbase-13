@@ -445,12 +445,12 @@ export const InvestmentMemo: React.FC<InvestmentMemoProps> = ({ company }) => {
           Investment Memo
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0"> {/* Removed padding from DialogContent to control it inside */}
-        <DialogHeader className="p-6 pb-4 border-b border-gray-200 bg-zinc-800"> {/* Darker header for contrast */}
-          <DialogTitle className="flex items-center justify-between text-white text-2xl font-semibold"> {/* White text for dark header */}
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 bg-slate-900 border-slate-700"> {/* Dark theme background */}
+        <DialogHeader className="p-6 pb-4 border-b border-slate-600 bg-slate-800"> {/* Dark blue header */}
+          <DialogTitle className="flex items-center justify-between text-white text-2xl font-semibold">
             <span>Investment Memo - {company.name}</span>
-            {/* Download Button with neutral colors */}
-            <Button onClick={downloadAsPDF} variant="outline" size="sm" className="flex items-center gap-2 border-gray-300 text-gray-800 bg-zinc-50 hover:bg-zinc-100">
+            {/* Download Button with dark theme */}
+            <Button onClick={downloadAsPDF} variant="outline" size="sm" className="flex items-center gap-2 border-slate-600 text-white bg-slate-700 hover:bg-slate-600">
               <Download className="h-4 w-4" />
               Download PDF
             </Button>
@@ -458,17 +458,17 @@ export const InvestmentMemo: React.FC<InvestmentMemoProps> = ({ company }) => {
         </DialogHeader>
 
         {loading ? (
-          <div className="flex justify-center items-center py-12"> {/* Increased padding */}
-            <Loader2 className="h-8 w-8 animate-spin text-gray-500" /> {/* Larger, neutral loader */}
+          <div className="flex justify-center items-center py-12 bg-slate-900">
+            <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
           </div>
         ) : (
-          // Increased space-y for overall section spacing in dialog
-          <div className="space-y-10 p-8 text-black bg-white"> {/* Increased padding, base text color */}
+          // Dark theme content area
+          <div className="space-y-10 p-8 text-white bg-slate-900">
             
             {/* Executive Summary */}
-            <section className="pb-4 border-b border-gray-100"> {/* Subtle border for separation */}
-              <h3 className="text-xl font-bold mb-4 text-gray-900">EXECUTIVE SUMMARY</h3> {/* Larger title, darker gray */}
-              <ul className="list-disc list-inside space-y-2 text-base leading-relaxed text-gray-800 ml-4"> {/* Increased spacing, larger text, indent bullets */}
+            <section className="pb-4 border-b border-slate-700">
+              <h3 className="text-xl font-bold mb-4 text-white">EXECUTIVE SUMMARY</h3>
+              <ul className="list-disc list-inside space-y-2 text-base leading-relaxed text-slate-300 ml-4">
                 {formatAsBulletPoints(company.introduction ||
                   `${company.name} is an innovative company operating in the ${company.industry || 'EdTech, Metaverse, Virtual Learning'} sector, poised for significant growth. This memorandum provides a comprehensive analysis of the investment opportunity, highlighting its unique value proposition and market potential.`
                 ).map((line, index) => (
@@ -477,82 +477,82 @@ export const InvestmentMemo: React.FC<InvestmentMemoProps> = ({ company }) => {
               </ul>
             </section>
 
-            {/* All sections follow the same improved spacing and styling */}
-            <section className="pt-4 pb-4 border-b border-gray-100">
-              <h3 className="text-xl font-bold mb-4 text-gray-900">INVESTMENT HIGHLIGHTS</h3>
-              <ul className="list-disc list-inside space-y-2 text-base text-gray-800 ml-4">
+            {/* All sections follow the same dark theme styling */}
+            <section className="pt-4 pb-4 border-b border-slate-700">
+              <h3 className="text-xl font-bold mb-4 text-white">INVESTMENT HIGHLIGHTS</h3>
+              <ul className="list-disc list-inside space-y-2 text-base text-slate-300 ml-4">
                 {generateInvestmentHighlights().map((highlight, index) => (
                   <li key={`highlight-${index}`} dangerouslySetInnerHTML={{ __html: highlight.replace(/^•\s*/, '') }}></li>
                 ))}
               </ul>
             </section>
 
-            <section className="pt-4 pb-4 border-b border-gray-100">
-              <h3 className="text-xl font-bold mb-4 text-gray-900">TEAM</h3>
-              <ul className="list-disc list-inside space-y-2 text-base leading-relaxed text-gray-800 ml-4">
+            <section className="pt-4 pb-4 border-b border-slate-700">
+              <h3 className="text-xl font-bold mb-4 text-white">TEAM</h3>
+              <ul className="list-disc list-inside space-y-2 text-base leading-relaxed text-slate-300 ml-4">
                 {getTeamContent().map((line, index) => (
                   <li key={`team-${index}`} dangerouslySetInnerHTML={{ __html: line.replace(/^•\s*/, '') }}></li>
                 ))}
               </ul>
             </section>
 
-            <section className="pt-4 pb-4 border-b border-gray-100">
-              <h3 className="text-xl font-bold mb-4 text-gray-900">PROBLEM</h3>
-              <ul className="list-disc list-inside space-y-2 text-base leading-relaxed text-gray-800 ml-4">
+            <section className="pt-4 pb-4 border-b border-slate-700">
+              <h3 className="text-xl font-bold mb-4 text-white">PROBLEM</h3>
+              <ul className="list-disc list-inside space-y-2 text-base leading-relaxed text-slate-300 ml-4">
                 {getProblemContent().map((line, index) => (
                   <li key={`problem-${index}`} dangerouslySetInnerHTML={{ __html: line.replace(/^•\s*/, '') }}></li>
                 ))}
               </ul>
             </section>
 
-            <section className="pt-4 pb-4 border-b border-gray-100">
-              <h3 className="text-xl font-bold mb-4 text-gray-900">SOLUTION</h3>
-              <ul className="list-disc list-inside space-y-2 text-base leading-relaxed text-gray-800 ml-4">
+            <section className="pt-4 pb-4 border-b border-slate-700">
+              <h3 className="text-xl font-bold mb-4 text-white">SOLUTION</h3>
+              <ul className="list-disc list-inside space-y-2 text-base leading-relaxed text-slate-300 ml-4">
                 {getSolutionContent().map((line, index) => (
                   <li key={`solution-${index}`} dangerouslySetInnerHTML={{ __html: line.replace(/^•\s*/, '') }}></li>
                 ))}
               </ul>
             </section>
 
-            <section className="pt-4 pb-4 border-b border-gray-100">
-              <h3 className="text-xl font-bold mb-4 text-gray-900">MARKET OPPORTUNITY</h3>
-              <ul className="list-disc list-inside space-y-2 text-base leading-relaxed text-gray-800 ml-4">
+            <section className="pt-4 pb-4 border-b border-slate-700">
+              <h3 className="text-xl font-bold mb-4 text-white">MARKET OPPORTUNITY</h3>
+              <ul className="list-disc list-inside space-y-2 text-base leading-relaxed text-slate-300 ml-4">
                 {getMarketContent().map((line, index) => (
                   <li key={`market-${index}`} dangerouslySetInnerHTML={{ __html: line.replace(/^•\s*/, '') }}></li>
                 ))}
               </ul>
             </section>
 
-            <section className="pt-4 pb-4 border-b border-gray-100">
-              <h3 className="text-xl font-bold mb-4 text-gray-900">BUSINESS MODEL</h3>
-              <ul className="list-disc list-inside space-y-2 text-base leading-relaxed text-gray-800 ml-4">
+            <section className="pt-4 pb-4 border-b border-slate-700">
+              <h3 className="text-xl font-bold mb-4 text-white">BUSINESS MODEL</h3>
+              <ul className="list-disc list-inside space-y-2 text-base leading-relaxed text-slate-300 ml-4">
                 {getBusinessModelContent().map((line, index) => (
                   <li key={`biz-model-${index}`} dangerouslySetInnerHTML={{ __html: line.replace(/^•\s*/, '') }}></li>
                 ))}
               </ul>
             </section>
 
-            <section className="pt-4 pb-4 border-b border-gray-100">
-              <h3 className="text-xl font-bold mb-4 text-gray-900">COMPETITIVE LANDSCAPE</h3>
-              <ul className="list-disc list-inside space-y-2 text-base leading-relaxed text-gray-800 ml-4">
+            <section className="pt-4 pb-4 border-b border-slate-700">
+              <h3 className="text-xl font-bold mb-4 text-white">COMPETITIVE LANDSCAPE</h3>
+              <ul className="list-disc list-inside space-y-2 text-base leading-relaxed text-slate-300 ml-4">
                 {getCompetitionContent().map((line, index) => (
                   <li key={`comp-${index}`} dangerouslySetInnerHTML={{ __html: line.replace(/^•\s*/, '') }}></li>
                 ))}
               </ul>
             </section>
 
-            <section className="pt-4 pb-4 border-b border-gray-100">
-              <h3 className="text-xl font-bold mb-4 text-gray-900">RISKS AND CONCERNS</h3>
-              <ul className="list-disc list-inside space-y-2 text-base leading-relaxed text-gray-800 ml-4">
+            <section className="pt-4 pb-4 border-b border-slate-700">
+              <h3 className="text-xl font-bold mb-4 text-white">RISKS AND CONCERNS</h3>
+              <ul className="list-disc list-inside space-y-2 text-base leading-relaxed text-slate-300 ml-4">
                 {getRisksContent().map((line, index) => (
                   <li key={`risks-${index}`} dangerouslySetInnerHTML={{ __html: line.replace(/^•\s*/, '') }}></li>
                 ))}
               </ul>
             </section>
 
-            <section className="pt-4"> {/* No border-b for the last section */}
-              <h3 className="text-xl font-bold mb-4 text-gray-900">INVESTMENT RATIONALE</h3>
-              <ul className="list-disc list-inside space-y-2 text-base leading-relaxed text-gray-800 ml-4">
+            <section className="pt-4">
+              <h3 className="text-xl font-bold mb-4 text-white">INVESTMENT RATIONALE</h3>
+              <ul className="list-disc list-inside space-y-2 text-base leading-relaxed text-slate-300 ml-4">
                 {getInvestmentRationale().map((line, index) => (
                   <li key={`rationale-${index}`} dangerouslySetInnerHTML={{ __html: line.replace(/^•\s*/, '') }}></li>
                 ))}
