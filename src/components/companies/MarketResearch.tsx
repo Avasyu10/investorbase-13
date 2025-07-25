@@ -187,16 +187,6 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
                       <p className="text-sm text-muted-foreground mb-3">
                         {cleanText(news.content || '')}
                       </p>
-                      {news.url && (
-                        <a 
-                          href={news.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-xs flex items-center gap-1 text-blue-500 hover:underline"
-                        >
-                          Read source <ExternalLink className="h-3 w-3" />
-                        </a>
-                      )}
                     </div>
                   ))}
                 </div>
@@ -225,16 +215,6 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
                       <p className="text-sm text-muted-foreground mb-3">
                         {cleanText(insight.content || '')}
                       </p>
-                      {insight.url && (
-                        <a 
-                          href={insight.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-xs flex items-center gap-1 text-blue-500 hover:underline"
-                        >
-                          Read source <ExternalLink className="h-3 w-3" />
-                        </a>
-                      )}
                     </div>
                   ))}
                 </div>

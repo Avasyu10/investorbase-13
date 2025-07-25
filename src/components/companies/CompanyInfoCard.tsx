@@ -291,10 +291,9 @@ export function CompanyInfoCard({
               variant="outline" 
               onClick={handleChatbot} 
               size="sm" 
-              className="h-10 px-4 bg-amber-400 hover:bg-amber-300 text-slate-950 border-amber-600"
+              className="h-10 px-3 bg-amber-400 hover:bg-amber-300 text-slate-950 border-amber-600"
             >
-              <Bot className="h-4 w-4 mr-2" />
-              <span className="font-medium">Chatbot</span>
+              <Bot className="h-4 w-4" />
             </Button>
           )}
 
