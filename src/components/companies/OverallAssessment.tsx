@@ -27,7 +27,7 @@ export function OverallAssessment({
   companyName
 }: OverallAssessmentProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const { isVCAndBits } = useProfile();
+  const { isVCAndBits, isEximius } = useProfile();
   
   // Always use 100-point scale
   const displayScore = score > 5 ? score : score * 20; // Convert 5-point to 100-point if needed
@@ -99,7 +99,7 @@ export function OverallAssessment({
             <CardTitle className="text-xl font-semibold">Overall Assessment</CardTitle>
           </div>
           <div className="flex items-center gap-4">
-            {companyId && !isVCAndBits && (
+            {companyId && !isVCAndBits && !isEximius && (
               <FundThesisAlignment companyId={companyId} companyName={companyName} />
             )}
             <div className="flex items-center gap-1">

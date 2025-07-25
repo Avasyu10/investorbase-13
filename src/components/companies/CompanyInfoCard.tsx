@@ -185,8 +185,8 @@ export function CompanyInfoCard({
     enabled: !!companyData?.id
   });
 
-  // Check if this is a general user
-  const isGeneralUser = !isIITBombayUser && !isVC && !isVCAndBits && !isViewOnly && !isBitsQuestion;
+  // Check if this is a general user (exclude Eximius users)
+  const isGeneralUser = !isIITBombayUser && !isVC && !isVCAndBits && !isViewOnly && !isBitsQuestion && !isEximius;
 
   // Data prioritization logic for IIT Bombay vs regular users
   let displayIntroduction: string;
@@ -283,10 +283,10 @@ export function CompanyInfoCard({
             />
           )}
         </div>
-        {/* Buttons for Chatbot and Investment Memo for VC users */}
+        {/* Buttons for Chatbot and Investment Memo for VC users (including Eximius) */}
         <div className="flex flex-wrap items-center gap-3">
-          {/* Chatbot button for VC users */}
-          {companyData?.id && (isVC || isVCAndBits) && (
+          {/* Chatbot button for VC users (including Eximius) */}
+          {companyData?.id && (isVC || isVCAndBits || isEximius) && (
             <Button 
               variant="outline" 
               onClick={handleChatbot} 
@@ -298,8 +298,8 @@ export function CompanyInfoCard({
             </Button>
           )}
 
-          {/* Investment Memo button for VC users */}
-          {companyData?.id && (isVC || isVCAndBits) && !isIITBombayUser && (
+          {/* Investment Memo button for VC users (including Eximius) */}
+          {companyData?.id && (isVC || isVCAndBits || isEximius) && !isIITBombayUser && (
             <InvestmentMemo company={companyData} />
           )}
 
