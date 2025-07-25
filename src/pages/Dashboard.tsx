@@ -51,12 +51,7 @@ const Dashboard = () => {
         }
       });
     } else if (user && !profileLoading) {
-      // Redirect Eximius users directly to VC analysis (ONLY if not already there)
-      if (isEximius && window.location.pathname === '/dashboard') {
-        console.log("Eximius user detected, redirecting to VC analysis");
-        navigate('/vc-analysis');
-        return;
-      }
+      // Eximius users now get their own dashboard view (no redirect)
 
       // Check if this is a general user (not any special user type)
       const isGeneralUser = !isIITBombay && !isVC && !isVCAndBits && !isViewOnly && !isBitsQuestion && !isEximius;
@@ -135,7 +130,31 @@ const Dashboard = () => {
     );
   }
 
-  // Check if this is a general user (founder) - exclude Eximius users since they should be on VC analysis
+  // Special dashboard for Eximius users
+  if (isEximius) {
+    return (
+      <div className="animate-fade-in">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold">Eximius Dashboard</h1>
+            </div>
+            <div className="flex gap-2 mt-4 sm:mt-0">
+              <Button onClick={() => navigate("/vc-analysis")} className="flex items-center">
+                <FileUp className="mr-2 h-4 w-4" />
+                Upload Deck
+              </Button>
+            </div>
+          </div>
+
+          {/* Companies list in VC format */}
+          <ConditionalCompaniesList />
+        </div>
+      </div>
+    );
+  }
+
+  // Check if this is a general user (founder)
   const isGeneralUser = !isIITBombay && !isVC && !isVCAndBits && !isViewOnly && !isBitsQuestion && !isEximius;
 
   // Simplified dashboard for general users (founders)
