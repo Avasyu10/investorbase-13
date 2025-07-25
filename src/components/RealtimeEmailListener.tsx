@@ -39,11 +39,6 @@ export function RealtimeEmailListener() {
             
             if (response.error) {
               console.error('Error from confirmation email function:', response.error);
-              toast({
-                title: 'Error sending confirmation email',
-                description: `Failed to send email: ${response.error.message || 'Unknown error'}`,
-                variant: "destructive"
-              });
               return;
             }
             
@@ -54,11 +49,6 @@ export function RealtimeEmailListener() {
           })
           .catch(error => {
             console.error('Error calling confirmation email function:', error);
-            toast({
-              title: 'Error sending confirmation email',
-              description: `Failed to send email: ${error.message || 'Unknown error'}`,
-              variant: "destructive"
-            });
           });
         }
       )
@@ -83,11 +73,6 @@ export function RealtimeEmailListener() {
             
             if (response.error) {
               console.error('Error from Eureka confirmation email function:', response.error);
-              toast({
-                title: 'Error sending confirmation email',
-                description: `Failed to send email: ${response.error.message || 'Unknown error'}`,
-                variant: "destructive"
-              });
               return;
             }
             
@@ -98,11 +83,6 @@ export function RealtimeEmailListener() {
           })
           .catch(error => {
             console.error('Error calling Eureka confirmation email function:', error);
-            toast({
-              title: 'Error sending confirmation email',
-              description: `Failed to send email: ${error.message || 'Unknown error'}`,
-              variant: "destructive"
-            });
           });
         }
       )
