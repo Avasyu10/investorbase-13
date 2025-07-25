@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { FundThesisAlignment } from "@/components/companies/FundThesisAlignment";
+import { useProfile } from "@/hooks/useProfile";
 
 interface AnalysisSummary {
   id: string;
@@ -37,6 +38,7 @@ interface AnalysisSummary {
 
 export default function AnalysisSummary() {
   const params = useParams();
+  const { isEximius } = useProfile();
   const [summary, setSummary] = useState<AnalysisSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -225,7 +227,7 @@ export default function AnalysisSummary() {
           </div>
           
           <div className="flex gap-3">
-            {hasFundThesis && (
+            {hasFundThesis && !isEximius && (
               <Button 
                 variant="outline" 
                 className="bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600"

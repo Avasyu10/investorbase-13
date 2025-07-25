@@ -77,23 +77,14 @@ export function CompanyInfoCard({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [chatbotOpen, setChatbotOpen] = useState(false);
   const [vcBotOpen, setVcBotOpen] = useState(false);
-  const {
-    isIITBombayUser
-  } = useProfile();
-  const {
-    isVCAndBits
-  } = useProfile();
-  const {
-    isBitsQuestion
-  } = useProfile();
-  const {
-    isVC
-  } = useProfile();
-  const {
-    isViewOnly
-  } = useProfile();
-  const {
-    isBits
+  const { 
+    isIITBombayUser, 
+    isVCAndBits, 
+    isBitsQuestion, 
+    isVC, 
+    isViewOnly, 
+    isBits,
+    isEximius 
   } = useProfile();
 
   // First, get the company data from the companies table to ensure we have the correct company ID
@@ -292,25 +283,40 @@ export function CompanyInfoCard({
             />
           )}
         </div>
-        {/* Buttons for Chatbot, VC Bot and Investment Memo */}
+        {/* Buttons for Chatbot and Investment Memo for VC users */}
         <div className="flex flex-wrap items-center gap-3">
-          {shouldShowChatbot && <Button variant="outline" onClick={handleChatbot} size="sm" className="h-10 w-10 p-0 bg-amber-400 hover:bg-amber-300 text-slate-950">
-              <Bot className="h-5 w-5" />
-            </Button>}
+          {/* Chatbot button for VC users */}
+          {companyData?.id && (isVC || isVCAndBits) && (
+            <Button 
+              variant="outline" 
+              onClick={handleChatbot} 
+              size="sm" 
+              className="h-10 px-4 bg-amber-400 hover:bg-amber-300 text-slate-950 border-amber-600"
+            >
+              <Bot className="h-4 w-4 mr-2" />
+              <span className="font-medium">Chatbot</span>
+            </Button>
+          )}
 
-          {/* VC Evaluation Bot for general users */}
-          {companyData?.id && isGeneralUser && <Button variant="outline" onClick={handleVCBot} size="sm" className="h-10 px-4 bg-yellow-500 hover:bg-yellow-400 text-zinc-950 border-yellow-600">
+          {/* Investment Memo button for VC users */}
+          {companyData?.id && (isVC || isVCAndBits) && !isIITBombayUser && (
+            <InvestmentMemo company={companyData} />
+          )}
+
+          {/* VC Evaluation Bot for general users only */}
+          {companyData?.id && isGeneralUser && (
+            <Button 
+              variant="outline" 
+              onClick={handleVCBot} 
+              size="sm" 
+              className="h-10 px-4 bg-yellow-500 hover:bg-yellow-400 text-zinc-950 border-yellow-600"
+            >
               <Bot className="h-4 w-4 mr-2" />
               <span className="font-medium">VC Bot</span>
-            </Button>}
+            </Button>
+          )}
 
-          {/* Investment Memo component for general users */}
-          {companyData?.id && isVC && !isBits && !isIITBombayUser &&
-        // Pass the company data to the InvestmentMemo component
-        // The InvestmentMemo component will render its own button/logic
-        <InvestmentMemo company={companyData} />}
-
-          {/* VC Matchmaking button for non-IIT Bombay users with score > 65 */}
+          {/* VC Matchmaking button for non-IIT Bombay users with score > 40 */}
           {shouldShowVCMatchmaking && (
             <VCMatchmakingDialog 
               companyId={companyData.id} 
