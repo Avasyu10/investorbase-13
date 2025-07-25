@@ -1580,6 +1580,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      cleanup_test_companies: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       create_find_company_by_numeric_id_bigint_function: {
         Args: Record<PropertyKey, never>
         Returns: boolean
