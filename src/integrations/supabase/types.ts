@@ -865,6 +865,7 @@ export type Database = {
           is_admin: boolean
           is_bits: boolean | null
           is_bits_question: boolean | null
+          is_eximius: boolean | null
           is_iitbombay: boolean
           is_manager: boolean
           is_vc: boolean
@@ -882,6 +883,7 @@ export type Database = {
           is_admin?: boolean
           is_bits?: boolean | null
           is_bits_question?: boolean | null
+          is_eximius?: boolean | null
           is_iitbombay?: boolean
           is_manager?: boolean
           is_vc?: boolean
@@ -899,6 +901,7 @@ export type Database = {
           is_admin?: boolean
           is_bits?: boolean | null
           is_bits_question?: boolean | null
+          is_eximius?: boolean | null
           is_iitbombay?: boolean
           is_manager?: boolean
           is_vc?: boolean
