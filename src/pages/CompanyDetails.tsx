@@ -56,7 +56,7 @@ function CompanyDetails() {
   } : null;
 
   // Determine user type based on profile - using correct property names
-  const isVCUser = profile?.is_vc || false;
+  const isVCUser = profile?.is_vc || profile?.is_eximius || false;
   const isIITBombayUser = profile?.is_iitbombay || false;
   const isRegularUser = !isVCUser && !isIITBombayUser && !isBitsQuestion;
 
