@@ -93,22 +93,31 @@ async function getUserAccessibleReports(userId: string): Promise<string> {
 // Separate query for potential stats to avoid blocking main query
 async function getPotentialStats(userId: string, accessibleReports: string) {
   try {
-    const { data: statsData, error: statsError } = await supabase
+    // Build the same query logic as the main companies query for consistency
+    let query = supabase
       .from('companies')
       .select('overall_score')
       .or(`user_id.eq.${userId}${accessibleReports ? `,report_id.in.(${accessibleReports})` : ''}`)
       .not('overall_score', 'is', null);
+
+    const { data: statsData, error: statsError } = await query;
 
     if (statsError) {
       console.error("Error fetching potential stats:", statsError);
       return { highPotential: 0, mediumPotential: 0, badPotential: 0 };
     }
 
-    // Calculate potential stats from all companies
+    // Calculate potential stats from all accessible companies
+    const highPotential = statsData?.filter(c => c.overall_score > 70).length || 0;
+    const mediumPotential = statsData?.filter(c => c.overall_score >= 50 && c.overall_score <= 70).length || 0;
+    const badPotential = statsData?.filter(c => c.overall_score < 50).length || 0;
+
+    console.log(`Potential stats calculated: High: ${highPotential}, Medium: ${mediumPotential}, Bad: ${badPotential}, Total: ${highPotential + mediumPotential + badPotential}`);
+
     return {
-      highPotential: statsData?.filter(c => c.overall_score > 70).length || 0,
-      mediumPotential: statsData?.filter(c => c.overall_score >= 50 && c.overall_score <= 70).length || 0,
-      badPotential: statsData?.filter(c => c.overall_score < 50).length || 0,
+      highPotential,
+      mediumPotential,
+      badPotential,
     };
   } catch (err) {
     console.error("Error in getPotentialStats:", err);
