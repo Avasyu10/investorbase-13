@@ -73,8 +73,8 @@ async function getUserAccessibleReports(userId: string): Promise<string> {
     const { data: reports, error } = await supabase
       .from('reports')
       .select('id')
-      .or(`user_id.eq.${userId},is_public_submission.eq.true`)
-      .limit(1000); // Add reasonable limit to prevent massive queries
+      .or(`user_id.eq.${userId},is_public_submission.eq.true`);
+      // Removed limit to ensure we get all accessible reports
 
     if (error) {
       console.error('Error fetching accessible reports:', error);
@@ -101,25 +101,35 @@ async function getUserAccessibleReports(userId: string): Promise<string> {
 async function getPotentialStats(userId: string, accessibleReports: string) {
   try {
     // Build the same query logic as the main companies query for consistency
+    // But don't use the string concatenation approach which might have issues
     let query = supabase
       .from('companies')
-      .select('overall_score')
-      .or(`user_id.eq.${userId}${accessibleReports ? `,report_id.in.(${accessibleReports})` : ''}`)
+      .select('overall_score', { count: 'exact' })
       .not('overall_score', 'is', null);
 
-    const { data: statsData, error: statsError } = await query;
+    // Apply the same access control logic but without string concatenation
+    if (accessibleReports && accessibleReports.length > 0) {
+      const reportIds = accessibleReports.split(',').filter(id => id.trim());
+      query = query.or(`user_id.eq.${userId},report_id.in.(${reportIds.join(',')})`);
+    } else {
+      query = query.eq('user_id', userId);
+    }
+
+    const { data: statsData, error: statsError, count } = await query;
 
     if (statsError) {
       console.error("Error fetching potential stats:", statsError);
       return { highPotential: 0, mediumPotential: 0, badPotential: 0 };
     }
 
+    console.log(`Found ${count} total companies with scores for potential stats calculation`);
+
     // Calculate potential stats from all accessible companies
     const highPotential = statsData?.filter(c => c.overall_score > 70).length || 0;
     const mediumPotential = statsData?.filter(c => c.overall_score >= 50 && c.overall_score <= 70).length || 0;
     const badPotential = statsData?.filter(c => c.overall_score < 50).length || 0;
 
-    console.log(`Potential stats calculated: High: ${highPotential}, Medium: ${mediumPotential}, Bad: ${badPotential}, Total: ${highPotential + mediumPotential + badPotential}`);
+    console.log(`Potential stats calculated: High: ${highPotential}, Medium: ${mediumPotential}, Bad: ${badPotential}, Total: ${highPotential + mediumPotential + badPotential}, Expected total from count: ${count}`);
 
     return {
       highPotential,
