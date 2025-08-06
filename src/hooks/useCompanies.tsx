@@ -106,7 +106,7 @@ async function getPotentialStats(userId: string, accessibleReports: string) {
       .from('companies')
       .select('overall_score', { count: 'exact' })
       .not('overall_score', 'is', null)
-      .limit(10000); // Set a high limit to ensure we get all records
+      .range(0, 9999); // Set a high limit to ensure we get all records
 
     // Apply the same access control logic but without string concatenation
     if (accessibleReports && accessibleReports.length > 0) {
