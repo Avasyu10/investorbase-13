@@ -105,7 +105,8 @@ async function getPotentialStats(userId: string, accessibleReports: string) {
     let query = supabase
       .from('companies')
       .select('overall_score', { count: 'exact' })
-      .not('overall_score', 'is', null);
+      .not('overall_score', 'is', null)
+      .limit(10000); // Set a high limit to ensure we get all records
 
     // Apply the same access control logic but without string concatenation
     if (accessibleReports && accessibleReports.length > 0) {
@@ -122,7 +123,7 @@ async function getPotentialStats(userId: string, accessibleReports: string) {
       return { highPotential: 0, mediumPotential: 0, badPotential: 0 };
     }
 
-    console.log(`Found ${count} total companies with scores for potential stats calculation`);
+    console.log(`Found ${count} total companies with scores, received ${statsData?.length} records for potential stats calculation`);
 
     // Calculate potential stats from all accessible companies
     const highPotential = statsData?.filter(c => c.overall_score > 70).length || 0;
