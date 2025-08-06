@@ -61,6 +61,26 @@ export function clearReportCache() {
   reportCache.clear();
   console.log('Report cache cleared');
 }
+async function getUserAccessibleReports(userId: string): Promise<string> {
+  if (reportCache.has(userId)) {
+    return reportCache.get(userId);
+  }
+
+  const { data, error } = await supabase
+    .from('reports')
+    .select('id')
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error('Error fetching accessible reports:', error);
+    return '';
+  }
+
+  const reportIds = (data || []).map(r => r.id).join(',');
+  reportCache.set(userId, reportIds);
+  return reportIds;
+}
+
 async function getPotentialStats(userId: string, accessibleReports: string) {
   try {
     const batchSize = 1000;
