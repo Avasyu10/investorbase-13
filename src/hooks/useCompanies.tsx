@@ -100,28 +100,54 @@ async function getUserAccessibleReports(userId: string): Promise<string> {
 // Separate query for potential stats to avoid blocking main query
 async function getPotentialStats(userId: string, accessibleReports: string) {
   try {
-    // Build the same query logic as the main companies query for consistency
-    // But don't use the string concatenation approach which might have issues
-    let query = supabase
-      .from('companies')
-      .select('overall_score', { count: 'exact' })
-      .not('overall_score', 'is', null)
-      .range(0, 9999); // Set a high limit to ensure we get all records
+    const batchSize = 1000;
+    let start = 0;
+    let fetchMore = true;
+    let allCompanies: any[] = [];
 
-    // Apply the same access control logic but without string concatenation
-    if (accessibleReports && accessibleReports.length > 0) {
-      const reportIds = accessibleReports.split(',').filter(id => id.trim());
-      query = query.or(`user_id.eq.${userId},report_id.in.(${reportIds.join(',')})`);
-    } else {
-      query = query.eq('user_id', userId);
+    while (fetchMore) {
+      let query = supabase
+        .from('companies')
+        .select('overall_score')
+        .not('overall_score', 'is', null)
+        .range(start, start + batchSize - 1);
+
+      if (accessibleReports && accessibleReports.length > 0) {
+        const reportIds = accessibleReports.split(',').filter(id => id.trim());
+        query = query.or(`user_id.eq.${userId},report_id.in.(${reportIds.join(',')})`);
+      } else {
+        query = query.eq('user_id', userId);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error("Error fetching batch for potential stats:", error);
+        break;
+      }
+
+      if (data?.length) {
+        allCompanies = [...allCompanies, ...data];
+        start += batchSize;
+        fetchMore = data.length === batchSize;
+      } else {
+        fetchMore = false;
+      }
     }
 
-    const { data: statsData, error: statsError, count } = await query;
+    console.log(`Fetched ${allCompanies.length} companies for potential stats`);
 
-    if (statsError) {
-      console.error("Error fetching potential stats:", statsError);
-      return { highPotential: 0, mediumPotential: 0, badPotential: 0 };
-    }
+    const highPotential = allCompanies.filter(c => c.overall_score > 70).length;
+    const mediumPotential = allCompanies.filter(c => c.overall_score >= 50 && c.overall_score <= 70).length;
+    const badPotential = allCompanies.filter(c => c.overall_score < 50).length;
+
+    return { highPotential, mediumPotential, badPotential };
+  } catch (err) {
+    console.error("Error in getPotentialStats:", err);
+    return { highPotential: 0, mediumPotential: 0, badPotential: 0 };
+  }
+}
+
 
     console.log(`Found ${count} total companies with scores, received ${statsData?.length} records for potential stats calculation`);
 
