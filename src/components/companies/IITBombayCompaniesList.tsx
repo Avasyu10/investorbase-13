@@ -1,11 +1,11 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Loader2, Building2 } from "lucide-react";
 import { CompaniesTable } from "./CompaniesTable";
 import { useAuth } from "@/hooks/useAuth";
-import { useCompanies } from "@/hooks/useCompanies";
+import { useCompanies, clearReportCache } from "@/hooks/useCompanies";
 import { useDeleteCompany } from "@/hooks/useDeleteCompany";
 import {
   Pagination,
@@ -33,6 +33,11 @@ export function IITBombayCompaniesList() {
     isLoading,
     error
   } = useCompanies(currentPage, pageSize, sortBy, sortOrder, searchTerm);
+  
+  // Clear cache on component mount to ensure fresh data
+  useEffect(() => {
+    clearReportCache();
+  }, []);
   
   const handleCompanyClick = (companyId: string) => {
     navigate(`/company/${companyId}`);

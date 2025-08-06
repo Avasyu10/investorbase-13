@@ -55,11 +55,17 @@ function mapDbCompanyToApi(company: any) {
 
 // Cached helper function to get report IDs the user has access to
 const reportCache = new Map();
+
+// Function to clear cache when needed
+export function clearReportCache() {
+  reportCache.clear();
+  console.log('Report cache cleared');
+}
 async function getUserAccessibleReports(userId: string): Promise<string> {
-  // Check cache first
+  // Check cache first - but use shorter cache time to ensure freshness
   const cacheKey = `reports_${userId}`;
   const cached = reportCache.get(cacheKey);
-  if (cached && Date.now() - cached.timestamp < 60000) { // 1 minute cache
+  if (cached && Date.now() - cached.timestamp < 30000) { // 30 seconds cache
     return cached.data;
   }
 
@@ -83,6 +89,7 @@ async function getUserAccessibleReports(userId: string): Promise<string> {
       timestamp: Date.now()
     });
     
+    console.log(`Found ${reports?.length || 0} accessible reports for user ${userId}`);
     return result;
   } catch (err) {
     console.error('Error in getUserAccessibleReports:', err);
@@ -245,7 +252,7 @@ export function useCompanies(
     },
     enabled: !!user,
     staleTime: 0, // Force refresh to ensure data loads immediately  
-    gcTime: 5 * 60 * 1000, // Keep in memory for 5 minutes
+    gcTime: 0, // Don't keep stale data in cache
     retry: 3, // Retry failed queries up to 3 times
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
     refetchOnWindowFocus: true, // Ensure refetch when window regains focus
