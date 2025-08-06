@@ -61,43 +61,6 @@ export function clearReportCache() {
   reportCache.clear();
   console.log('Report cache cleared');
 }
-async function getUserAccessibleReports(userId: string): Promise<string> {
-  // Check cache first - but use shorter cache time to ensure freshness
-  const cacheKey = `reports_${userId}`;
-  const cached = reportCache.get(cacheKey);
-  if (cached && Date.now() - cached.timestamp < 30000) { // 30 seconds cache
-    return cached.data;
-  }
-
-  try {
-    const { data: reports, error } = await supabase
-      .from('reports')
-      .select('id')
-      .or(`user_id.eq.${userId},is_public_submission.eq.true`);
-      // Removed limit to ensure we get all accessible reports
-
-    if (error) {
-      console.error('Error fetching accessible reports:', error);
-      return '';
-    }
-
-    const result = reports?.map(r => r.id).join(',') || '';
-    
-    // Cache the result
-    reportCache.set(cacheKey, {
-      data: result,
-      timestamp: Date.now()
-    });
-    
-    console.log(`Found ${reports?.length || 0} accessible reports for user ${userId}`);
-    return result;
-  } catch (err) {
-    console.error('Error in getUserAccessibleReports:', err);
-    return '';
-  }
-}
-
-// Separate query for potential stats to avoid blocking main query
 async function getPotentialStats(userId: string, accessibleReports: string) {
   try {
     const batchSize = 1000;
@@ -135,39 +98,23 @@ async function getPotentialStats(userId: string, accessibleReports: string) {
       }
     }
 
-    console.log(`Fetched ${allCompanies.length} companies for potential stats`);
-
     const highPotential = allCompanies.filter(c => c.overall_score > 70).length;
     const mediumPotential = allCompanies.filter(c => c.overall_score >= 50 && c.overall_score <= 70).length;
     const badPotential = allCompanies.filter(c => c.overall_score < 50).length;
 
-    return { highPotential, mediumPotential, badPotential };
-  } catch (err) {
-    console.error("Error in getPotentialStats:", err);
-    return { highPotential: 0, mediumPotential: 0, badPotential: 0 };
-  }
-}
+    console.log(`Potential stats calculated: High: ${highPotential}, Medium: ${mediumPotential}, Bad: ${badPotential}, Total: ${highPotential + mediumPotential + badPotential}`);
 
-
-    console.log(`Found ${count} total companies with scores, received ${statsData?.length} records for potential stats calculation`);
-
-    // Calculate potential stats from all accessible companies
-    const highPotential = statsData?.filter(c => c.overall_score > 70).length || 0;
-    const mediumPotential = statsData?.filter(c => c.overall_score >= 50 && c.overall_score <= 70).length || 0;
-    const badPotential = statsData?.filter(c => c.overall_score < 50).length || 0;
-
-    console.log(`Potential stats calculated: High: ${highPotential}, Medium: ${mediumPotential}, Bad: ${badPotential}, Total: ${highPotential + mediumPotential + badPotential}, Expected total from count: ${count}`);
-
-  return {
+    return {
       highPotential,
       mediumPotential,
       badPotential,
-  };
+    };
   } catch (err) {
     console.error("Error in getPotentialStats:", err);
     return { highPotential: 0, mediumPotential: 0, badPotential: 0 };
   }
 }
+
 
 export function useCompanies(
   page: number = 1, 
