@@ -158,11 +158,11 @@ async function getPotentialStats(userId: string, accessibleReports: string) {
 
     console.log(`Potential stats calculated: High: ${highPotential}, Medium: ${mediumPotential}, Bad: ${badPotential}, Total: ${highPotential + mediumPotential + badPotential}, Expected total from count: ${count}`);
 
-    return {
+  return {
       highPotential,
       mediumPotential,
       badPotential,
-    };
+  };
   } catch (err) {
     console.error("Error in getPotentialStats:", err);
     return { highPotential: 0, mediumPotential: 0, badPotential: 0 };
