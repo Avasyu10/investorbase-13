@@ -13,6 +13,8 @@ export function PublicSubmissionsList() {
   const [submissions, setSubmissions] = useState<CombinedSubmission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [totalApplications, setTotalApplications] = useState<number | null>(null);
+  const [globalStatusCounts, setGlobalStatusCounts] = useState<{ analyzed: number; rejected: number; processing: number } | null>(null);
   const { user } = useAuth();
   const { isIITBombay } = useProfile();
   const { toast } = useToast();
@@ -42,10 +44,75 @@ export function PublicSubmissionsList() {
       const userFormSlugs = userForms?.map(form => form.form_slug) || [];
       console.log('User owned form slugs:', userFormSlugs);
 
+      // Fetch total counts and status counts efficiently (no row data)
+      try {
+        const createCountQuery = (table: string) => {
+          // Use any to avoid TS literal union issues for dynamic table names
+          let q: any = supabase.from(table as any).select('id', { count: 'exact', head: true });
+          if (table === 'barc_form_submissions' || table === 'eureka_form_submissions') {
+            if (userFormSlugs.length > 0) {
+              q = q.or(`form_slug.in.(${userFormSlugs.join(',')}),user_id.eq.${user.id}`);
+            } else {
+              q = q.eq('user_id', user.id);
+            }
+          }
+          if (table === 'email_pitch_submissions') {
+            q = q.eq('sender_email', user.email);
+          }
+          if (table === 'public_form_submissions') {
+            q = q.in('form_slug', userFormSlugs);
+          }
+          return q;
+        };
+
+        const [
+          publicTotalRes,
+          barcTotalRes,
+          eurekaTotalRes,
+          emailTotalRes,
+          barcCompletedRes,
+          barcFailedRes,
+          eurekaCompletedRes,
+          eurekaFailedRes,
+          emailCompletedRes,
+          emailFailedRes,
+        ] = await Promise.all([
+          userFormSlugs.length > 0 ? createCountQuery('public_form_submissions') : Promise.resolve({ count: 0 } as any),
+          createCountQuery('barc_form_submissions'),
+          createCountQuery('eureka_form_submissions'),
+          createCountQuery('email_pitch_submissions'),
+          createCountQuery('barc_form_submissions').eq('analysis_status', 'completed'),
+          createCountQuery('barc_form_submissions').eq('analysis_status', 'failed'),
+          createCountQuery('eureka_form_submissions').eq('analysis_status', 'completed'),
+          createCountQuery('eureka_form_submissions').eq('analysis_status', 'failed'),
+          createCountQuery('email_pitch_submissions').eq('analysis_status', 'completed'),
+          createCountQuery('email_pitch_submissions').eq('analysis_status', 'failed'),
+        ]);
+
+        const publicTotal = ((publicTotalRes as any).count || 0);
+        const barcTotal = ((barcTotalRes as any).count || 0);
+        const eurekaTotal = ((eurekaTotalRes as any).count || 0);
+        const emailTotal = ((emailTotalRes as any).count || 0);
+
+        const total = publicTotal + barcTotal + eurekaTotal + emailTotal;
+        setTotalApplications(total || 0);
+
+        const analyzed = ((barcCompletedRes as any).count || 0) + ((eurekaCompletedRes as any).count || 0) + ((emailCompletedRes as any).count || 0);
+        const rejected = ((barcFailedRes as any).count || 0) + ((eurekaFailedRes as any).count || 0) + ((emailFailedRes as any).count || 0);
+        const processing = (barcTotal - (((barcCompletedRes as any).count || 0) + ((barcFailedRes as any).count || 0)))
+          + (eurekaTotal - (((eurekaCompletedRes as any).count || 0) + ((eurekaFailedRes as any).count || 0)))
+          + (emailTotal - (((emailCompletedRes as any).count || 0) + ((emailFailedRes as any).count || 0)));
+
+        setGlobalStatusCounts({ analyzed, rejected, processing });
+      } catch (err) {
+        console.error('Error fetching total/status counts:', err);
+      }
+
       let allSubmissions: CombinedSubmission[] = [];
 
+
       // Helper function to fetch data efficiently with limit
-      const fetchWithLimit = async (tableName: string, baseQuery: any, maxRecords = 3000) => {
+      const fetchWithLimit = async (tableName: string, baseQuery: any, maxRecords = 500) => {
         try {
           const { data, error } = await baseQuery.limit(maxRecords);
           
@@ -343,11 +410,12 @@ export function PublicSubmissionsList() {
   // Calculate status counts for IIT Bombay users
   const getStatusCounts = () => {
     if (!isIITBombay) return null;
-    
+    // Prefer aggregated counts if available
+    if (globalStatusCounts) return globalStatusCounts;
+    // Fallback to counts from loaded page data
     const analyzed = submissions.filter(s => s.analysis_status === 'completed').length;
     const rejected = submissions.filter(s => s.analysis_status === 'failed').length;
     const processing = submissions.filter(s => !s.analysis_status || s.analysis_status === 'pending' || s.analysis_status === 'processing').length;
-    
     return { analyzed, rejected, processing };
   };
 
@@ -357,7 +425,7 @@ export function PublicSubmissionsList() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold">New Applications ({submissions.length})</h2>
+          <h2 className="text-2xl font-bold">New Applications ({totalApplications ?? submissions.length})</h2>
           {isIITBombay && statusCounts && (
             <div className="flex gap-4 mt-2 text-sm">
               <span className="text-green-600 font-medium">
