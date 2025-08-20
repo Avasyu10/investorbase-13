@@ -44,164 +44,178 @@ export function PublicSubmissionsList() {
 
       let allSubmissions: CombinedSubmission[] = [];
 
+      // Helper function to fetch data in batches
+      const fetchInBatches = async (tableName: string, baseQuery: any) => {
+        const batchSize = 1000;
+        let start = 0;
+        let fetchMore = true;
+        let batchData: any[] = [];
+
+        while (fetchMore) {
+          const query = baseQuery.range(start, start + batchSize - 1);
+          const { data, error } = await query;
+
+          if (error) {
+            console.error(`Error fetching batch from ${tableName}:`, error);
+            break;
+          }
+
+          if (data?.length) {
+            batchData = [...batchData, ...data];
+            start += batchSize;
+            fetchMore = data.length === batchSize;
+          } else {
+            fetchMore = false;
+          }
+        }
+
+        return batchData;
+      };
+
       // Fetch public form submissions for user's forms
       if (userFormSlugs.length > 0) {
         console.log('Fetching public form submissions for user\'s forms...');
-        const { data: publicSubmissions, error: publicError } = await supabase
+        const baseQuery = supabase
           .from('public_form_submissions')
           .select('*')
           .in('form_slug', userFormSlugs)
-          .order('created_at', { ascending: false })
-          .limit(50000);
+          .order('created_at', { ascending: false });
 
-        if (publicError) {
-          console.error('Error fetching public submissions:', publicError);
-        } else {
-          console.log('Public form submissions fetched:', publicSubmissions?.length || 0);
-          const mappedPublicSubmissions: CombinedSubmission[] = (publicSubmissions || []).map(sub => ({
-            id: sub.id,
-            company_name: sub.title || 'Untitled Submission',
-            submitter_email: sub.submitter_email || sub.founder_email || 'No email',
-            created_at: sub.created_at,
-            source: 'public_form' as const,
-            form_slug: sub.form_slug,
-            user_id: undefined,
-            company_id: undefined,
-            title: sub.title || 'Untitled Submission',
-            description: sub.description,
-            company_stage: sub.company_stage,
-            industry: sub.industry,
-            founder_name: sub.founder_name,
-            founder_email: sub.founder_email,
-            website_url: sub.website_url
-          }));
-          allSubmissions = [...allSubmissions, ...mappedPublicSubmissions];
-        }
+        const publicSubmissions = await fetchInBatches('public_form_submissions', baseQuery);
+        console.log('Public form submissions fetched:', publicSubmissions?.length || 0);
+        
+        const mappedPublicSubmissions: CombinedSubmission[] = (publicSubmissions || []).map(sub => ({
+          id: sub.id,
+          company_name: sub.title || 'Untitled Submission',
+          submitter_email: sub.submitter_email || sub.founder_email || 'No email',
+          created_at: sub.created_at,
+          source: 'public_form' as const,
+          form_slug: sub.form_slug,
+          user_id: undefined,
+          company_id: undefined,
+          title: sub.title || 'Untitled Submission',
+          description: sub.description,
+          company_stage: sub.company_stage,
+          industry: sub.industry,
+          founder_name: sub.founder_name,
+          founder_email: sub.founder_email,
+          website_url: sub.website_url
+        }));
+        allSubmissions = [...allSubmissions, ...mappedPublicSubmissions];
       }
 
       // Fetch BARC form submissions - both for user's forms AND for current user
       console.log('Fetching BARC form submissions...');
-      const barcQuery = supabase
+      const barcBaseQuery = supabase
         .from('barc_form_submissions')
         .select('*')
         .order('created_at', { ascending: false });
 
       // Apply filter for user's forms OR user_id matches current user
       if (userFormSlugs.length > 0) {
-        barcQuery.or(`form_slug.in.(${userFormSlugs.join(',')}),user_id.eq.${user.id}`);
+        barcBaseQuery.or(`form_slug.in.(${userFormSlugs.join(',')}),user_id.eq.${user.id}`);
       } else {
-        barcQuery.eq('user_id', user.id);
+        barcBaseQuery.eq('user_id', user.id);
       }
 
-      const { data: barcSubmissions, error: barcError } = await barcQuery.limit(50000);
-
-      if (barcError) {
-        console.error('Error fetching BARC submissions:', barcError);
-      } else {
-        console.log('BARC form submissions fetched:', barcSubmissions?.length || 0);
-        const mappedBarcSubmissions: CombinedSubmission[] = (barcSubmissions || []).map(sub => ({
-          id: sub.id,
-          company_name: sub.company_name || 'Untitled Company',
-          submitter_email: sub.submitter_email || 'No email',
-          created_at: sub.created_at,
-          source: 'barc_form' as const,
-          analysis_status: sub.analysis_status,
-          form_slug: sub.form_slug,
-          analysis_result: sub.analysis_result,
-          user_id: sub.user_id,
-          company_id: sub.company_id,
-          company_type: sub.company_type,
-          company_registration_type: sub.company_registration_type,
-          executive_summary: sub.executive_summary,
-          question_1: sub.question_1,
-          question_2: sub.question_2,
-          question_3: sub.question_3,
-          question_4: sub.question_4,
-          question_5: sub.question_5,
-          poc_name: sub.poc_name,
-          phoneno: sub.phoneno,
-          company_linkedin_url: sub.company_linkedin_url,
-          founder_linkedin_urls: sub.founder_linkedin_urls,
-          report_id: sub.report_id
-        }));
-        allSubmissions = [...allSubmissions, ...mappedBarcSubmissions];
-      }
+      const barcSubmissions = await fetchInBatches('barc_form_submissions', barcBaseQuery);
+      console.log('BARC form submissions fetched:', barcSubmissions?.length || 0);
+      
+      const mappedBarcSubmissions: CombinedSubmission[] = (barcSubmissions || []).map(sub => ({
+        id: sub.id,
+        company_name: sub.company_name || 'Untitled Company',
+        submitter_email: sub.submitter_email || 'No email',
+        created_at: sub.created_at,
+        source: 'barc_form' as const,
+        analysis_status: sub.analysis_status,
+        form_slug: sub.form_slug,
+        analysis_result: sub.analysis_result,
+        user_id: sub.user_id,
+        company_id: sub.company_id,
+        company_type: sub.company_type,
+        company_registration_type: sub.company_registration_type,
+        executive_summary: sub.executive_summary,
+        question_1: sub.question_1,
+        question_2: sub.question_2,
+        question_3: sub.question_3,
+        question_4: sub.question_4,
+        question_5: sub.question_5,
+        poc_name: sub.poc_name,
+        phoneno: sub.phoneno,
+        company_linkedin_url: sub.company_linkedin_url,
+        founder_linkedin_urls: sub.founder_linkedin_urls,
+        report_id: sub.report_id
+      }));
+      allSubmissions = [...allSubmissions, ...mappedBarcSubmissions];
 
       // Fetch Eureka form submissions - both for user's forms AND for current user
       console.log('Fetching Eureka form submissions...');
-      const eurekaQuery = supabase
+      const eurekaBaseQuery = supabase
         .from('eureka_form_submissions')
         .select('*')
         .order('created_at', { ascending: false });
 
       // Apply filter for user's forms OR user_id matches current user
       if (userFormSlugs.length > 0) {
-        eurekaQuery.or(`form_slug.in.(${userFormSlugs.join(',')}),user_id.eq.${user.id}`);
+        eurekaBaseQuery.or(`form_slug.in.(${userFormSlugs.join(',')}),user_id.eq.${user.id}`);
       } else {
-        eurekaQuery.eq('user_id', user.id);
+        eurekaBaseQuery.eq('user_id', user.id);
       }
 
-      const { data: eurekaSubmissions, error: eurekaError } = await eurekaQuery.limit(50000);
-
-      if (eurekaError) {
-        console.error('Error fetching Eureka submissions:', eurekaError);
-      } else {
-        console.log('Eureka form submissions fetched:', eurekaSubmissions?.length || 0);
-        const mappedEurekaSubmissions: CombinedSubmission[] = (eurekaSubmissions || []).map(sub => ({
-          id: sub.id,
-          company_name: sub.company_name || 'Untitled Company',
-          submitter_email: sub.submitter_email || 'No email',
-          created_at: sub.created_at,
-          source: 'eureka_form' as const,
-          analysis_status: sub.analysis_status,
-          form_slug: sub.form_slug,
-          analysis_result: sub.analysis_result,
-          user_id: sub.user_id,
-          company_id: sub.company_id,
-          company_type: sub.company_type,
-          company_registration_type: sub.company_registration_type,
-          executive_summary: sub.executive_summary,
-          question_1: sub.question_1,
-          question_2: sub.question_2,
-          question_3: sub.question_3,
-          question_4: sub.question_4,
-          question_5: sub.question_5,
-          poc_name: sub.poc_name,
-          phoneno: sub.phoneno,
-          company_linkedin_url: sub.company_linkedin_url,
-          founder_linkedin_urls: sub.founder_linkedin_urls,
-          report_id: sub.report_id
-        }));
-        allSubmissions = [...allSubmissions, ...mappedEurekaSubmissions];
-      }
+      const eurekaSubmissions = await fetchInBatches('eureka_form_submissions', eurekaBaseQuery);
+      console.log('Eureka form submissions fetched:', eurekaSubmissions?.length || 0);
+      
+      const mappedEurekaSubmissions: CombinedSubmission[] = (eurekaSubmissions || []).map(sub => ({
+        id: sub.id,
+        company_name: sub.company_name || 'Untitled Company',
+        submitter_email: sub.submitter_email || 'No email',
+        created_at: sub.created_at,
+        source: 'eureka_form' as const,
+        analysis_status: sub.analysis_status,
+        form_slug: sub.form_slug,
+        analysis_result: sub.analysis_result,
+        user_id: sub.user_id,
+        company_id: sub.company_id,
+        company_type: sub.company_type,
+        company_registration_type: sub.company_registration_type,
+        executive_summary: sub.executive_summary,
+        question_1: sub.question_1,
+        question_2: sub.question_2,
+        question_3: sub.question_3,
+        question_4: sub.question_4,
+        question_5: sub.question_5,
+        poc_name: sub.poc_name,
+        phoneno: sub.phoneno,
+        company_linkedin_url: sub.company_linkedin_url,
+        founder_linkedin_urls: sub.founder_linkedin_urls,
+        report_id: sub.report_id
+      }));
+      allSubmissions = [...allSubmissions, ...mappedEurekaSubmissions];
 
       // Fetch email submissions
       console.log('Fetching email submissions...');
-      const { data: emailSubmissions, error: emailError } = await supabase
+      const emailBaseQuery = supabase
         .from('email_pitch_submissions')
         .select('*')
         .eq('sender_email', user.email)
-        .order('created_at', { ascending: false })
-        .limit(50000);
+        .order('created_at', { ascending: false });
 
-      if (emailError) {
-        console.error('Error fetching email submissions:', emailError);
-      } else {
-        console.log('Email submissions fetched:', emailSubmissions?.length || 0);
-        const mappedEmailSubmissions: CombinedSubmission[] = (emailSubmissions || []).map(sub => ({
-          id: sub.id,
-          company_name: sub.company_name || 'Email Submission',
-          submitter_email: sub.sender_email,
-          created_at: sub.created_at,
-          source: 'email' as const,
-          analysis_status: sub.analysis_status,
-          sender_email: sub.sender_email,
-          has_attachment: sub.has_attachment,
-          user_id: undefined,
-          company_id: undefined
-        }));
-        allSubmissions = [...allSubmissions, ...mappedEmailSubmissions];
-      }
+      const emailSubmissions = await fetchInBatches('email_pitch_submissions', emailBaseQuery);
+      console.log('Email submissions fetched:', emailSubmissions?.length || 0);
+      
+      const mappedEmailSubmissions: CombinedSubmission[] = (emailSubmissions || []).map(sub => ({
+        id: sub.id,
+        company_name: sub.company_name || 'Email Submission',
+        submitter_email: sub.sender_email,
+        created_at: sub.created_at,
+        source: 'email' as const,
+        analysis_status: sub.analysis_status,
+        sender_email: sub.sender_email,
+        has_attachment: sub.has_attachment,
+        user_id: undefined,
+        company_id: undefined
+      }));
+      allSubmissions = [...allSubmissions, ...mappedEmailSubmissions];
 
       // Sort all submissions by created_at (most recent first) and remove duplicates
       const uniqueSubmissions = allSubmissions
