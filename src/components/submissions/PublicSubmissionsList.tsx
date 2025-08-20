@@ -44,32 +44,22 @@ export function PublicSubmissionsList() {
 
       let allSubmissions: CombinedSubmission[] = [];
 
-      // Helper function to fetch data in batches
-      const fetchInBatches = async (tableName: string, baseQuery: any) => {
-        const batchSize = 1000;
-        let start = 0;
-        let fetchMore = true;
-        let batchData: any[] = [];
-
-        while (fetchMore) {
-          const query = baseQuery.range(start, start + batchSize - 1);
-          const { data, error } = await query;
-
+      // Helper function to fetch data efficiently with limit
+      const fetchWithLimit = async (tableName: string, baseQuery: any, maxRecords = 3000) => {
+        try {
+          const { data, error } = await baseQuery.limit(maxRecords);
+          
           if (error) {
-            console.error(`Error fetching batch from ${tableName}:`, error);
-            break;
+            console.error(`Error fetching from ${tableName}:`, error);
+            return [];
           }
-
-          if (data?.length) {
-            batchData = [...batchData, ...data];
-            start += batchSize;
-            fetchMore = data.length === batchSize;
-          } else {
-            fetchMore = false;
-          }
+          
+          console.log(`${tableName} fetched:`, data?.length || 0);
+          return data || [];
+        } catch (error) {
+          console.error(`Exception fetching from ${tableName}:`, error);
+          return [];
         }
-
-        return batchData;
       };
 
       // Fetch public form submissions for user's forms
@@ -81,7 +71,7 @@ export function PublicSubmissionsList() {
           .in('form_slug', userFormSlugs)
           .order('created_at', { ascending: false });
 
-        const publicSubmissions = await fetchInBatches('public_form_submissions', baseQuery);
+        const publicSubmissions = await fetchWithLimit('public_form_submissions', baseQuery);
         console.log('Public form submissions fetched:', publicSubmissions?.length || 0);
         
         const mappedPublicSubmissions: CombinedSubmission[] = (publicSubmissions || []).map(sub => ({
@@ -118,7 +108,7 @@ export function PublicSubmissionsList() {
         barcBaseQuery.eq('user_id', user.id);
       }
 
-      const barcSubmissions = await fetchInBatches('barc_form_submissions', barcBaseQuery);
+      const barcSubmissions = await fetchWithLimit('barc_form_submissions', barcBaseQuery);
       console.log('BARC form submissions fetched:', barcSubmissions?.length || 0);
       
       const mappedBarcSubmissions: CombinedSubmission[] = (barcSubmissions || []).map(sub => ({
@@ -162,7 +152,7 @@ export function PublicSubmissionsList() {
         eurekaBaseQuery.eq('user_id', user.id);
       }
 
-      const eurekaSubmissions = await fetchInBatches('eureka_form_submissions', eurekaBaseQuery);
+      const eurekaSubmissions = await fetchWithLimit('eureka_form_submissions', eurekaBaseQuery);
       console.log('Eureka form submissions fetched:', eurekaSubmissions?.length || 0);
       
       const mappedEurekaSubmissions: CombinedSubmission[] = (eurekaSubmissions || []).map(sub => ({
@@ -200,7 +190,7 @@ export function PublicSubmissionsList() {
         .eq('sender_email', user.email)
         .order('created_at', { ascending: false });
 
-      const emailSubmissions = await fetchInBatches('email_pitch_submissions', emailBaseQuery);
+      const emailSubmissions = await fetchWithLimit('email_pitch_submissions', emailBaseQuery);
       console.log('Email submissions fetched:', emailSubmissions?.length || 0);
       
       const mappedEmailSubmissions: CombinedSubmission[] = (emailSubmissions || []).map(sub => ({
