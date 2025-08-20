@@ -51,7 +51,8 @@ export function PublicSubmissionsList() {
           .from('public_form_submissions')
           .select('*')
           .in('form_slug', userFormSlugs)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(50000);
 
         if (publicError) {
           console.error('Error fetching public submissions:', publicError);
@@ -92,7 +93,7 @@ export function PublicSubmissionsList() {
         barcQuery.eq('user_id', user.id);
       }
 
-      const { data: barcSubmissions, error: barcError } = await barcQuery;
+      const { data: barcSubmissions, error: barcError } = await barcQuery.limit(50000);
 
       if (barcError) {
         console.error('Error fetching BARC submissions:', barcError);
@@ -140,7 +141,7 @@ export function PublicSubmissionsList() {
         eurekaQuery.eq('user_id', user.id);
       }
 
-      const { data: eurekaSubmissions, error: eurekaError } = await eurekaQuery;
+      const { data: eurekaSubmissions, error: eurekaError } = await eurekaQuery.limit(50000);
 
       if (eurekaError) {
         console.error('Error fetching Eureka submissions:', eurekaError);
@@ -180,7 +181,8 @@ export function PublicSubmissionsList() {
         .from('email_pitch_submissions')
         .select('*')
         .eq('sender_email', user.email)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(50000);
 
       if (emailError) {
         console.error('Error fetching email submissions:', emailError);
@@ -334,11 +336,37 @@ export function PublicSubmissionsList() {
     );
   }
 
+  // Calculate status counts for IIT Bombay users
+  const getStatusCounts = () => {
+    if (!isIITBombay) return null;
+    
+    const analyzed = submissions.filter(s => s.analysis_status === 'completed').length;
+    const rejected = submissions.filter(s => s.analysis_status === 'failed').length;
+    const processing = submissions.filter(s => !s.analysis_status || s.analysis_status === 'pending' || s.analysis_status === 'processing').length;
+    
+    return { analyzed, rejected, processing };
+  };
+
+  const statusCounts = getStatusCounts();
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">New Applications ({submissions.length})</h2>
+          {isIITBombay && statusCounts && (
+            <div className="flex gap-4 mt-2 text-sm">
+              <span className="text-green-600 font-medium">
+                Analyzed: {statusCounts.analyzed}
+              </span>
+              <span className="text-red-600 font-medium">
+                Rejected: {statusCounts.rejected}
+              </span>
+              <span className="text-yellow-600 font-medium">
+                Processing: {statusCounts.processing}
+              </span>
+            </div>
+          )}
           <p className="text-muted-foreground">
             Recent submissions across all your forms and channels
           </p>
