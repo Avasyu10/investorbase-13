@@ -434,9 +434,6 @@ export function PublicSubmissionsList() {
               <span className="text-red-600 font-medium">
                 Rejected: {statusCounts.rejected}
               </span>
-              <span className="text-yellow-600 font-medium">
-                Processing: {statusCounts.processing}
-              </span>
             </div>
           )}
           <p className="text-muted-foreground">
