@@ -5,8 +5,14 @@ import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
 import { PublicSubmissionsTable } from "./PublicSubmissionsTable";
 import { IITBombaySubmissionsTable } from "./IITBombaySubmissionsTable";
-import { Loader2, Inbox, RefreshCw } from "lucide-react";
+import { Loader2, Inbox, RefreshCw, Filter, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { CombinedSubmission } from "./types";
 
 export function PublicSubmissionsList() {
@@ -15,6 +21,7 @@ export function PublicSubmissionsList() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [totalApplications, setTotalApplications] = useState<number | null>(null);
   const [globalStatusCounts, setGlobalStatusCounts] = useState<{ analyzed: number; rejected: number; processing: number } | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'failed' | 'pending' | 'processing'>('all');
   const { user } = useAuth();
   const { isIITBombay } = useProfile();
   const { toast } = useToast();
@@ -421,6 +428,28 @@ export function PublicSubmissionsList() {
 
   const statusCounts = getStatusCounts();
 
+  // Filter submissions based on selected status
+  const filteredSubmissions = statusFilter === 'all' 
+    ? submissions 
+    : submissions.filter(submission => {
+        if (statusFilter === 'completed') return submission.analysis_status === 'completed';
+        if (statusFilter === 'failed') return submission.analysis_status === 'failed';
+        if (statusFilter === 'pending') return submission.analysis_status === 'pending';
+        if (statusFilter === 'processing') return submission.analysis_status === 'processing' || (!submission.analysis_status && submission.source !== 'public_form');
+        return false;
+      });
+
+  const getFilterLabel = (filter: string) => {
+    switch (filter) {
+      case 'all': return 'All Status';
+      case 'completed': return 'Analyzed';
+      case 'failed': return 'Rejected';
+      case 'pending': return 'Pending';
+      case 'processing': return 'Processing';
+      default: return 'All Status';
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -440,31 +469,53 @@ export function PublicSubmissionsList() {
             Recent submissions across all your forms and channels
           </p>
         </div>
-        <Button
-          onClick={handleRefresh}
-          disabled={isRefreshing}
-          variant="outline"
-          size="sm"
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Filter className="h-4 w-4 mr-2" />
+                {getFilterLabel(statusFilter)}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-40 bg-background border shadow-lg">
+              {['all', 'completed', 'failed', 'pending', 'processing'].map((status) => (
+                <DropdownMenuItem 
+                  key={status}
+                  onClick={() => setStatusFilter(status as any)}
+                  className="flex items-center justify-between cursor-pointer hover:bg-accent"
+                >
+                  <span>{getFilterLabel(status)}</span>
+                  {statusFilter === status && <Check className="h-4 w-4" />}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            variant="outline"
+            size="sm"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
-      {submissions.length === 0 ? (
+      {filteredSubmissions.length === 0 ? (
         <div className="text-center py-12 border rounded-lg bg-card/50">
           <Inbox className="mx-auto h-12 w-12 text-muted-foreground" />
-          <h3 className="mt-4 text-lg font-medium">No submissions yet</h3>
+          <h3 className="mt-4 text-lg font-medium">No submissions match your filter</h3>
           <p className="mt-2 text-muted-foreground">
-            New applications will appear here when submitted through your forms or email
+            Try adjusting your filter or check back later for new applications
           </p>
         </div>
       ) : (
         <>
           {isIITBombay ? (
-            <IITBombaySubmissionsTable submissions={submissions} />
+            <IITBombaySubmissionsTable submissions={filteredSubmissions} />
           ) : (
-            <PublicSubmissionsTable submissions={submissions} />
+            <PublicSubmissionsTable submissions={filteredSubmissions} />
           )}
         </>
       )}
