@@ -13,6 +13,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import type { CombinedSubmission } from "./types";
 
 export function PublicSubmissionsList() {
@@ -22,11 +30,14 @@ export function PublicSubmissionsList() {
   const [totalApplications, setTotalApplications] = useState<number | null>(null);
   const [globalStatusCounts, setGlobalStatusCounts] = useState<{ analyzed: number; rejected: number; processing: number } | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'failed' | 'pending' | 'processing'>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const pageSize = 50;
   const { user } = useAuth();
   const { isIITBombay } = useProfile();
   const { toast } = useToast();
 
-  const fetchSubmissions = async () => {
+  const fetchSubmissions = async (page: number = currentPage, filter: string = statusFilter) => {
     if (!user) {
       console.log('No user found, skipping submissions fetch');
       setSubmissions([]);
@@ -35,7 +46,7 @@ export function PublicSubmissionsList() {
     }
 
     try {
-      console.log('Fetching submissions for user:', user.id, 'email:', user.email);
+      console.log('Fetching submissions for user:', user.id, 'email:', user.email, 'page:', page, 'filter:', filter);
       
       // Get user's owned form slugs
       const { data: userForms, error: formsError } = await supabase
@@ -118,23 +129,46 @@ export function PublicSubmissionsList() {
       let allSubmissions: CombinedSubmission[] = [];
 
 
-      // Helper function to fetch data efficiently with limit
-      const fetchWithLimit = async (tableName: string, baseQuery: any, maxRecords = 500) => {
+      // Helper function to add status filter
+      const addStatusFilter = (query: any, tableName: string) => {
+        if (filter === 'all') return query;
+        
+        if (tableName === 'public_form_submissions') {
+          // Public form submissions don't have analysis_status
+          return query;
+        }
+        
+        if (filter === 'completed') return query.eq('analysis_status', 'completed');
+        if (filter === 'failed') return query.eq('analysis_status', 'failed'); 
+        if (filter === 'pending') return query.eq('analysis_status', 'pending');
+        if (filter === 'processing') return query.or('analysis_status.eq.processing,analysis_status.is.null');
+        
+        return query;
+      };
+
+      // Helper function to fetch data efficiently with pagination and filtering
+      const fetchWithPagination = async (tableName: string, baseQuery: any) => {
         try {
-          const { data, error } = await baseQuery.limit(maxRecords);
+          const filteredQuery = addStatusFilter(baseQuery, tableName);
+          const offset = (page - 1) * pageSize;
+          const { data, error, count } = await filteredQuery
+            .range(offset, offset + pageSize - 1)
+            .select('*', { count: 'exact' });
           
           if (error) {
             console.error(`Error fetching from ${tableName}:`, error);
-            return [];
+            return { data: [], count: 0 };
           }
           
-          console.log(`${tableName} fetched:`, data?.length || 0);
-          return data || [];
+          console.log(`${tableName} fetched:`, data?.length || 0, 'total:', count);
+          return { data: data || [], count: count || 0 };
         } catch (error) {
           console.error(`Exception fetching from ${tableName}:`, error);
-          return [];
+          return { data: [], count: 0 };
         }
       };
+
+      let totalCount = 0;
 
       // Fetch public form submissions for user's forms
       if (userFormSlugs.length > 0) {
@@ -145,8 +179,8 @@ export function PublicSubmissionsList() {
           .in('form_slug', userFormSlugs)
           .order('created_at', { ascending: false });
 
-        const publicSubmissions = await fetchWithLimit('public_form_submissions', baseQuery);
-        console.log('Public form submissions fetched:', publicSubmissions?.length || 0);
+        const { data: publicSubmissions, count: publicCount } = await fetchWithPagination('public_form_submissions', baseQuery);
+        totalCount += publicCount;
         
         const mappedPublicSubmissions: CombinedSubmission[] = (publicSubmissions || []).map(sub => ({
           id: sub.id,
@@ -182,8 +216,8 @@ export function PublicSubmissionsList() {
         barcBaseQuery.eq('user_id', user.id);
       }
 
-      const barcSubmissions = await fetchWithLimit('barc_form_submissions', barcBaseQuery);
-      console.log('BARC form submissions fetched:', barcSubmissions?.length || 0);
+      const { data: barcSubmissions, count: barcCount } = await fetchWithPagination('barc_form_submissions', barcBaseQuery);
+      totalCount += barcCount;
       
       const mappedBarcSubmissions: CombinedSubmission[] = (barcSubmissions || []).map(sub => ({
         id: sub.id,
@@ -226,8 +260,8 @@ export function PublicSubmissionsList() {
         eurekaBaseQuery.eq('user_id', user.id);
       }
 
-      const eurekaSubmissions = await fetchWithLimit('eureka_form_submissions', eurekaBaseQuery);
-      console.log('Eureka form submissions fetched:', eurekaSubmissions?.length || 0);
+      const { data: eurekaSubmissions, count: eurekaCount } = await fetchWithPagination('eureka_form_submissions', eurekaBaseQuery);
+      totalCount += eurekaCount;
       
       const mappedEurekaSubmissions: CombinedSubmission[] = (eurekaSubmissions || []).map(sub => ({
         id: sub.id,
@@ -264,8 +298,8 @@ export function PublicSubmissionsList() {
         .eq('sender_email', user.email)
         .order('created_at', { ascending: false });
 
-      const emailSubmissions = await fetchWithLimit('email_pitch_submissions', emailBaseQuery);
-      console.log('Email submissions fetched:', emailSubmissions?.length || 0);
+      const { data: emailSubmissions, count: emailCount } = await fetchWithPagination('email_pitch_submissions', emailBaseQuery);
+      totalCount += emailCount;
       
       const mappedEmailSubmissions: CombinedSubmission[] = (emailSubmissions || []).map(sub => ({
         id: sub.id,
@@ -289,14 +323,10 @@ export function PublicSubmissionsList() {
         );
 
       console.log('Final submissions count after deduplication:', uniqueSubmissions.length);
-      console.log('Submissions by source:', {
-        public_form: uniqueSubmissions.filter(s => s.source === 'public_form').length,
-        barc_form: uniqueSubmissions.filter(s => s.source === 'barc_form').length,
-        eureka_form: uniqueSubmissions.filter(s => s.source === 'eureka_form').length,
-        email: uniqueSubmissions.filter(s => s.source === 'email').length
-      });
-
+      console.log('Total count from backend:', totalCount);
+      
       setSubmissions(uniqueSubmissions);
+      setTotalPages(Math.ceil(totalCount / pageSize));
     } catch (error) {
       console.error('Error fetching submissions:', error);
       toast({
@@ -312,11 +342,28 @@ export function PublicSubmissionsList() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await fetchSubmissions();
+    await fetchSubmissions(currentPage, statusFilter);
+  };
+
+  const handlePageChange = async (page: number) => {
+    setCurrentPage(page);
+    setIsLoading(true);
+    await fetchSubmissions(page, statusFilter);
+    setIsLoading(false);
+  };
+
+  const handleFilterChange = async (newFilter: 'all' | 'completed' | 'failed' | 'pending' | 'processing') => {
+    setStatusFilter(newFilter);
+    setCurrentPage(1);
+    setIsLoading(true);
+    await fetchSubmissions(1, newFilter);
+    setIsLoading(false);
   };
 
   useEffect(() => {
-    fetchSubmissions();
+    if (user) {
+      fetchSubmissions(1, 'all');
+    }
   }, [user]);
 
   // Set up real-time subscriptions for all submission types
@@ -339,7 +386,7 @@ export function PublicSubmissionsList() {
         },
         (payload) => {
           console.log('📡 Public form submission change:', payload);
-          fetchSubmissions();
+          fetchSubmissions(currentPage, statusFilter);
         }
       )
       .subscribe();
@@ -357,7 +404,7 @@ export function PublicSubmissionsList() {
         },
         (payload) => {
           console.log('📡 BARC form submission change:', payload);
-          fetchSubmissions();
+          fetchSubmissions(currentPage, statusFilter);
         }
       )
       .subscribe();
@@ -375,7 +422,7 @@ export function PublicSubmissionsList() {
         },
         (payload) => {
           console.log('📡 Eureka form submission change:', payload);
-          fetchSubmissions();
+          fetchSubmissions(currentPage, statusFilter);
         }
       )
       .subscribe();
@@ -393,7 +440,7 @@ export function PublicSubmissionsList() {
         },
         (payload) => {
           console.log('📡 Email submission change:', payload);
-          fetchSubmissions();
+          fetchSubmissions(currentPage, statusFilter);
         }
       )
       .subscribe();
@@ -428,16 +475,7 @@ export function PublicSubmissionsList() {
 
   const statusCounts = getStatusCounts();
 
-  // Filter submissions based on selected status
-  const filteredSubmissions = statusFilter === 'all' 
-    ? submissions 
-    : submissions.filter(submission => {
-        if (statusFilter === 'completed') return submission.analysis_status === 'completed';
-        if (statusFilter === 'failed') return submission.analysis_status === 'failed';
-        if (statusFilter === 'pending') return submission.analysis_status === 'pending';
-        if (statusFilter === 'processing') return submission.analysis_status === 'processing' || (!submission.analysis_status && submission.source !== 'public_form');
-        return false;
-      });
+  // No need to filter on frontend since filtering is done on backend now
 
   const getFilterLabel = (filter: string) => {
     switch (filter) {
@@ -481,7 +519,7 @@ export function PublicSubmissionsList() {
               {['all', 'completed', 'failed', 'pending', 'processing'].map((status) => (
                 <DropdownMenuItem 
                   key={status}
-                  onClick={() => setStatusFilter(status as any)}
+                  onClick={() => handleFilterChange(status as any)}
                   className="flex items-center justify-between cursor-pointer hover:bg-accent"
                 >
                   <span>{getFilterLabel(status)}</span>
@@ -502,7 +540,7 @@ export function PublicSubmissionsList() {
         </div>
       </div>
 
-      {filteredSubmissions.length === 0 ? (
+      {submissions.length === 0 ? (
         <div className="text-center py-12 border rounded-lg bg-card/50">
           <Inbox className="mx-auto h-12 w-12 text-muted-foreground" />
           <h3 className="mt-4 text-lg font-medium">No submissions match your filter</h3>
@@ -513,9 +551,55 @@ export function PublicSubmissionsList() {
       ) : (
         <>
           {isIITBombay ? (
-            <IITBombaySubmissionsTable submissions={filteredSubmissions} />
+            <IITBombaySubmissionsTable submissions={submissions} />
           ) : (
-            <PublicSubmissionsTable submissions={filteredSubmissions} />
+            <PublicSubmissionsTable submissions={submissions} />
+          )}
+          
+          {totalPages > 1 && (
+            <div className="flex justify-center mt-6">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      disabled={currentPage === 1}
+                      onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
+                    />
+                  </PaginationItem>
+                  
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <PaginationItem key={pageNum}>
+                        <PaginationLink
+                          isActive={currentPage === pageNum}
+                          onClick={() => handlePageChange(pageNum)}
+                        >
+                          {pageNum}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  })}
+                  
+                  <PaginationItem>
+                    <PaginationNext 
+                      disabled={currentPage === totalPages}
+                      onClick={() => currentPage < totalPages && handlePageChange(currentPage + 1)}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
           )}
         </>
       )}
