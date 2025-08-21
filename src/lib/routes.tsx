@@ -30,6 +30,10 @@ import ThankYou from "@/pages/ThankYou";
 import EurekaSample from "@/pages/EurekaSample";
 import VCAnalysis from "@/pages/VCAnalysis";
 import ViewOnlyDashboard from "@/pages/ViewOnlyDashboard";
+import BarcApplications from "@/pages/BarcApplications";
+import EurekaApplications from "@/pages/EurekaApplications";
+import EmailApplications from "@/pages/EmailApplications";
+import PublicFormApplications from "@/pages/PublicFormApplications";
 
 export const routes = [
   { path: "/", element: <Index /> },
@@ -207,6 +211,38 @@ export const routes = [
     element: (
       <ProtectedRoute>
         <SupplementaryMaterials />
+      </ProtectedRoute>
+    )
+  },
+  { 
+    path: "/applications/barc", 
+    element: (
+      <ProtectedRoute>
+        <BarcApplications />
+      </ProtectedRoute>
+    )
+  },
+  { 
+    path: "/applications/eureka", 
+    element: (
+      <ProtectedRoute>
+        <EurekaApplications />
+      </ProtectedRoute>
+    )
+  },
+  { 
+    path: "/applications/email", 
+    element: (
+      <ProtectedRoute>
+        <EmailApplications />
+      </ProtectedRoute>
+    )
+  },
+  { 
+    path: "/applications/public-forms", 
+    element: (
+      <ProtectedRoute>
+        <PublicFormApplications />
       </ProtectedRoute>
     )
   },
