@@ -1,7 +1,6 @@
 import { ConditionalCompaniesList } from "@/components/companies/ConditionalCompaniesList";
 import { ReportsList } from "@/components/reports/ReportsList";
 import { PublicSubmissionsList } from "@/components/submissions/PublicSubmissionsList";
-import { ApplicationsNavigation } from "@/components/dashboard/ApplicationsNavigation";
 import { VCChatInterface } from "@/components/vc/VCChatInterface";
 import { VCDashboard } from "@/components/dashboard/VCDashboard"; // Keep VCDashboard import
 import { VCNotifications } from "@/components/dashboard/VCNotifications";
@@ -269,7 +268,6 @@ const Dashboard = () => {
             <ConditionalCompaniesList />
           </TabsContent>
           <TabsContent value="submissions">
-            <ApplicationsNavigation />
             <PublicSubmissionsList />
           </TabsContent>
           {!isIITBombay && <TabsContent value="reports">
