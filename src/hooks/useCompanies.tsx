@@ -88,17 +88,37 @@ async function getUserAccessibleReports(userId: string): Promise<string> {
 
 async function getPotentialStats(userId: string, accessibleReports: string) {
   try {
+    // First get companies that have Eureka submissions
+    const { data: eurekaCompanyIds, error: eurekaError } = await supabase
+      .from('eureka_form_submissions')
+      .select('company_id')
+      .not('company_id', 'is', null);
+
+    if (eurekaError) {
+      console.error('Error fetching Eureka company IDs for stats:', eurekaError);
+      return { highPotential: 0, mediumPotential: 0, badPotential: 0 };
+    }
+
+    const validCompanyIds = [...new Set(eurekaCompanyIds?.map(e => e.company_id).filter(Boolean))];
+    
+    if (validCompanyIds.length === 0) {
+      return { highPotential: 0, mediumPotential: 0, badPotential: 0 };
+    }
+
     const batchSize = 1000;
     let start = 0;
     let fetchMore = true;
     let allCompanies: any[] = [];
 
     while (fetchMore) {
+      const currentBatch = validCompanyIds.slice(start, start + batchSize);
+      if (currentBatch.length === 0) break;
+
       let query = supabase
         .from('companies')
         .select('overall_score')
-        .not('overall_score', 'is', null)
-        .range(start, start + batchSize - 1);
+        .in('id', currentBatch)
+        .not('overall_score', 'is', null);
 
       if (accessibleReports && accessibleReports.length > 0) {
         const reportIds = accessibleReports.split(',').filter(id => id.trim());
@@ -116,11 +136,10 @@ async function getPotentialStats(userId: string, accessibleReports: string) {
 
       if (data?.length) {
         allCompanies = [...allCompanies, ...data];
-        start += batchSize;
-        fetchMore = data.length === batchSize;
-      } else {
-        fetchMore = false;
       }
+      
+      start += batchSize;
+      fetchMore = currentBatch.length === batchSize;
     }
 
     const highPotential = allCompanies.filter(c => c.overall_score > 70).length;
@@ -179,7 +198,24 @@ export function useCompanies(
         // Get accessible reports once and reuse - optimization with caching
         const accessibleReports = await getUserAccessibleReports(user.id);
         
-        // Build the main query with optimized select
+        // First get companies that have Eureka submissions
+        const { data: eurekaCompanyIds, error: eurekaError } = await supabase
+          .from('eureka_form_submissions')
+          .select('company_id')
+          .not('company_id', 'is', null);
+
+        if (eurekaError) {
+          console.error('Error fetching Eureka company IDs:', eurekaError);
+          throw eurekaError;
+        }
+
+        const validCompanyIds = [...new Set(eurekaCompanyIds?.map(e => e.company_id).filter(Boolean))];
+        
+        if (validCompanyIds.length === 0) {
+          return { companies: [], totalCount: 0, potentialStats: { highPotential: 0, mediumPotential: 0, badPotential: 0 } };
+        }
+
+        // Build the main query with optimized select - only for companies with Eureka submissions
         let query = supabase
           .from('companies')
           .select(`
@@ -192,6 +228,7 @@ export function useCompanies(
             ),
             company_details!left (status, status_date, notes, contact_email, point_of_contact, industry, teammember_name)
           `, { count: 'exact' })
+          .in('id', validCompanyIds)
           .or(`user_id.eq.${user.id}${accessibleReports ? `,report_id.in.(${accessibleReports})` : ''}`);
 
         // Add search filter if provided
