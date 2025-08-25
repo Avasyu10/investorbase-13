@@ -187,11 +187,7 @@ export function useCompanies(
 
         const validCompanyIds = eurekaCompanyIds?.map(e => e.company_id) || [];
 
-        // Get accurate count from eureka_form_submissions for Eureka prospects
-        const { count: eurekaCount } = await supabase
-          .from('eureka_form_submissions')
-          .select('company_id', { count: 'exact', head: true })
-          .not('company_id', 'is', null);
+        // Count will be returned from the main query to ensure it matches accessible companies with eureka submissions
 
         // Build the main query with optimized select - only companies with eureka submissions
         let query = supabase
@@ -205,7 +201,7 @@ export function useCompanies(
               is_public_submission
             ),
             company_details!left (status, status_date, notes, contact_email, point_of_contact, industry, teammember_name)
-          `)
+          `, { count: 'exact' })
           .or(`user_id.eq.${user.id}${accessibleReports ? `,report_id.in.(${accessibleReports})` : ''}`)
           .in('id', validCompanyIds);
 
@@ -282,7 +278,7 @@ export function useCompanies(
         
         return {
           companies: processedCompanies,
-          totalCount: eurekaCount || 0,
+          totalCount: count || 0,
           potentialStats
         };
       } catch (err) {
