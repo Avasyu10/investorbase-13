@@ -16,50 +16,75 @@ export function useCsvDownload() {
     }
 
     try {
-      // Fetch ALL Eureka submissions in batches, then join with companies for scores
+      console.log("Starting CSV download...");
       let allData: CsvData[] = [];
       let start = 0;
-      const batchSize = 1000; // safe batch size for large datasets
+      const batchSize = 1000;
       let hasMore = true;
 
       while (hasMore) {
+        console.log(`Fetching eureka submissions batch starting at ${start}...`);
+        
+        // Get eureka submissions that have company_id (filter out nulls)
         const { data: submissions, error: subErr } = await supabase
           .from("eureka_form_submissions")
           .select("company_id, idea_id, eureka_id")
+          .not("company_id", "is", null)
           .order("created_at", { ascending: false })
           .range(start, start + batchSize - 1);
 
-        if (subErr) throw subErr;
+        if (subErr) {
+          console.error("Error fetching eureka submissions:", subErr);
+          throw subErr;
+        }
+
         if (!submissions || submissions.length === 0) {
+          console.log("No more submissions found");
           break;
         }
 
-        const companyIds = submissions
-          .map((s) => s.company_id)
-          .filter((id): id is string => Boolean(id));
+        console.log(`Found ${submissions.length} submissions with company IDs`);
 
-        let scoresByCompany: Record<string, number> = {};
-        if (companyIds.length > 0) {
-          const { data: companies, error: compErr } = await supabase
-            .from("companies")
-            .select("id, overall_score")
-            .in("id", companyIds);
-
-          if (compErr) throw compErr;
-          (companies || []).forEach((c) => {
-            // Normalize numeric score
-            const score = typeof c.overall_score === "number" ? Math.round(c.overall_score) : 0;
-            scoresByCompany[c.id] = score;
-          });
+        // Get company scores for these submissions
+        const companyIds = submissions.map((s) => s.company_id).filter(Boolean);
+        
+        if (companyIds.length === 0) {
+          console.log("No valid company IDs in this batch");
+          start += batchSize;
+          hasMore = submissions.length === batchSize;
+          continue;
         }
 
-        const batchData: CsvData[] = submissions.map((s) => ({
-          ideaId: s.idea_id || "",
-          eurekaId: s.eureka_id || "",
-          score: scoresByCompany[s.company_id as string] ?? "",
-        }));
+        const { data: companies, error: compErr } = await supabase
+          .from("companies")
+          .select("id, overall_score")
+          .in("id", companyIds);
+
+        if (compErr) {
+          console.error("Error fetching company scores:", compErr);
+          throw compErr;
+        }
+
+        console.log(`Found scores for ${companies?.length || 0} companies`);
+
+        // Create lookup map for scores
+        const scoresByCompany: Record<string, number> = {};
+        (companies || []).forEach((c) => {
+          const score = typeof c.overall_score === "number" ? Math.round(c.overall_score) : 0;
+          scoresByCompany[c.id] = score;
+        });
+
+        // Process this batch
+        const batchData: CsvData[] = submissions
+          .filter(s => s.company_id && scoresByCompany[s.company_id] !== undefined)
+          .map((s) => ({
+            ideaId: s.idea_id || "",
+            eurekaId: s.eureka_id || "",
+            score: scoresByCompany[s.company_id!],
+          }));
 
         allData = allData.concat(batchData);
+        console.log(`Processed batch: ${batchData.length} records, total so far: ${allData.length}`);
 
         start += batchSize;
         hasMore = submissions.length === batchSize;
