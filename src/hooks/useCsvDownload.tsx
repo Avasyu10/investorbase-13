@@ -9,8 +9,8 @@ export function useCsvDownload() {
     if (!user) throw new Error("User not authenticated");
 
     try {
-      // Call the edge function which returns CSV text
-      const { data, error } = await supabase.functions.invoke("export-eureka-csv", {
+      // Call the V2 edge function which returns CSV text
+      const { data, error } = await supabase.functions.invoke("export-eureka-csv-v2", {
         body: { request: "eureka-csv" },
       });
 
@@ -34,9 +34,8 @@ export function useCsvDownload() {
       return csvContent.split("\n").length - 1; // rows count excluding header
     } catch (err: any) {
       console.error("CSV download failed:", err);
-      // Surface toast here in case caller didn't
       try {
-        toast({ title: "Download Failed", description: err.message || "Failed to fetch" , variant: "destructive"});
+        toast({ title: "Download Failed", description: err.message || "Edge Function returned a non-2xx status code", variant: "destructive"});
       } catch {}
       throw err;
     }

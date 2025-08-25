@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.export-eureka-csv]
 verify_jwt = true
+
+[functions.export-eureka-csv-v2]
+verify_jwt = true
