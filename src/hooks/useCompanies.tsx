@@ -88,9 +88,14 @@ async function getUserAccessibleReports(userId: string): Promise<string> {
 
 async function getPotentialStats(userId: string, accessibleReports: string) {
   try {
-    // First get companies that have Eureka submissions
+    // Get companies that have Eureka or BARC submissions
     const { data: eurekaCompanyIds, error: eurekaError } = await supabase
       .from('eureka_form_submissions')
+      .select('company_id')
+      .not('company_id', 'is', null);
+
+    const { data: barcCompanyIds, error: barcError } = await supabase
+      .from('barc_form_submissions')
       .select('company_id')
       .not('company_id', 'is', null);
 
@@ -98,8 +103,18 @@ async function getPotentialStats(userId: string, accessibleReports: string) {
       console.error('Error fetching Eureka company IDs for stats:', eurekaError);
       return { highPotential: 0, mediumPotential: 0, badPotential: 0 };
     }
+    
+    if (barcError) {
+      console.error('Error fetching BARC company IDs for stats:', barcError);
+      return { highPotential: 0, mediumPotential: 0, badPotential: 0 };
+    }
 
-    const validCompanyIds = [...new Set(eurekaCompanyIds?.map(e => e.company_id).filter(Boolean))];
+    // Combine both Eureka and BARC company IDs
+    const allCompanyIds = [
+      ...(eurekaCompanyIds?.map(e => e.company_id).filter(Boolean) || []),
+      ...(barcCompanyIds?.map(b => b.company_id).filter(Boolean) || [])
+    ];
+    const validCompanyIds = [...new Set(allCompanyIds)];
     
     if (validCompanyIds.length === 0) {
       return { highPotential: 0, mediumPotential: 0, badPotential: 0 };
@@ -198,9 +213,14 @@ export function useCompanies(
         // Get accessible reports once and reuse - optimization with caching
         const accessibleReports = await getUserAccessibleReports(user.id);
         
-        // First get companies that have Eureka submissions
+        // Get companies that have Eureka or BARC submissions for IIT Bombay users
         const { data: eurekaCompanyIds, error: eurekaError } = await supabase
           .from('eureka_form_submissions')
+          .select('company_id')
+          .not('company_id', 'is', null);
+
+        const { data: barcCompanyIds, error: barcError } = await supabase
+          .from('barc_form_submissions')
           .select('company_id')
           .not('company_id', 'is', null);
 
@@ -208,8 +228,18 @@ export function useCompanies(
           console.error('Error fetching Eureka company IDs:', eurekaError);
           throw eurekaError;
         }
+        
+        if (barcError) {
+          console.error('Error fetching BARC company IDs:', barcError);
+          throw barcError;
+        }
 
-        const validCompanyIds = [...new Set(eurekaCompanyIds?.map(e => e.company_id).filter(Boolean))];
+        // Combine both Eureka and BARC company IDs for comprehensive IIT Bombay prospects
+        const allCompanyIds = [
+          ...(eurekaCompanyIds?.map(e => e.company_id).filter(Boolean) || []),
+          ...(barcCompanyIds?.map(b => b.company_id).filter(Boolean) || [])
+        ];
+        const validCompanyIds = [...new Set(allCompanyIds)];
         
         if (validCompanyIds.length === 0) {
           return { companies: [], totalCount: 0, potentialStats: { highPotential: 0, mediumPotential: 0, badPotential: 0 } };
