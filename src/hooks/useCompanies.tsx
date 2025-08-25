@@ -88,18 +88,6 @@ async function getUserAccessibleReports(userId: string): Promise<string> {
 
 async function getPotentialStats(userId: string, accessibleReports: string) {
   try {
-    // Get company IDs that have eureka form submissions first
-    const { data: eurekaCompanyIds } = await supabase
-      .from('eureka_form_submissions')
-      .select('company_id')
-      .not('company_id', 'is', null);
-
-    const validCompanyIds = eurekaCompanyIds?.map(e => e.company_id) || [];
-
-    if (validCompanyIds.length === 0) {
-      return { highPotential: 0, mediumPotential: 0, badPotential: 0 };
-    }
-
     const batchSize = 1000;
     let start = 0;
     let fetchMore = true;
@@ -110,8 +98,7 @@ async function getPotentialStats(userId: string, accessibleReports: string) {
         .from('companies')
         .select('overall_score')
         .not('overall_score', 'is', null)
-        .in('id', validCompanyIds.slice(start, start + batchSize))
-        .range(0, batchSize - 1);
+        .range(start, start + batchSize - 1);
 
       if (accessibleReports && accessibleReports.length > 0) {
         const reportIds = accessibleReports.split(',').filter(id => id.trim());
@@ -130,7 +117,7 @@ async function getPotentialStats(userId: string, accessibleReports: string) {
       if (data?.length) {
         allCompanies = [...allCompanies, ...data];
         start += batchSize;
-        fetchMore = start < validCompanyIds.length;
+        fetchMore = data.length === batchSize;
       } else {
         fetchMore = false;
       }
@@ -192,15 +179,7 @@ export function useCompanies(
         // Get accessible reports once and reuse - optimization with caching
         const accessibleReports = await getUserAccessibleReports(user.id);
         
-        // Get company IDs that have eureka form submissions
-        const { data: eurekaCompanyIds } = await supabase
-          .from('eureka_form_submissions')
-          .select('company_id')
-          .not('company_id', 'is', null);
-
-        const validCompanyIds = eurekaCompanyIds?.map(e => e.company_id) || [];
-
-        // Build the main query with optimized select - only companies with eureka submissions that are accessible
+        // Build the main query with optimized select
         let query = supabase
           .from('companies')
           .select(`
@@ -213,8 +192,7 @@ export function useCompanies(
             ),
             company_details!left (status, status_date, notes, contact_email, point_of_contact, industry, teammember_name)
           `, { count: 'exact' })
-          .or(`user_id.eq.${user.id}${accessibleReports ? `,report_id.in.(${accessibleReports})` : ''}`)
-          .in('id', validCompanyIds);
+          .or(`user_id.eq.${user.id}${accessibleReports ? `,report_id.in.(${accessibleReports})` : ''}`);
 
         // Add search filter if provided
         if (search && search.trim() !== '') {
