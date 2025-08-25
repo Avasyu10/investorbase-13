@@ -7,7 +7,6 @@ import { CompaniesTable } from "./CompaniesTable";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanies, clearReportCache } from "@/hooks/useCompanies";
 import { useDeleteCompany } from "@/hooks/useDeleteCompany";
-import { useEurekaStats } from "@/hooks/useEurekaStats";
 import { useCsvDownload } from "@/hooks/useCsvDownload";
 import { toast } from "@/hooks/use-toast";
 import {
@@ -32,14 +31,11 @@ export function IITBombayCompaniesList() {
   const { downloadEurekaDataAsCsv } = useCsvDownload();
   const {
     companies,
-    totalCount: companiesCount,
+    totalCount,
     potentialStats,
     isLoading,
     error
   } = useCompanies(currentPage, pageSize, sortBy, sortOrder, searchTerm);
-  
-  // Get Eureka registration stats
-  const { stats: eurekaStats, isLoading: eurekaStatsLoading } = useEurekaStats();
   
   // Clear cache on component mount to ensure fresh data
   useEffect(() => {
@@ -60,10 +56,10 @@ export function IITBombayCompaniesList() {
     setCurrentPage(1); // Reset to first page when sorting changes
   };
 
-  // Calculate pagination based on companies count (for table pagination)
-  const totalPages = Math.ceil(companiesCount / pageSize);
+  // Calculate pagination
+  const totalPages = Math.ceil(totalCount / pageSize);
   const startItem = (currentPage - 1) * pageSize + 1;
-  const endItem = Math.min(currentPage * pageSize, companiesCount);
+  const endItem = Math.min(currentPage * pageSize, totalCount);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -93,11 +89,10 @@ export function IITBombayCompaniesList() {
     }
   };
 
-  // Use Eureka registration stats instead of company stats
-  const totalRegistrations = eurekaStats?.totalRegistrations || 0;
-  const highPotential = eurekaStats?.highPotential || 0;
-  const mediumPotential = eurekaStats?.mediumPotential || 0;
-  const badPotential = eurekaStats?.badPotential || 0;
+  // Use the potential stats from the hook instead of calculating from visible companies
+  const highPotential = potentialStats?.highPotential || 0;
+  const mediumPotential = potentialStats?.mediumPotential || 0;
+  const badPotential = potentialStats?.badPotential || 0;
   
   if (isLoading) {
     return <div className="container mx-auto px-4 py-8">
@@ -153,30 +148,22 @@ export function IITBombayCompaniesList() {
         </Button>
       </div>
 
-      {/* Enhanced stats section showing Eureka registration statistics */}
+      {/* Enhanced stats section for IIT Bombay users - now showing totals across all companies */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-card rounded-lg p-4 border">
-          <div className="text-2xl font-bold text-primary">
-            {eurekaStatsLoading ? '...' : totalRegistrations.toLocaleString()}
-          </div>
-          <div className="text-sm text-muted-foreground">Total Eureka Registrations</div>
+          <div className="text-2xl font-bold text-primary">{totalCount}</div>
+          <div className="text-sm text-muted-foreground">Total Prospects</div>
         </div>
         <div className="bg-card rounded-lg p-4 border">
-          <div className="text-2xl font-bold text-green-600">
-            {eurekaStatsLoading ? '...' : highPotential.toLocaleString()}
-          </div>
+          <div className="text-2xl font-bold text-green-600">{highPotential}</div>
           <div className="text-sm text-muted-foreground">High Potential</div>
         </div>
         <div className="bg-card rounded-lg p-4 border">
-          <div className="text-2xl font-bold text-yellow-600">
-            {eurekaStatsLoading ? '...' : mediumPotential.toLocaleString()}
-          </div>
+          <div className="text-2xl font-bold text-yellow-600">{mediumPotential}</div>
           <div className="text-sm text-muted-foreground">Medium Potential</div>
         </div>
         <div className="bg-card rounded-lg p-4 border">
-          <div className="text-2xl font-bold text-red-600">
-            {eurekaStatsLoading ? '...' : badPotential.toLocaleString()}
-          </div>
+          <div className="text-2xl font-bold text-red-600">{badPotential}</div>
           <div className="text-sm text-muted-foreground">Bad Potential</div>
         </div>
       </div>
@@ -196,7 +183,7 @@ export function IITBombayCompaniesList() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between">
               <div className="text-sm text-muted-foreground">
-                Showing {startItem} to {endItem} of {companiesCount} companies
+                Showing {startItem} to {endItem} of {totalCount} companies
               </div>
               
               <Pagination>
