@@ -7,7 +7,7 @@ import { CompaniesTable } from "./CompaniesTable";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanies, clearReportCache } from "@/hooks/useCompanies";
 import { useDeleteCompany } from "@/hooks/useDeleteCompany";
-import { usePdfDownload } from "@/hooks/usePdfDownload";
+import { useCsvDownload } from "@/hooks/useCsvDownload";
 import { toast } from "@/hooks/use-toast";
 import {
   Pagination,
@@ -28,7 +28,7 @@ export function IITBombayCompaniesList() {
   const pageSize = 20; // Show 20 companies per page
   
   const { deleteCompany } = useDeleteCompany();
-  const { downloadCompaniesAsPdf } = usePdfDownload();
+  const { downloadEurekaDataAsCsv } = useCsvDownload();
   const {
     companies,
     totalCount,
@@ -66,15 +66,27 @@ export function IITBombayCompaniesList() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleDownloadPdf = () => {
-    downloadCompaniesAsPdf(companies, {
-      filename: 'eureka-prospects.pdf',
-      title: 'Eureka Prospects'
-    });
-    toast({
-      title: "PDF Downloaded",
-      description: "Eureka prospects table has been downloaded successfully."
-    });
+  const handleDownloadCsv = async () => {
+    try {
+      toast({
+        title: "Download Started",
+        description: "Fetching all Eureka data. This may take a moment..."
+      });
+      
+      const totalRecords = await downloadEurekaDataAsCsv('eureka-prospects.csv');
+      
+      toast({
+        title: "CSV Downloaded",
+        description: `Successfully downloaded ${totalRecords} Eureka prospects records.`
+      });
+    } catch (error: any) {
+      console.error('Download failed:', error);
+      toast({
+        title: "Download Failed",
+        description: error.message || "Failed to download CSV file. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   // Use the potential stats from the hook instead of calculating from visible companies
@@ -130,9 +142,9 @@ export function IITBombayCompaniesList() {
             Application tracking, analysis and Management for Eureka
           </p>
         </div>
-        <Button onClick={handleDownloadPdf} className="flex items-center gap-2">
+        <Button onClick={handleDownloadCsv} className="flex items-center gap-2">
           <Download className="h-4 w-4" />
-          Download CSV/PDF
+          Download CSV
         </Button>
       </div>
 
