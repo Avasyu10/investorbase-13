@@ -59,35 +59,32 @@ export const handler = async (req: Request): Promise<Response> => {
       const companyIds = submissions.map((s: any) => s.company_id).filter(Boolean);
 
       // Fetch companies scores in chunks to avoid URL length/IN limits
-      const scoresByCompany: Record<string, number> = {};
-      for (let i = 0; i < companyIds.length; i += 500) {
-        const chunk = companyIds.slice(i, i + 500);
+      const scoresByCompany: Record<string, number | ''> = {};
+      const CHUNK_SIZE = 100;
+      for (let i = 0; i < companyIds.length; i += CHUNK_SIZE) {
+        const chunk = companyIds.slice(i, i + CHUNK_SIZE);
         const { data: companies, error: compErr } = await supabase
           .from('companies')
           .select('id, overall_score')
           .in('id', chunk);
         if (compErr) {
           console.error('companies error:', compErr);
-          return new Response(JSON.stringify({ error: compErr.message }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json', ...corsHeaders },
-          });
+          // Continue with remaining chunks instead of failing entirely
+          continue;
         }
         (companies || []).forEach((c: any) => {
           const score = typeof c.overall_score === 'number' ? Math.round(c.overall_score) : '';
-          scoresByCompany[c.id] = score as number;
+          scoresByCompany[c.id] = score;
         });
       }
 
-      // Append rows
+      // Append rows (include entries even if score missing)
       for (const s of submissions) {
-        const score = scoresByCompany[s.company_id as string];
-        // Only include rows where score is known
-        if (score !== undefined && score !== null && score !== '') {
-          const ideaId = (s.idea_id ?? '').toString().replace(/"/g, '""');
-          const eurekaId = (s.eureka_id ?? '').toString().replace(/"/g, '""');
-          csv += `${ideaId},${eurekaId},${score}\n`;
-        }
+        const rawScore = scoresByCompany[s.company_id as string];
+        const ideaId = (s.idea_id ?? '').toString().replace(/"/g, '""');
+        const eurekaId = (s.eureka_id ?? '').toString().replace(/"/g, '""');
+        const scoreOut = rawScore === undefined || rawScore === null ? '' : rawScore;
+        csv += `${ideaId},${eurekaId},${scoreOut}\n`;
       }
 
       from += submissions.length;
