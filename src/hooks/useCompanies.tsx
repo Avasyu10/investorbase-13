@@ -191,7 +191,7 @@ export function useCompanies(
               is_public_submission
             ),
             company_details!left (status, status_date, notes, contact_email, point_of_contact, industry, teammember_name),
-            eureka_form_submissions!left (idea_id, eureka_id)
+            eureka_form_submissions!company_id (idea_id, eureka_id)
           `, { count: 'exact' })
           .or(`user_id.eq.${user.id}${accessibleReports ? `,report_id.in.(${accessibleReports})` : ''}`);
 
