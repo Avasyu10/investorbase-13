@@ -28,46 +28,25 @@ export const handler = async (req: Request): Promise<Response> => {
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
   try {
-    // Prepare CSV header for both Eureka and BARC prospects
-    let csv = 'Idea ID,Prospect ID,Score\n';
+    // Prepare CSV header
+    let csv = 'Idea ID,Eureka ID,Score\n';
 
     const PAGE_SIZE = 1000;
     let from = 0;
     let hasMore = true;
 
     while (hasMore) {
-      // Get both Eureka and BARC submissions for comprehensive IIT Bombay data
-      const { data: eurekaSubmissions, error: eurekaErr } = await supabase
+      const { data: submissions, error: subErr } = await supabase
         .from('eureka_form_submissions')
         .select('company_id, idea_id, eureka_id')
         .not('company_id', 'is', null)
         .order('created_at', { ascending: false })
         .range(from, from + PAGE_SIZE - 1);
-        
-      const { data: barcSubmissions, error: barcErr } = await supabase
-        .from('barc_form_submissions')
-        .select('company_id, id as idea_id')
-        .not('company_id', 'is', null)
-        .order('created_at', { ascending: false })
-        .range(from, from + PAGE_SIZE - 1);
 
-      if (eurekaErr && barcErr) {
-        console.error('Both submissions errors:', { eurekaErr, barcErr });
+      if (subErr) {
+        console.error('submissions error:', subErr);
+        // fail gracefully with what we have so far
         break;
-      }
-
-      // Combine submissions with preference for Eureka data
-      let submissions: any[] = [];
-      if (eurekaSubmissions && eurekaSubmissions.length > 0) {
-        submissions = eurekaSubmissions;
-      }
-      if (barcSubmissions && barcSubmissions.length > 0) {
-        // Add BARC submissions that don't have corresponding Eureka submissions
-        const eurekaCompanyIds = new Set(eurekaSubmissions?.map(e => e.company_id) || []);
-        const uniqueBarcSubmissions = barcSubmissions
-          .filter(b => !eurekaCompanyIds.has(b.company_id))
-          .map(b => ({ ...b, eureka_id: `BARC-${b.idea_id}` }));
-        submissions = [...submissions, ...uniqueBarcSubmissions];
       }
 
       if (!submissions || submissions.length === 0) {
