@@ -190,8 +190,7 @@ export function useCompanies(
               pdf_url, 
               is_public_submission
             ),
-            company_details!left (status, status_date, notes, contact_email, point_of_contact, industry, teammember_name),
-            eureka_form_submissions!company_id (idea_id, eureka_id)
+            company_details!left (status, status_date, notes, contact_email, point_of_contact, industry, teammember_name)
           `, { count: 'exact' })
           .or(`user_id.eq.${user.id}${accessibleReports ? `,report_id.in.(${accessibleReports})` : ''}`);
 
@@ -224,15 +223,31 @@ export function useCompanies(
         
         console.log(`Retrieved ${data?.length || 0} companies out of ${count || 0} total for page ${page}`);
 
+        // Fetch eureka form submissions data separately
+        let eurekaData: any[] = [];
+        if (data && data.length > 0) {
+          const companyIds = data.map(c => c.id);
+          const { data: eurekaSubmissions } = await supabase
+            .from('eureka_form_submissions')
+            .select('company_id, idea_id, eureka_id')
+            .in('company_id', companyIds);
+          
+          eurekaData = eurekaSubmissions || [];
+        }
+
         // Fetch potential stats in background (don't block main query)
         const potentialStatsPromise = getPotentialStats(user.id, accessibleReports);
         
         // Process companies data - simplified without additional queries for better performance
         const processedCompanies = (data || []).map(company => {
+          // Find matching eureka submission data
+          const eurekaSubmission = eurekaData.find(e => e.company_id === company.id);
+          
           return mapDbCompanyToApi({
             ...company,
             industry: company.industry, // Use existing industry data
-            response_received: company.response_received
+            response_received: company.response_received,
+            eureka_form_submissions: eurekaSubmission ? [eurekaSubmission] : []
           });
         });
         
