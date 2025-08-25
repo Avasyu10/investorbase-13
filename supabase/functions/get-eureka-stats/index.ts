@@ -16,29 +16,31 @@ Deno.serve(async (req) => {
     console.log('Getting Eureka registration stats...')
 
     // Get all eureka form submissions with their analysis results
-    const { data: submissions, error } = await supabase
+    const { data: allSubmissions, error } = await supabase
       .from('eureka_form_submissions')
       .select('analysis_result')
-      .not('analysis_result', 'is', null)
 
     if (error) {
       console.error('Error fetching eureka submissions:', error)
       throw error
     }
 
-    console.log(`Found ${submissions?.length || 0} analyzed eureka submissions`)
+    console.log(`Found ${allSubmissions?.length || 0} total eureka submissions`)
 
     // Calculate stats based on overall scores from analysis results
     let totalRegistrations = 0
     let highPotential = 0
     let mediumPotential = 0
     let badPotential = 0
+    let analyzedCount = 0
 
-    if (submissions) {
-      totalRegistrations = submissions.length
+    if (allSubmissions) {
+      totalRegistrations = allSubmissions.length
 
-      submissions.forEach(submission => {
+      allSubmissions.forEach(submission => {
         if (submission.analysis_result?.overall_score) {
+          // Has analysis - use actual score
+          analyzedCount++
           const score = parseFloat(submission.analysis_result.overall_score)
           if (score > 70) {
             highPotential++
@@ -47,22 +49,16 @@ Deno.serve(async (req) => {
           } else if (score < 50) {
             badPotential++
           }
+        } else {
+          // No analysis - assign to medium potential as default
+          mediumPotential++
         }
       })
     }
 
-    // Also get total count of all eureka submissions (including unanalyzed)
-    const { count: totalEurekaCount, error: countError } = await supabase
-      .from('eureka_form_submissions')
-      .select('*', { count: 'exact', head: true })
-
-    if (countError) {
-      console.error('Error getting total eureka count:', countError)
-    }
-
     const stats = {
-      totalRegistrations: totalEurekaCount || totalRegistrations,
-      analyzedRegistrations: totalRegistrations,
+      totalRegistrations,
+      analyzedRegistrations: analyzedCount,
       highPotential,
       mediumPotential,
       badPotential
