@@ -2,11 +2,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Loader2, Building2 } from "lucide-react";
+import { Loader2, Building2, Download } from "lucide-react";
 import { CompaniesTable } from "./CompaniesTable";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanies, clearReportCache } from "@/hooks/useCompanies";
 import { useDeleteCompany } from "@/hooks/useDeleteCompany";
+import { usePdfDownload } from "@/hooks/usePdfDownload";
+import { toast } from "@/hooks/use-toast";
 import {
   Pagination,
   PaginationContent,
@@ -26,6 +28,7 @@ export function IITBombayCompaniesList() {
   const pageSize = 20; // Show 20 companies per page
   
   const { deleteCompany } = useDeleteCompany();
+  const { downloadCompaniesAsPdf } = usePdfDownload();
   const {
     companies,
     totalCount,
@@ -61,6 +64,17 @@ export function IITBombayCompaniesList() {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDownloadPdf = () => {
+    downloadCompaniesAsPdf(companies, {
+      filename: 'eureka-prospects.pdf',
+      title: 'Eureka Prospects'
+    });
+    toast({
+      title: "PDF Downloaded",
+      description: "Eureka prospects table has been downloaded successfully."
+    });
   };
 
   // Use the potential stats from the hook instead of calculating from visible companies
@@ -116,6 +130,10 @@ export function IITBombayCompaniesList() {
             Application tracking, analysis and Management for Eureka
           </p>
         </div>
+        <Button onClick={handleDownloadPdf} className="flex items-center gap-2">
+          <Download className="h-4 w-4" />
+          Download CSV/PDF
+        </Button>
       </div>
 
       {/* Enhanced stats section for IIT Bombay users - now showing totals across all companies */}

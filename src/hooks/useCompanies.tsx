@@ -49,6 +49,11 @@ function mapDbCompanyToApi(company: any) {
       industry: company.company_details[0].industry,
       teammember_name: company.company_details[0].teammember_name
     } : null,
+    // Include eureka form submission fields
+    eureka_form_submissions: company.eureka_form_submissions && company.eureka_form_submissions.length > 0 ? {
+      idea_id: company.eureka_form_submissions[0].idea_id,
+      eureka_id: company.eureka_form_submissions[0].eureka_id
+    } : null,
     response_received: company.response_received
   };
 }
@@ -185,7 +190,8 @@ export function useCompanies(
               pdf_url, 
               is_public_submission
             ),
-            company_details!left (status, status_date, notes, contact_email, point_of_contact, industry, teammember_name)
+            company_details!left (status, status_date, notes, contact_email, point_of_contact, industry, teammember_name),
+            eureka_form_submissions!left (idea_id, eureka_id)
           `, { count: 'exact' })
           .or(`user_id.eq.${user.id}${accessibleReports ? `,report_id.in.(${accessibleReports})` : ''}`);
 

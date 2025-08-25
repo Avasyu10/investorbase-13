@@ -385,7 +385,8 @@ export function CompaniesTable({
             <TableHeader>
               <TableRow>
                 {/* New "Date" Column */}
-                <TableHead className="font-semibold w-[120px]">Date</TableHead> 
+                <TableHead className="font-semibold w-[120px]">Date</TableHead>
+                <TableHead className="font-semibold w-[150px]">Idea ID</TableHead>
                 <TableHead className="font-semibold w-[180px]">Eureka ID</TableHead>
                 <TableHead className="font-semibold w-[80px]">
                   <Button variant="ghost" onClick={() => handleSortClick('overall_score')} className="h-auto p-0 font-semibold hover:bg-transparent flex items-center gap-1">
@@ -401,10 +402,16 @@ export function CompaniesTable({
               const formattedScore = Math.round(company.overall_score);
               const isCompanyDeleting = deletingCompanies.has(company.id);
               const submissionDate = company.created_at ? format(new Date(company.created_at), 'MMM dd, yyyy') : "—"; // Format date
+              const eurekaData = (company as any).eureka_form_submissions;
+              const ideaId = eurekaData?.idea_id || "—";
               return <TableRow key={company.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onCompanyClick(company.id)}>
                     {/* New "Date" Cell */}
                     <TableCell className="text-sm font-bold text-muted-foreground">
                       {submissionDate}
+                    </TableCell>
+                    {/* New "Idea ID" Cell */}
+                    <TableCell className="text-sm">
+                      {ideaId}
                     </TableCell>
                     <TableCell className="font-medium">
                       {company.name}
