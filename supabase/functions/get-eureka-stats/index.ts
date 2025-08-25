@@ -15,32 +15,42 @@ Deno.serve(async (req) => {
   try {
     console.log('Getting Eureka registration stats...')
 
-    // Get all eureka form submissions with their analysis results
-    const { data: allSubmissions, error } = await supabase
+    // First get the total count of all eureka submissions
+    const { count: totalCount, error: countError } = await supabase
       .from('eureka_form_submissions')
-      .select('analysis_result')
+      .select('*', { count: 'exact', head: true })
 
-    if (error) {
-      console.error('Error fetching eureka submissions:', error)
-      throw error
+    if (countError) {
+      console.error('Error getting total eureka count:', countError)
+      throw countError
     }
 
-    console.log(`Found ${allSubmissions?.length || 0} total eureka submissions`)
+    console.log(`Total eureka registrations: ${totalCount}`)
+
+    // Get all analyzed submissions (those with analysis_result)
+    const { data: analyzedSubmissions, error: analyzedError } = await supabase
+      .from('eureka_form_submissions')
+      .select('analysis_result')
+      .not('analysis_result', 'is', null)
+
+    if (analyzedError) {
+      console.error('Error fetching analyzed eureka submissions:', analyzedError)
+      throw analyzedError
+    }
+
+    console.log(`Found ${analyzedSubmissions?.length || 0} analyzed eureka submissions`)
 
     // Calculate stats based on overall scores from analysis results
-    let totalRegistrations = 0
+    let totalRegistrations = totalCount || 0
+    let analyzedCount = analyzedSubmissions?.length || 0
     let highPotential = 0
     let mediumPotential = 0
     let badPotential = 0
-    let analyzedCount = 0
 
-    if (allSubmissions) {
-      totalRegistrations = allSubmissions.length
-
-      allSubmissions.forEach(submission => {
+    // Process analyzed submissions
+    if (analyzedSubmissions) {
+      analyzedSubmissions.forEach(submission => {
         if (submission.analysis_result?.overall_score) {
-          // Has analysis - use actual score
-          analyzedCount++
           const score = parseFloat(submission.analysis_result.overall_score)
           if (score > 70) {
             highPotential++
@@ -49,12 +59,15 @@ Deno.serve(async (req) => {
           } else if (score < 50) {
             badPotential++
           }
-        } else {
-          // No analysis - assign to medium potential as default
-          mediumPotential++
         }
       })
     }
+
+    // Add unanalyzed submissions to medium potential
+    const unanalyzedCount = totalRegistrations - analyzedCount
+    mediumPotential += unanalyzedCount
+
+    console.log(`Breakdown: High: ${highPotential}, Medium: ${mediumPotential}, Bad: ${badPotential}, Total: ${totalRegistrations}`)
 
     const stats = {
       totalRegistrations,
