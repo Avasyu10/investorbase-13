@@ -4,94 +4,88 @@ import { useAuth } from "@/hooks/useAuth";
 interface CsvData {
   ideaId: string;
   eurekaId: string;
-  score: number;
+  score: number | "";
 }
 
 export function useCsvDownload() {
   const { user } = useAuth();
 
-  const downloadEurekaDataAsCsv = async (filename: string = 'eureka-data.csv') => {
+  const downloadEurekaDataAsCsv = async (filename: string = "eureka-data.csv") => {
     if (!user) {
-      throw new Error('User not authenticated');
+      throw new Error("User not authenticated");
     }
 
     try {
-      // Fetch all companies with their eureka data in batches
+      // Fetch ALL Eureka submissions in batches, then join with companies for scores
       let allData: CsvData[] = [];
       let start = 0;
-      const batchSize = 1000;
+      const batchSize = 1000; // safe batch size for large datasets
       let hasMore = true;
 
       while (hasMore) {
-        console.log(`Fetching batch ${start / batchSize + 1}...`);
-        
-        const { data: companies, error } = await supabase
-          .from('companies')
-          .select(`
-            id,
-            name,
-            overall_score
-          `)
-          .or(`user_id.eq.${user.id}`)
-          .range(start, start + batchSize - 1)
-          .order('created_at', { ascending: false });
+        const { data: submissions, error: subErr } = await supabase
+          .from("eureka_form_submissions")
+          .select("company_id, idea_id, eureka_id")
+          .order("created_at", { ascending: false })
+          .range(start, start + batchSize - 1);
 
-        if (error) {
-          throw error;
-        }
-
-        if (!companies || companies.length === 0) {
-          hasMore = false;
+        if (subErr) throw subErr;
+        if (!submissions || submissions.length === 0) {
           break;
         }
 
-        // Get eureka form submissions for this batch
-        const companyIds = companies.map(c => c.id);
-        const { data: eurekaSubmissions } = await supabase
-          .from('eureka_form_submissions')
-          .select('company_id, idea_id, eureka_id')
-          .in('company_id', companyIds);
+        const companyIds = submissions
+          .map((s) => s.company_id)
+          .filter((id): id is string => Boolean(id));
 
-        // Process this batch
-        const batchData: CsvData[] = companies
-          .map(company => {
-            const eurekaSubmission = eurekaSubmissions?.find(e => e.company_id === company.id);
-            if (!eurekaSubmission) return null;
-            
-            return {
-              ideaId: eurekaSubmission.idea_id || '',
-              eurekaId: eurekaSubmission.eureka_id || company.name,
-              score: Math.round(company.overall_score || 0)
-            };
-          })
-          .filter((item): item is CsvData => item !== null);
+        let scoresByCompany: Record<string, number> = {};
+        if (companyIds.length > 0) {
+          const { data: companies, error: compErr } = await supabase
+            .from("companies")
+            .select("id, overall_score")
+            .in("id", companyIds);
 
-        allData = [...allData, ...batchData];
-        start += batchSize;
-        
-        // If we got less than batchSize, we're done
-        if (companies.length < batchSize) {
-          hasMore = false;
+          if (compErr) throw compErr;
+          (companies || []).forEach((c) => {
+            // Normalize numeric score
+            const score = typeof c.overall_score === "number" ? Math.round(c.overall_score) : 0;
+            scoresByCompany[c.id] = score;
+          });
         }
+
+        const batchData: CsvData[] = submissions.map((s) => ({
+          ideaId: s.idea_id || "",
+          eurekaId: s.eureka_id || "",
+          score: scoresByCompany[s.company_id as string] ?? "",
+        }));
+
+        allData = allData.concat(batchData);
+
+        start += batchSize;
+        hasMore = submissions.length === batchSize;
       }
 
-      console.log(`Total records fetched: ${allData.length}`);
+      // Generate CSV content (only 3 columns as requested)
+      const headers = ["Idea ID", "Eureka ID", "Score"];
+      const csvRows = [headers.join(",")];
 
-      // Generate CSV content
-      const headers = ['Idea ID', 'Eureka ID', 'Score'];
-      const csvContent = [
-        headers.join(','),
-        ...allData.map(row => `${row.ideaId},${row.eurekaId},${row.score}`)
-      ].join('\n');
+      for (const row of allData) {
+        // Escape any commas/quotes in fields
+        const safe = (val: string | number | "") => {
+          const str = String(val ?? "");
+          return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+        };
+        csvRows.push([safe(row.ideaId), safe(row.eurekaId), safe(row.score)].join(","));
+      }
+
+      const csvContent = csvRows.join("\n");
 
       // Create and download the file
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
-      
-      link.setAttribute('href', url);
-      link.setAttribute('download', filename);
-      link.style.visibility = 'hidden';
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -99,7 +93,7 @@ export function useCsvDownload() {
 
       return allData.length;
     } catch (error) {
-      console.error('Error downloading CSV:', error);
+      console.error("Error downloading CSV:", error);
       throw error;
     }
   };
