@@ -5,3 +5,6 @@ verify_jwt = true
 
 [functions.vc-connect]
 verify_jwt = false
+
+[functions.export-eureka-csv]
+verify_jwt = true
