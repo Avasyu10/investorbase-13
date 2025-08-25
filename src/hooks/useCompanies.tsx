@@ -88,6 +88,18 @@ async function getUserAccessibleReports(userId: string): Promise<string> {
 
 async function getPotentialStats(userId: string, accessibleReports: string) {
   try {
+    // Get company IDs that have eureka form submissions first
+    const { data: eurekaCompanyIds } = await supabase
+      .from('eureka_form_submissions')
+      .select('company_id')
+      .not('company_id', 'is', null);
+
+    const validCompanyIds = eurekaCompanyIds?.map(e => e.company_id) || [];
+
+    if (validCompanyIds.length === 0) {
+      return { highPotential: 0, mediumPotential: 0, badPotential: 0 };
+    }
+
     const batchSize = 1000;
     let start = 0;
     let fetchMore = true;
@@ -98,7 +110,8 @@ async function getPotentialStats(userId: string, accessibleReports: string) {
         .from('companies')
         .select('overall_score')
         .not('overall_score', 'is', null)
-        .range(start, start + batchSize - 1);
+        .in('id', validCompanyIds.slice(start, start + batchSize))
+        .range(0, batchSize - 1);
 
       if (accessibleReports && accessibleReports.length > 0) {
         const reportIds = accessibleReports.split(',').filter(id => id.trim());
@@ -117,7 +130,7 @@ async function getPotentialStats(userId: string, accessibleReports: string) {
       if (data?.length) {
         allCompanies = [...allCompanies, ...data];
         start += batchSize;
-        fetchMore = data.length === batchSize;
+        fetchMore = start < validCompanyIds.length;
       } else {
         fetchMore = false;
       }
@@ -187,9 +200,7 @@ export function useCompanies(
 
         const validCompanyIds = eurekaCompanyIds?.map(e => e.company_id) || [];
 
-        // Count will be returned from the main query to ensure it matches accessible companies with eureka submissions
-
-        // Build the main query with optimized select - only companies with eureka submissions
+        // Build the main query with optimized select - only companies with eureka submissions that are accessible
         let query = supabase
           .from('companies')
           .select(`
