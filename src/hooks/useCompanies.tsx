@@ -179,7 +179,21 @@ export function useCompanies(
         // Get accessible reports once and reuse - optimization with caching
         const accessibleReports = await getUserAccessibleReports(user.id);
         
-        // Build the main query with optimized select
+        // Get company IDs that have eureka form submissions
+        const { data: eurekaCompanyIds } = await supabase
+          .from('eureka_form_submissions')
+          .select('company_id')
+          .not('company_id', 'is', null);
+
+        const validCompanyIds = eurekaCompanyIds?.map(e => e.company_id) || [];
+
+        // Get accurate count from eureka_form_submissions for Eureka prospects
+        const { count: eurekaCount } = await supabase
+          .from('eureka_form_submissions')
+          .select('company_id', { count: 'exact', head: true })
+          .not('company_id', 'is', null);
+
+        // Build the main query with optimized select - only companies with eureka submissions
         let query = supabase
           .from('companies')
           .select(`
@@ -191,8 +205,9 @@ export function useCompanies(
               is_public_submission
             ),
             company_details!left (status, status_date, notes, contact_email, point_of_contact, industry, teammember_name)
-          `, { count: 'exact' })
-          .or(`user_id.eq.${user.id}${accessibleReports ? `,report_id.in.(${accessibleReports})` : ''}`);
+          `)
+          .or(`user_id.eq.${user.id}${accessibleReports ? `,report_id.in.(${accessibleReports})` : ''}`)
+          .in('id', validCompanyIds);
 
         // Add search filter if provided
         if (search && search.trim() !== '') {
@@ -267,7 +282,7 @@ export function useCompanies(
         
         return {
           companies: processedCompanies,
-          totalCount: count || 0,
+          totalCount: eurekaCount || 0,
           potentialStats
         };
       } catch (err) {
