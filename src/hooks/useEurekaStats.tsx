@@ -39,7 +39,7 @@ export function useEurekaStats() {
 
         console.log(`Total Eureka registrations: ${totalCount}`);
 
-        // Now get analyzed submissions with scores
+        // Now get analyzed submissions with scores by joining with companies table
         let allAnalyzedSubmissions: any[] = [];
         let start = 0;
         const batchSize = 1000;
@@ -50,10 +50,9 @@ export function useEurekaStats() {
             .from('eureka_form_submissions')
             .select(`
               id,
-              company_id,
-              companies!inner(overall_score)
+              company_id
             `)
-            .not('companies.overall_score', 'is', null)
+            .not('company_id', 'is', null)
             .range(start, start + batchSize - 1);
 
           if (batchError) {
@@ -70,23 +69,44 @@ export function useEurekaStats() {
           }
         }
 
-        console.log(`Found ${allAnalyzedSubmissions.length} analyzed submissions`);
+        console.log(`Found ${allAnalyzedSubmissions.length} submissions with company IDs`);
+
+        // Now get the company scores for these submissions
+        const companyIds = allAnalyzedSubmissions.map(s => s.company_id).filter(Boolean);
+        let companiesWithScores: any[] = [];
+
+        if (companyIds.length > 0) {
+          // Fetch companies in batches to get their scores
+          const chunkSize = 1000;
+          for (let i = 0; i < companyIds.length; i += chunkSize) {
+            const chunk = companyIds.slice(i, i + chunkSize);
+            const { data: companiesData, error: companiesError } = await supabase
+              .from('companies')
+              .select('id, overall_score')
+              .in('id', chunk)
+              .not('overall_score', 'is', null);
+
+            if (companiesError) {
+              console.error('Error fetching companies data:', companiesError);
+              continue;
+            }
+
+            if (companiesData) {
+              companiesWithScores = [...companiesWithScores, ...companiesData];
+            }
+          }
+        }
+
+        console.log(`Found ${companiesWithScores.length} companies with scores`);
 
         // Calculate potential stats based on scores
-        const highPotential = allAnalyzedSubmissions.filter(s => 
-          s.companies && s.companies.overall_score > 70
+        const highPotential = companiesWithScores.filter(c => c.overall_score > 70).length;
+        const badPotential = companiesWithScores.filter(c => c.overall_score < 50).length;
+        const analyzedMediumPotential = companiesWithScores.filter(c => 
+          c.overall_score >= 50 && c.overall_score <= 70
         ).length;
         
-        const badPotential = allAnalyzedSubmissions.filter(s => 
-          s.companies && s.companies.overall_score < 50
-        ).length;
-
-        // Medium potential = all remaining submissions (analyzed medium + unanalyzed)
-        const analyzedMediumPotential = allAnalyzedSubmissions.filter(s => 
-          s.companies && s.companies.overall_score >= 50 && s.companies.overall_score <= 70
-        ).length;
-        
-        const unanalyzedCount = (totalCount || 0) - allAnalyzedSubmissions.length;
+        const unanalyzedCount = (totalCount || 0) - companiesWithScores.length;
         const mediumPotential = analyzedMediumPotential + unanalyzedCount;
 
         console.log(`Eureka potential stats: High: ${highPotential}, Medium: ${mediumPotential}, Bad: ${badPotential}, Total: ${totalCount}`);
