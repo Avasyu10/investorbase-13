@@ -16,20 +16,9 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
 });
 
 async function computeEurekaStats() {
-  // Get total submissions count (all Eureka registrations)
-  const { count: totalCount, error: countError } = await supabase
-    .from('eureka_form_submissions')
-    .select('id', { count: 'exact', head: true });
-
-  if (countError) {
-    console.error('eureka-stats: Error getting total count', countError);
-    throw countError;
-  }
-
   let high = 0;
-  let mediumAnalyzed = 0;
+  let medium = 0;
   let bad = 0;
-  let mediumUnanalyzed = 0;
 
   const batchSize = 1000;
   let start = 0;
@@ -58,39 +47,40 @@ async function computeEurekaStats() {
 
     let companyScoreMap = new Map<string, number | null>();
 
-        if (companyIds.length > 0) {
-          // Fetch companies with their overall_score in smaller chunks to avoid URI limit
-          const chunkSize = 100; // Reduced from 1000 to avoid 414 error
-          for (let i = 0; i < companyIds.length; i += chunkSize) {
-            const chunk = companyIds.slice(i, i + chunkSize);
-            const { data: companiesData, error: companiesError } = await supabase
-              .from('companies')
-              .select('id, overall_score')
-              .in('id', chunk);
+    if (companyIds.length > 0) {
+      // Fetch companies with their overall_score in smaller chunks to avoid URI limit
+      const chunkSize = 100; // Reduced from 1000 to avoid 414 error
+      for (let i = 0; i < companyIds.length; i += chunkSize) {
+        const chunk = companyIds.slice(i, i + chunkSize);
+        const { data: companiesData, error: companiesError } = await supabase
+          .from('companies')
+          .select('id, overall_score')
+          .in('id', chunk);
 
-            if (companiesError) {
-              console.error('eureka-stats: Error fetching companies chunk', companiesError);
-              throw companiesError;
-            }
-
-            companiesData?.forEach((c) => {
-              companyScoreMap.set(c.id, (c as any).overall_score ?? null);
-            });
-          }
+        if (companiesError) {
+          console.error('eureka-stats: Error fetching companies chunk', companiesError);
+          throw companiesError;
         }
 
-    // Classify each submission based on its company's score (if any)
+        companiesData?.forEach((c) => {
+          companyScoreMap.set(c.id, (c as any).overall_score ?? null);
+        });
+      }
+    }
+
+    // Classify each submission based on its company's score - only count those with scores
     for (const sub of subsBatch) {
       const score = sub.company_id ? companyScoreMap.get(sub.company_id) ?? null : null;
-      if (score === null || typeof score !== 'number') {
-        mediumUnanalyzed += 1; // No score yet => Medium by default
-      } else if (score > 70) {
-        high += 1;
-      } else if (score >= 50) {
-        mediumAnalyzed += 1;
-      } else {
-        bad += 1;
+      if (score !== null && typeof score === 'number') {
+        if (score > 70) {
+          high += 1;
+        } else if (score >= 50) {
+          medium += 1;
+        } else {
+          bad += 1;
+        }
       }
+      // Skip submissions without scores (don't count them at all)
     }
 
     // Move to next submissions batch
@@ -98,15 +88,13 @@ async function computeEurekaStats() {
     hasMore = subsBatch.length === batchSize;
   }
 
-  const medium = mediumAnalyzed + mediumUnanalyzed;
+  const totalAnalyzed = high + medium + bad;
 
   return {
-    totalProspects: totalCount || 0,
+    totalProspects: totalAnalyzed,
     highPotential: high,
     mediumPotential: medium,
     badPotential: bad,
-    analyzedMediumPotential: mediumAnalyzed,
-    unanalyzedCount: mediumUnanalyzed,
   };
 }
 
