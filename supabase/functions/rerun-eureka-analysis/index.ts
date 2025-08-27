@@ -74,39 +74,24 @@ serve(async (req) => {
       );
     }
 
-    // Reset analysis status to 'processing' and clear errors in manageable chunks
+    // Reset analysis status to 'processing' and clear errors
     const submissionIds = submissionsToRerun.map(s => s.id);
+    
+    const { error: updateError } = await supabase
+      .from('eureka_form_submissions')
+      .update({
+        analysis_status: 'processing',
+        analysis_error: null,
+        analyzed_at: null
+      })
+      .in('id', submissionIds);
 
-    // Chunk helper to avoid very long URLs in the REST filter (id=in.(...))
-    const chunkArray = <T,>(arr: T[], size: number) =>
-      Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
-        arr.slice(i * size, i * size + size)
-      );
-
-    const chunkSize = 100; // safe chunk size to keep request URLs small
-    let updatedTotal = 0;
-
-    for (const idsChunk of chunkArray(submissionIds, chunkSize)) {
-      const { error: updateErrorChunk } = await supabase
-        .from('eureka_form_submissions')
-        .update({
-          analysis_status: 'processing',
-          analysis_error: null,
-          analyzed_at: null
-        })
-        .in('id', idsChunk);
-
-      if (updateErrorChunk) {
-        console.error('Error updating submission statuses chunk:', updateErrorChunk, 'Chunk length:', idsChunk.length);
-        throw updateErrorChunk;
-      }
-
-      updatedTotal += idsChunk.length;
-      // brief delay to be gentle on the REST API
-      await new Promise((r) => setTimeout(r, 50));
+    if (updateError) {
+      console.error('Error updating submission statuses:', updateError);
+      throw updateError;
     }
 
-    console.log(`✅ Reset ${updatedTotal} submissions to processing status`);
+    console.log(`✅ Reset ${submissionIds.length} submissions to processing status`);
 
     // Trigger analysis for each submission
     let successCount = 0;
