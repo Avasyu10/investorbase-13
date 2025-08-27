@@ -4,12 +4,13 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Company } from "@/lib/api/apiContract";
 import { formatDistanceToNow, format } from "date-fns"; // Import 'format'
-import { Star, Trash2, Phone, Mail, Globe, Download, Edit, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Star, Trash2, Phone, Mail, Globe, Download, Edit, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw } from "lucide-react";
 import { EditCompanyDialog } from "./EditCompanyDialog";
 import { useState, useEffect } from "react";
 import { useDeleteCompany } from "@/hooks/useDeleteCompany";
 import { toast } from "@/hooks/use-toast";
 import { usePdfDownload } from "@/hooks/usePdfDownload";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CompaniesTableProps {
   companies: Company[];
@@ -45,6 +46,7 @@ export function CompaniesTable({
     teamMember: string;
     status: string;
   } | null>(null);
+  const [rerunningCompanies, setRerunningCompanies] = useState<Set<string>>(new Set());
 
   const {
     deleteCompany,
@@ -187,6 +189,59 @@ export function CompaniesTable({
       }
       return company;
     }));
+  };
+
+  const handleRerunAnalysis = async (e: React.MouseEvent, company: Company) => {
+    e.stopPropagation();
+    
+    const eurekaData = (company as any).eureka_form_submissions;
+    if (!eurekaData?.id) {
+      toast({
+        title: "Error",
+        description: "No Eureka submission found for this company.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (rerunningCompanies.has(company.id)) {
+      return;
+    }
+
+    setRerunningCompanies(prev => new Set(prev).add(company.id));
+
+    try {
+      const { error } = await supabase.functions.invoke('analyze-eureka-form', {
+        body: { submissionId: eurekaData.id }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Analysis Restarted",
+        description: `Re-analysis initiated for ${company.name}`,
+      });
+    } catch (error: any) {
+      console.error('Failed to rerun analysis:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to restart analysis. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setRerunningCompanies(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(company.id);
+        return newSet;
+      });
+    }
+  };
+
+  const shouldShowRerunButton = (company: Company): boolean => {
+    const eurekaData = (company as any).eureka_form_submissions;
+    const analysisStatus = eurekaData?.analysis_status?.toLowerCase();
+    return analysisStatus === 'failed' || analysisStatus === 'processing' || 
+           (analysisStatus === 'completed' && company.overall_score < 60);
   };
 
   const handleDownloadPdf = () => {
@@ -394,16 +449,18 @@ export function CompaniesTable({
                     {getSortIcon('overall_score')}
                   </Button>
                 </TableHead>
-                <TableHead className="w-[60px]">Actions</TableHead>
+                <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {localCompanies.map(company => {
               const formattedScore = Math.round(company.overall_score);
               const isCompanyDeleting = deletingCompanies.has(company.id);
+              const isCompanyRerunning = rerunningCompanies.has(company.id);
               const submissionDate = company.created_at ? format(new Date(company.created_at), 'MMM dd, yyyy') : "—"; // Format date
               const eurekaData = (company as any).eureka_form_submissions;
               const ideaId = eurekaData?.idea_id || "—";
+              const showRerunButton = shouldShowRerunButton(company);
               return <TableRow key={company.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onCompanyClick(company.id)}>
                     {/* New "Date" Cell */}
                     <TableCell className="text-sm font-bold text-muted-foreground">
@@ -424,9 +481,29 @@ export function CompaniesTable({
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="sm" onClick={e => handleDeleteClick(e, company.id)} disabled={isCompanyDeleting || isDeleting} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                        {showRerunButton && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={e => handleRerunAnalysis(e, company)} 
+                            disabled={isCompanyRerunning}
+                            className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                            title="Rerun analysis"
+                          >
+                            <RefreshCw className={`h-4 w-4 ${isCompanyRerunning ? 'animate-spin' : ''}`} />
+                          </Button>
+                        )}
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={e => handleDeleteClick(e, company.id)} 
+                          disabled={isCompanyDeleting || isDeleting} 
+                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>;
             })}
