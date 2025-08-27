@@ -6,6 +6,7 @@ import { Loader2, Building2, Download } from "lucide-react";
 import { CompaniesTable } from "./CompaniesTable";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanies, clearReportCache } from "@/hooks/useCompanies";
+import { useEurekaStats } from "@/hooks/useEurekaStats";
 import { useDeleteCompany } from "@/hooks/useDeleteCompany";
 import { useCsvDownload } from "@/hooks/useCsvDownload";
 import { toast } from "@/hooks/use-toast";
@@ -36,6 +37,15 @@ export function IITBombayCompaniesList() {
     isLoading,
     error
   } = useCompanies(currentPage, pageSize, sortBy, sortOrder, searchTerm);
+  
+  // Get Eureka-specific stats
+  const {
+    totalProspects: eurekaTotal,
+    highPotential: eurekaHigh,
+    mediumPotential: eurekaMedium,
+    badPotential: eurekaBad,
+    isLoading: eurekaStatsLoading
+  } = useEurekaStats();
   
   // Clear cache on component mount to ensure fresh data
   useEffect(() => {
@@ -89,10 +99,11 @@ export function IITBombayCompaniesList() {
     }
   };
 
-  // Use the potential stats from the hook instead of calculating from visible companies
-  const highPotential = potentialStats?.highPotential || 0;
-  const mediumPotential = potentialStats?.mediumPotential || 0;
-  const badPotential = potentialStats?.badPotential || 0;
+  // Use Eureka-specific stats instead of general company stats
+  const displayTotal = eurekaTotal;
+  const displayHigh = eurekaHigh;
+  const displayMedium = eurekaMedium;
+  const displayBad = eurekaBad;
   
   if (isLoading) {
     return <div className="container mx-auto px-4 py-8">
@@ -148,22 +159,30 @@ export function IITBombayCompaniesList() {
         </Button>
       </div>
 
-      {/* Enhanced stats section for IIT Bombay users - now showing totals across all companies */}
+      {/* Enhanced stats section for IIT Bombay users - showing Eureka prospects only */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-card rounded-lg p-4 border">
-          <div className="text-2xl font-bold text-primary">{totalCount}</div>
-          <div className="text-sm text-muted-foreground">Total Prospects</div>
+          <div className="text-2xl font-bold text-primary">
+            {eurekaStatsLoading ? "Loading..." : displayTotal.toLocaleString()}
+          </div>
+          <div className="text-sm text-muted-foreground">Total Eureka Prospects</div>
         </div>
         <div className="bg-card rounded-lg p-4 border">
-          <div className="text-2xl font-bold text-green-600">{highPotential}</div>
+          <div className="text-2xl font-bold text-green-600">
+            {eurekaStatsLoading ? "Loading..." : displayHigh.toLocaleString()}
+          </div>
           <div className="text-sm text-muted-foreground">High Potential</div>
         </div>
         <div className="bg-card rounded-lg p-4 border">
-          <div className="text-2xl font-bold text-yellow-600">{mediumPotential}</div>
+          <div className="text-2xl font-bold text-yellow-600">
+            {eurekaStatsLoading ? "Loading..." : displayMedium.toLocaleString()}
+          </div>
           <div className="text-sm text-muted-foreground">Medium Potential</div>
         </div>
         <div className="bg-card rounded-lg p-4 border">
-          <div className="text-2xl font-bold text-red-600">{badPotential}</div>
+          <div className="text-2xl font-bold text-red-600">
+            {eurekaStatsLoading ? "Loading..." : displayBad.toLocaleString()}
+          </div>
           <div className="text-sm text-muted-foreground">Bad Potential</div>
         </div>
       </div>
