@@ -1,8 +1,5 @@
 project_id = "jhtnruktmtjqrfoiyrep"
 
-[functions.rerun-eureka-analysis]
-verify_jwt = true
-
 [functions.vc-matchmaking]
 verify_jwt = true
 

@@ -1,12 +1,7 @@
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDistanceToNow } from "date-fns";
-import { RefreshCw } from "lucide-react";
-import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import type { CombinedSubmission } from "./types";
 
 interface IITBombaySubmissionsTableProps {
@@ -14,8 +9,6 @@ interface IITBombaySubmissionsTableProps {
 }
 
 export function IITBombaySubmissionsTable({ submissions }: IITBombaySubmissionsTableProps) {
-  const [rerunningIds, setRerunningIds] = useState<Set<string>>(new Set());
-  const { toast } = useToast();
   const getStatusBadge = (status?: string) => {
     if (!status || status === 'pending') {
       return <Badge variant="secondary">Processing</Badge>;
@@ -33,66 +26,6 @@ export function IITBombaySubmissionsTable({ submissions }: IITBombaySubmissionsT
     }
   };
 
-  const isRejected = (submission: CombinedSubmission) => {
-    if (submission.analysis_status !== 'completed' || !submission.analysis_result) {
-      return false;
-    }
-    
-    const result = submission.analysis_result;
-    return result.recommendation === 'Reject' || 
-           (result.overall_recommendation && result.overall_recommendation.toLowerCase().includes('reject'));
-  };
-
-  const canRerun = (submission: CombinedSubmission) => {
-    return submission.analysis_status === 'failed' || isRejected(submission);
-  };
-
-  const handleRerunAnalysis = async (submissionId: string) => {
-    setRerunningIds(prev => new Set(prev).add(submissionId));
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('rerun-eureka-analysis', {
-        body: { submissionIds: [submissionId] }
-      });
-
-      if (error) {
-        console.error('Error rerunning analysis:', error);
-        toast({
-          title: "Error",
-          description: "Failed to rerun analysis. Please try again.",
-          variant: "destructive",
-        });
-      } else {
-        const result = data.results[0];
-        if (result.success) {
-          toast({
-            title: "Success",
-            description: "Analysis has been restarted successfully.",
-          });
-        } else {
-          toast({
-            title: "Error",
-            description: result.error || "Failed to rerun analysis.",
-            variant: "destructive",
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Error rerunning analysis:', error);
-      toast({
-        title: "Error",
-        description: "Failed to rerun analysis. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setRerunningIds(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(submissionId);
-        return newSet;
-      });
-    }
-  };
-
   return (
     <div className="border rounded-lg">
       <Table>
@@ -101,7 +34,6 @@ export function IITBombaySubmissionsTable({ submissions }: IITBombaySubmissionsT
             <TableHead>Company Name</TableHead>
             <TableHead>Submitted</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -115,20 +47,6 @@ export function IITBombaySubmissionsTable({ submissions }: IITBombaySubmissionsT
               </TableCell>
               <TableCell>
                 {getStatusBadge(submission.analysis_status)}
-              </TableCell>
-              <TableCell>
-                {canRerun(submission) && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleRerunAnalysis(submission.id)}
-                    disabled={rerunningIds.has(submission.id)}
-                    className="h-8 px-2"
-                  >
-                    <RefreshCw className={`h-3 w-3 mr-1 ${rerunningIds.has(submission.id) ? 'animate-spin' : ''}`} />
-                    {rerunningIds.has(submission.id) ? 'Rerunning...' : 'Re-run'}
-                  </Button>
-                )}
               </TableCell>
             </TableRow>
           ))}
