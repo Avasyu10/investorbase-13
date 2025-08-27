@@ -5,7 +5,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
 import { PublicSubmissionsTable } from "./PublicSubmissionsTable";
 import { IITBombaySubmissionsTable } from "./IITBombaySubmissionsTable";
-import { Loader2, Inbox, RefreshCw, Filter, Check } from "lucide-react";
+import { Loader2, Inbox, RefreshCw, Filter, Check, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -27,6 +27,7 @@ export function PublicSubmissionsList() {
   const [submissions, setSubmissions] = useState<CombinedSubmission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isRerunning, setIsRerunning] = useState(false);
   const [totalApplications, setTotalApplications] = useState<number | null>(null);
   const [globalStatusCounts, setGlobalStatusCounts] = useState<{ analyzed: number; rejected: number; processing: number } | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'failed' | 'pending' | 'processing'>('all');
@@ -360,6 +361,50 @@ export function PublicSubmissionsList() {
     setIsLoading(false);
   };
 
+  const handleRerunAnalysis = async () => {
+    if (!isIITBombay) return;
+    
+    setIsRerunning(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('rerun-eureka-analysis');
+      
+      if (error) {
+        toast({
+          title: "Error",
+          description: `Failed to rerun analysis: ${error.message}`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const result = data as { success: boolean; message: string; processed: number; failed?: number };
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: result.message,
+        });
+        // Refresh the submissions to show updated statuses
+        await fetchSubmissions(currentPage, statusFilter);
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to rerun analysis. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error rerunning analysis:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRerunning(false);
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchSubmissions(1, 'all');
@@ -508,6 +553,17 @@ export function PublicSubmissionsList() {
           </p>
         </div>
         <div className="flex gap-2">
+          {isIITBombay && (
+            <Button
+              onClick={handleRerunAnalysis}
+              disabled={isRerunning}
+              variant="outline"
+              size="sm"
+            >
+              <RotateCcw className={`h-4 w-4 mr-2 ${isRerunning ? 'animate-spin' : ''}`} />
+              Re-run Failed/Rejected
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm">
