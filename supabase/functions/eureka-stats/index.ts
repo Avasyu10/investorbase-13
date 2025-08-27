@@ -58,26 +58,26 @@ async function computeEurekaStats() {
 
     let companyScoreMap = new Map<string, number | null>();
 
-    if (companyIds.length > 0) {
-      // Fetch companies with their overall_score in chunks
-      const chunkSize = 1000;
-      for (let i = 0; i < companyIds.length; i += chunkSize) {
-        const chunk = companyIds.slice(i, i + chunkSize);
-        const { data: companiesData, error: companiesError } = await supabase
-          .from('companies')
-          .select('id, overall_score')
-          .in('id', chunk);
+        if (companyIds.length > 0) {
+          // Fetch companies with their overall_score in smaller chunks to avoid URI limit
+          const chunkSize = 100; // Reduced from 1000 to avoid 414 error
+          for (let i = 0; i < companyIds.length; i += chunkSize) {
+            const chunk = companyIds.slice(i, i + chunkSize);
+            const { data: companiesData, error: companiesError } = await supabase
+              .from('companies')
+              .select('id, overall_score')
+              .in('id', chunk);
 
-        if (companiesError) {
-          console.error('eureka-stats: Error fetching companies chunk', companiesError);
-          throw companiesError;
+            if (companiesError) {
+              console.error('eureka-stats: Error fetching companies chunk', companiesError);
+              throw companiesError;
+            }
+
+            companiesData?.forEach((c) => {
+              companyScoreMap.set(c.id, (c as any).overall_score ?? null);
+            });
+          }
         }
-
-        companiesData?.forEach((c) => {
-          companyScoreMap.set(c.id, (c as any).overall_score ?? null);
-        });
-      }
-    }
 
     // Classify each submission based on its company's score (if any)
     for (const sub of subsBatch) {
