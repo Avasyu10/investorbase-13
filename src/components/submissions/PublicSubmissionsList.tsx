@@ -553,6 +553,17 @@ export function PublicSubmissionsList() {
           </p>
         </div>
         <div className="flex gap-2">
+          {isIITBombay && (
+            <Button
+              onClick={handleRerunAnalysis}
+              disabled={isRerunning}
+              variant="outline"
+              size="sm"
+            >
+              <RotateCcw className={`h-4 w-4 mr-2 ${isRerunning ? 'animate-spin' : ''}`} />
+              Re-run Failed/Rejected
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm">
