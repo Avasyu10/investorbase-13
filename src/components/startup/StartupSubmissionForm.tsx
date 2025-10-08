@@ -59,21 +59,14 @@ export const StartupSubmissionForm = () => {
         data: { user },
       } = await supabase.auth.getUser();
 
-      if (!user) {
-        toast({
-          title: "Authentication required",
-          description: "Please sign in to submit the form",
-          variant: "destructive",
-        });
-        return;
-      }
-
       // Upload files first
       let pdfUrl = null;
       let pptUrl = null;
 
+      const uploaderId = user?.id || 'anonymous';
+
       if (pdfFile) {
-        const pdfPath = `${user.id}/${Date.now()}-${pdfFile.name}`;
+        const pdfPath = `${uploaderId}/${Date.now()}-${pdfFile.name}`;
         const { error: pdfError, data: pdfData } = await supabase.storage
           .from('startup-files')
           .upload(pdfPath, pdfFile);
@@ -87,7 +80,7 @@ export const StartupSubmissionForm = () => {
       }
 
       if (pptFile) {
-        const pptPath = `${user.id}/${Date.now()}-${pptFile.name}`;
+        const pptPath = `${uploaderId}/${Date.now()}-${pptFile.name}`;
         const { error: pptError } = await supabase.storage
           .from('startup-files')
           .upload(pptPath, pptFile);
@@ -105,7 +98,7 @@ export const StartupSubmissionForm = () => {
         .from('startup_submissions')
         .insert({
           ...formData,
-          user_id: user.id,
+          user_id: user?.id || null,
           pdf_file_url: pdfUrl,
           ppt_file_url: pptUrl,
         });
@@ -117,7 +110,12 @@ export const StartupSubmissionForm = () => {
         description: "Your startup details have been submitted successfully.",
       });
 
-      navigate("/startup-dashboard");
+      // Navigate to dashboard only if logged in
+      if (user) {
+        navigate("/startup-dashboard");
+      } else {
+        navigate("/thank-you");
+      }
     } catch (error) {
       console.error("Error submitting form:", error);
       toast({

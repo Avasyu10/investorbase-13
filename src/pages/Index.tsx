@@ -212,6 +212,18 @@ const Index = () => {
               </p>}
           </CardContent>
         </Card>
+
+        <div className="text-center mt-4">
+          <p className="text-sm text-muted-foreground mb-2">
+            Want to submit your startup details?
+          </p>
+          <Button
+            variant="outline"
+            onClick={() => navigate("/startup-submit")}
+          >
+            Submit Startup Details
+          </Button>
+        </div>
       </div>
     </div>;
 };

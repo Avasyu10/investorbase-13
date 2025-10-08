@@ -62,11 +62,7 @@ export const routes = [
   },
   { 
     path: "/startup-submit", 
-    element: (
-      <ProtectedRoute>
-        <StartupSubmit />
-      </ProtectedRoute>
-    )
+    element: <StartupSubmit />
   },
   { 
     path: "/startup-dashboard", 
