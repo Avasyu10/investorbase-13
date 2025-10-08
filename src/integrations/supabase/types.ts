@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -1209,6 +1209,69 @@ export type Database = {
           },
         ]
       }
+      startup_submissions: {
+        Row: {
+          campus_affiliation: boolean
+          competitive_understanding: string
+          created_at: string
+          customer_understanding: string
+          founder_email: string
+          id: string
+          linkedin_profile_url: string | null
+          market_understanding: string
+          pdf_file_url: string | null
+          ppt_file_url: string | null
+          problem_statement: string
+          solution: string
+          startup_name: string
+          technical_understanding: string
+          unique_selling_proposition: string
+          updated_at: string
+          user_id: string | null
+          vision: string
+        }
+        Insert: {
+          campus_affiliation?: boolean
+          competitive_understanding: string
+          created_at?: string
+          customer_understanding: string
+          founder_email: string
+          id?: string
+          linkedin_profile_url?: string | null
+          market_understanding: string
+          pdf_file_url?: string | null
+          ppt_file_url?: string | null
+          problem_statement: string
+          solution: string
+          startup_name: string
+          technical_understanding: string
+          unique_selling_proposition: string
+          updated_at?: string
+          user_id?: string | null
+          vision: string
+        }
+        Update: {
+          campus_affiliation?: boolean
+          competitive_understanding?: string
+          created_at?: string
+          customer_understanding?: string
+          founder_email?: string
+          id?: string
+          linkedin_profile_url?: string | null
+          market_understanding?: string
+          pdf_file_url?: string | null
+          ppt_file_url?: string | null
+          problem_statement?: string
+          solution?: string
+          startup_name?: string
+          technical_understanding?: string
+          unique_selling_proposition?: string
+          updated_at?: string
+          user_id?: string | null
+          vision?: string
+        }
+        Relationships: []
+      }
       user_feedback: {
         Row: {
           created_at: string
@@ -1569,14 +1632,14 @@ export type Database = {
         Returns: string
       }
       can_access_company: {
-        Args: { company_user_id: string; company_report_id: string }
+        Args: { company_report_id: string; company_user_id: string }
         Returns: boolean
       }
       can_access_report: {
         Args: {
-          report_user_id: string
           report_is_public: boolean
           report_submitter_email: string
+          report_user_id: string
         }
         Returns: boolean
       }
@@ -1638,12 +1701,12 @@ export type Database = {
       }
       http_delete: {
         Args:
+          | { content: string; content_type: string; uri: string }
           | { uri: string }
-          | { uri: string; content: string; content_type: string }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
       }
       http_get: {
-        Args: { uri: string } | { uri: string; data: Json }
+        Args: { data: Json; uri: string } | { uri: string }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
       }
       http_head: {
@@ -1662,17 +1725,17 @@ export type Database = {
         }[]
       }
       http_patch: {
-        Args: { uri: string; content: string; content_type: string }
+        Args: { content: string; content_type: string; uri: string }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
       }
       http_post: {
         Args:
-          | { uri: string; content: string; content_type: string }
-          | { uri: string; data: Json }
+          | { content: string; content_type: string; uri: string }
+          | { data: Json; uri: string }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
       }
       http_put: {
-        Args: { uri: string; content: string; content_type: string }
+        Args: { content: string; content_type: string; uri: string }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
       }
       http_reset_curlopt: {

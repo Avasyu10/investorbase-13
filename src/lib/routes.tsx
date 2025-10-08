@@ -30,6 +30,8 @@ import ThankYou from "@/pages/ThankYou";
 import EurekaSample from "@/pages/EurekaSample";
 import VCAnalysis from "@/pages/VCAnalysis";
 import ViewOnlyDashboard from "@/pages/ViewOnlyDashboard";
+import StartupSubmit from "@/pages/StartupSubmit";
+import StartupDashboard from "@/pages/StartupDashboard";
 
 export const routes = [
   { path: "/", element: <Index /> },
@@ -55,6 +57,22 @@ export const routes = [
     element: (
       <ProtectedRoute>
         <ViewOnlyDashboard />
+      </ProtectedRoute>
+    )
+  },
+  { 
+    path: "/startup-submit", 
+    element: (
+      <ProtectedRoute>
+        <StartupSubmit />
+      </ProtectedRoute>
+    )
+  },
+  { 
+    path: "/startup-dashboard", 
+    element: (
+      <ProtectedRoute>
+        <StartupDashboard />
       </ProtectedRoute>
     )
   },
