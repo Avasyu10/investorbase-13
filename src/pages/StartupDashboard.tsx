@@ -7,6 +7,8 @@ import { useNavigate } from "react-router-dom";
 import { Plus, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ProblemStatementEvaluation } from "@/components/evaluation/ProblemStatementEvaluation";
 
 interface StartupSubmission {
   id: string;
@@ -66,20 +68,27 @@ const StartupDashboard = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="container mx-auto py-8">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-4xl font-bold">Startup Submissions</h1>
-            <p className="text-muted-foreground mt-2">
-              View and manage your startup submissions
-            </p>
-          </div>
-          <Button onClick={() => navigate("/startup-submit")}>
-            <Plus className="mr-2 h-4 w-4" />
-            New Submission
-          </Button>
-        </div>
+        <Tabs defaultValue="submissions" className="w-full">
+          <TabsList className="grid w-full max-w-md mx-auto mb-8" style={{ gridTemplateColumns: "1fr 1fr" }}>
+            <TabsTrigger value="submissions">My Submissions</TabsTrigger>
+            <TabsTrigger value="evaluation">Evaluate Idea</TabsTrigger>
+          </TabsList>
 
-        {isLoading ? (
+          <TabsContent value="submissions">
+            <div className="flex justify-between items-center mb-8">
+              <div>
+                <h1 className="text-4xl font-bold">Startup Submissions</h1>
+                <p className="text-muted-foreground mt-2">
+                  View and manage your startup submissions
+                </p>
+              </div>
+              <Button onClick={() => navigate("/startup-submit")}>
+                <Plus className="mr-2 h-4 w-4" />
+                New Submission
+              </Button>
+            </div>
+
+            {isLoading ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground">Loading submissions...</p>
           </div>
@@ -166,6 +175,12 @@ const StartupDashboard = () => {
             ))}
           </div>
         )}
+          </TabsContent>
+
+          <TabsContent value="evaluation">
+            <ProblemStatementEvaluation />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
