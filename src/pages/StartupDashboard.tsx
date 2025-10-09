@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProblemStatementEvaluation } from "@/components/evaluation/ProblemStatementEvaluation";
+import { EvaluationHistory } from "@/components/evaluation/EvaluationHistory";
 
 interface StartupSubmission {
   id: string;
@@ -69,9 +70,10 @@ const StartupDashboard = () => {
       <Navbar />
       <div className="container mx-auto py-8">
         <Tabs defaultValue="submissions" className="w-full">
-          <TabsList className="grid w-full max-w-md mx-auto mb-8" style={{ gridTemplateColumns: "1fr 1fr" }}>
+          <TabsList className="grid w-full max-w-2xl mx-auto mb-8" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
             <TabsTrigger value="submissions">My Submissions</TabsTrigger>
             <TabsTrigger value="evaluation">Evaluate Idea</TabsTrigger>
+            <TabsTrigger value="history">Evaluation History</TabsTrigger>
           </TabsList>
 
           <TabsContent value="submissions">
@@ -179,6 +181,18 @@ const StartupDashboard = () => {
 
           <TabsContent value="evaluation">
             <ProblemStatementEvaluation />
+          </TabsContent>
+
+          <TabsContent value="history">
+            <div className="max-w-6xl mx-auto">
+              <div className="mb-8">
+                <h2 className="text-3xl font-bold mb-2">Evaluation History</h2>
+                <p className="text-muted-foreground">
+                  View all past problem statement evaluations
+                </p>
+              </div>
+              <EvaluationHistory />
+            </div>
           </TabsContent>
         </Tabs>
       </div>

@@ -855,6 +855,54 @@ export type Database = {
           },
         ]
       }
+      problem_statement_evaluations: {
+        Row: {
+          ai_analysis_summary: string | null
+          ai_recommendations: string | null
+          average_score: number
+          created_at: string
+          evaluator_user_id: string | null
+          existence_score: number
+          frequency_score: number
+          id: string
+          problem_statement: string
+          severity_score: number
+          startup_name: string
+          unmet_need_score: number
+          updated_at: string
+        }
+        Insert: {
+          ai_analysis_summary?: string | null
+          ai_recommendations?: string | null
+          average_score: number
+          created_at?: string
+          evaluator_user_id?: string | null
+          existence_score: number
+          frequency_score: number
+          id?: string
+          problem_statement: string
+          severity_score: number
+          startup_name: string
+          unmet_need_score: number
+          updated_at?: string
+        }
+        Update: {
+          ai_analysis_summary?: string | null
+          ai_recommendations?: string | null
+          average_score?: number
+          created_at?: string
+          evaluator_user_id?: string | null
+          existence_score?: number
+          frequency_score?: number
+          id?: string
+          problem_statement?: string
+          severity_score?: number
+          startup_name?: string
+          unmet_need_score?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

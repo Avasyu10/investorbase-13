@@ -1,5 +1,8 @@
 project_id = "jhtnruktmtjqrfoiyrep"
 
+[functions.evaluate-problem-statement]
+verify_jwt = true
+
 [functions.rerun-eureka-analysis]
 verify_jwt = true
 

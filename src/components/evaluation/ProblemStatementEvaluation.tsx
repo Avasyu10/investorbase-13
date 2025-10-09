@@ -5,8 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Info, Send, TrendingUp } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Info, Send, TrendingUp, Loader2, Sparkles } from "lucide-react";
 
 interface Criterion {
   id: string;
@@ -18,6 +22,13 @@ interface Criterion {
 
 export function ProblemStatementEvaluation() {
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [startupName, setStartupName] = useState("");
+  const [problemStatement, setProblemStatement] = useState("");
+  const [aiAnalysis, setAiAnalysis] = useState<{
+    summary: string;
+    recommendations: string;
+  } | null>(null);
   
   const [criteria, setCriteria] = useState<Criterion[]>([
     {
@@ -95,12 +106,67 @@ export function ProblemStatementEvaluation() {
     return "default";
   };
 
-  const handleSubmit = () => {
-    toast({
-      title: "Evaluation Submitted Successfully! 🎉",
-      description: `Average Score: ${averageScore.toFixed(1)}/20`,
-      duration: 3000,
-    });
+  const handleSubmit = async () => {
+    if (!startupName.trim() || !problemStatement.trim()) {
+      toast({
+        title: "Missing Information",
+        description: "Please provide startup name and problem statement",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    setAiAnalysis(null);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error("You must be logged in to submit evaluations");
+      }
+
+      const { data, error } = await supabase.functions.invoke('evaluate-problem-statement', {
+        body: {
+          startupName: startupName.trim(),
+          problemStatement: problemStatement.trim(),
+          scores: {
+            existence: criteria[0].score,
+            severity: criteria[1].score,
+            frequency: criteria[2].score,
+            unmetNeed: criteria[3].score,
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      setAiAnalysis({
+        summary: data.evaluation.ai_analysis_summary,
+        recommendations: data.evaluation.ai_recommendations,
+      });
+
+      toast({
+        title: "Evaluation Submitted Successfully! 🎉",
+        description: `Average Score: ${averageScore.toFixed(1)}/20`,
+        duration: 3000,
+      });
+
+      // Reset form
+      setStartupName("");
+      setProblemStatement("");
+      setCriteria(prev => prev.map(c => ({ ...c, score: 10 })));
+
+    } catch (error) {
+      console.error('Submission error:', error);
+      toast({
+        title: "Submission Failed",
+        description: error instanceof Error ? error.message : "An error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -120,8 +186,42 @@ export function ProblemStatementEvaluation() {
           </p>
         </div>
 
+        {/* Startup Information */}
+        <Card 
+          className="backdrop-blur-sm bg-card/50 border-border/50 shadow-lg animate-fade-in"
+          style={{ animationDelay: "0.1s" }}
+        >
+          <CardHeader>
+            <CardTitle className="text-xl">Startup Information</CardTitle>
+            <CardDescription>Provide details about the startup being evaluated</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="startupName">Startup Name</Label>
+              <Input
+                id="startupName"
+                placeholder="Enter startup name"
+                value={startupName}
+                onChange={(e) => setStartupName(e.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
+            <div>
+              <Label htmlFor="problemStatement">Problem Statement</Label>
+              <Textarea
+                id="problemStatement"
+                placeholder="Describe the problem the startup is trying to solve..."
+                value={problemStatement}
+                onChange={(e) => setProblemStatement(e.target.value)}
+                rows={4}
+                disabled={isSubmitting}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Criteria Cards */}
-        <div className="grid gap-6 animate-fade-in" style={{ animationDelay: "0.1s" }}>
+        <div className="grid gap-6 animate-fade-in" style={{ animationDelay: "0.2s" }}>
           {criteria.map((criterion, index) => (
             <Card 
               key={criterion.id}
@@ -243,15 +343,50 @@ export function ProblemStatementEvaluation() {
           </CardContent>
         </Card>
 
+        {/* AI Analysis Results */}
+        {aiAnalysis && (
+          <Card 
+            className="backdrop-blur-sm bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20 shadow-xl animate-fade-in"
+          >
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-primary" />
+                <CardTitle className="text-2xl">AI Analysis</CardTitle>
+              </div>
+              <CardDescription>Powered by Gemini AI</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold mb-3 text-primary">Analysis Summary</h3>
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">{aiAnalysis.summary}</p>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold mb-3 text-primary">Recommendations</h3>
+                <div className="text-sm leading-relaxed whitespace-pre-wrap">{aiAnalysis.recommendations}</div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Submit Button */}
-        <div className="flex justify-center animate-fade-in" style={{ animationDelay: "0.7s" }}>
+        <div className="flex justify-center animate-fade-in" style={{ animationDelay: "0.8s" }}>
           <Button
             onClick={handleSubmit}
             size="lg"
-            className="text-lg px-8 py-6 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
+            disabled={isSubmitting || !startupName.trim() || !problemStatement.trim()}
+            className="text-lg px-8 py-6 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Send className="w-5 h-5 mr-2" />
-            Submit Evaluation
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                Analyzing with AI...
+              </>
+            ) : (
+              <>
+                <Send className="w-5 h-5 mr-2" />
+                Submit Evaluation
+              </>
+            )}
           </Button>
         </div>
       </div>
