@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Navbar } from "@/components/layout/Navbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Plus, ExternalLink, LogOut } from "lucide-react";
+import { Plus, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { useAuth } from "@/hooks/useAuth";
 
 interface StartupSubmission {
   id: string;
@@ -23,7 +23,6 @@ interface StartupSubmission {
 const StartupDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { signOut } = useAuth();
   const [submissions, setSubmissions] = useState<StartupSubmission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -65,23 +64,7 @@ const StartupDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between px-4 md:px-8">
-          <img 
-            src="/lovable-uploads/d45dee4c-b5ef-4833-b6a4-eaaa1b7e0c9a.png" 
-            alt="InvestorBase Logo" 
-            className="h-8 w-auto" 
-          />
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={signOut}
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            Sign out
-          </Button>
-        </div>
-      </header>
+      <Navbar />
       <div className="container mx-auto py-8">
         <div className="flex justify-between items-center mb-8">
           <div>
