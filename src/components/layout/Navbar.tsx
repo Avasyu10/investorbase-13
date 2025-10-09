@@ -50,8 +50,7 @@ export function Navbar() {
   const isCompanyOrSectionPage = location.pathname.includes('/company/');
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between px-3 sm:px-4 md:px-8">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 container flex h-16 items-center justify-between px-3 sm:px-4 md:px-8">
         <Link to={user ? (isViewOnly ? "/view-dashboard" : "/dashboard") : "/"} className="flex items-center space-x-2 transition-transform hover:scale-[1.01]">
           <img 
             src="/lovable-uploads/d45dee4c-b5ef-4833-b6a4-eaaa1b7e0c9a.png" 
@@ -205,7 +204,6 @@ export function Navbar() {
             </div>
           )}
         </nav>
-      </div>
     </header>
   );
 }
