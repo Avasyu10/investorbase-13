@@ -94,14 +94,17 @@ export const StartupSubmissionForm = () => {
       }
 
       // Insert submission
-      const { error } = await supabase
+
+      const { data: inserted, error } = await supabase
         .from('startup_submissions')
         .insert({
           ...formData,
           user_id: user?.id || null,
           pdf_file_url: pdfUrl,
           ppt_file_url: pptUrl,
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
 
@@ -109,6 +112,31 @@ export const StartupSubmissionForm = () => {
         title: "Success!",
         description: "Your startup details have been submitted successfully.",
       });
+
+      // Trigger automatic evaluation (only for logged in users)
+      try {
+        if (user && inserted) {
+          // Invoke edge function to evaluate the full submission automatically
+          try {
+            const evalResp = await supabase.functions.invoke('evaluate-submission', {
+              body: {
+                submission: inserted
+              }
+            });
+
+            // If evalResp contains error field, log it but don't block navigation
+            if ((evalResp as any).error) {
+              console.error('Evaluation function error:', (evalResp as any).error);
+            }
+          } catch (fnErr: any) {
+            console.error('Auto-evaluation failed (edge function unreachable):', fnErr?.message || fnErr);
+            // Non-fatal: surface a friendly console note with guidance for local runs
+            console.warn('Tip: run the helper script from PowerShell to evaluate a submission locally:\n  powershell.exe -File .\\supabase\\evaluate_submission_by_id.ps1 -name "<Startup Name>"');
+          }
+        }
+      } catch (e) {
+        console.error('Auto-evaluation unexpected error:', e);
+      }
 
       // Navigate to dashboard only if logged in
       if (user) {

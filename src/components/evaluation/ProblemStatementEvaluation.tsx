@@ -29,7 +29,7 @@ export function ProblemStatementEvaluation() {
     summary: string;
     recommendations: string;
   } | null>(null);
-  
+
   const [criteria, setCriteria] = useState<Criterion[]>([
     {
       id: "existence",
@@ -86,7 +86,7 @@ export function ProblemStatementEvaluation() {
   ]);
 
   const handleScoreChange = (id: string, value: number[]) => {
-    setCriteria(prev => 
+    setCriteria(prev =>
       prev.map(c => c.id === id ? { ...c, score: value[0] } : c)
     );
   };
@@ -121,20 +121,23 @@ export function ProblemStatementEvaluation() {
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (!session) {
         throw new Error("You must be logged in to submit evaluations");
       }
 
-      const { data, error } = await supabase.functions.invoke('evaluate-problem-statement', {
+      const { data, error } = await supabase.functions.invoke('evaluate-submission', {
         body: {
-          startupName: startupName.trim(),
-          problemStatement: problemStatement.trim(),
-          scores: {
-            existence: criteria[0].score,
-            severity: criteria[1].score,
-            frequency: criteria[2].score,
-            unmetNeed: criteria[3].score,
+          submission: {
+            startup_name: startupName.trim(),
+            problem_statement: problemStatement.trim(),
+            // include the manual scores as a hint for the evaluator
+            manual_scores: {
+              existence: criteria[0].score,
+              severity: criteria[1].score,
+              frequency: criteria[2].score,
+              unmetNeed: criteria[3].score,
+            }
           }
         }
       });
@@ -159,11 +162,21 @@ export function ProblemStatementEvaluation() {
 
     } catch (error) {
       console.error('Submission error:', error);
-      toast({
-        title: "Submission Failed",
-        description: error instanceof Error ? error.message : "An error occurred",
-        variant: "destructive",
-      });
+      const message = error instanceof Error ? error.message : String(error || 'Unknown error');
+      if (message.includes('Failed to send a request') || message.includes('Edge Function') || message.toLowerCase().includes('network')) {
+        toast({
+          title: "Submission Failed",
+          description: 'Could not reach the Edge Function. Ensure Supabase functions are deployed. For local/e2e runs, execute the helper script in PowerShell: powershell.exe -File .\\supabase\\evaluate_submission_by_id.ps1 -name "<Startup Name>"',
+          variant: "destructive",
+          duration: 8000,
+        });
+      } else {
+        toast({
+          title: "Submission Failed",
+          description: message,
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -187,7 +200,7 @@ export function ProblemStatementEvaluation() {
         </div>
 
         {/* Startup Information */}
-        <Card 
+        <Card
           className="backdrop-blur-sm bg-card/50 border-border/50 shadow-lg animate-fade-in"
           style={{ animationDelay: "0.1s" }}
         >
@@ -223,7 +236,7 @@ export function ProblemStatementEvaluation() {
         {/* Criteria Cards */}
         <div className="grid gap-6 animate-fade-in" style={{ animationDelay: "0.2s" }}>
           {criteria.map((criterion, index) => (
-            <Card 
+            <Card
               key={criterion.id}
               className="backdrop-blur-sm bg-card/50 border-border/50 shadow-lg hover:shadow-xl transition-all duration-300"
               style={{ animationDelay: `${0.2 + index * 0.1}s` }}
@@ -250,7 +263,7 @@ export function ProblemStatementEvaluation() {
                     </CardTitle>
                     <CardDescription>{criterion.description}</CardDescription>
                   </div>
-                  <Badge 
+                  <Badge
                     variant={getScoreBadgeVariant(criterion.score)}
                     className="text-lg px-4 py-1 font-bold min-w-[60px] justify-center"
                   >
@@ -279,7 +292,7 @@ export function ProblemStatementEvaluation() {
         </div>
 
         {/* Average Score Display */}
-        <Card 
+        <Card
           className="backdrop-blur-sm bg-card/50 border-border/50 shadow-xl animate-fade-in"
           style={{ animationDelay: "0.6s" }}
         >
@@ -291,11 +304,11 @@ export function ProblemStatementEvaluation() {
                   Average across all criteria
                 </p>
               </div>
-              
+
               <div className="relative">
                 <div className="w-40 h-40 rounded-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5 border-4 border-primary/30 shadow-lg">
                   <div className="text-center">
-                    <div 
+                    <div
                       className="text-5xl font-bold transition-colors duration-300"
                       style={{ color: getScoreColor(averageScore) }}
                     >
@@ -345,7 +358,7 @@ export function ProblemStatementEvaluation() {
 
         {/* AI Analysis Results */}
         {aiAnalysis && (
-          <Card 
+          <Card
             className="backdrop-blur-sm bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20 shadow-xl animate-fade-in"
           >
             <CardHeader>

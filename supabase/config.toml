@@ -1,8 +1,5 @@
 project_id = "jhtnruktmtjqrfoiyrep"
 
-[functions.evaluate-problem-statement]
-verify_jwt = true
-
 [functions.rerun-eureka-analysis]
 verify_jwt = true
 
@@ -16,4 +13,10 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.export-eureka-csv-v2]
+verify_jwt = true
+
+[functions.evaluate-submission]
+verify_jwt = true
+
+[functions.get-submission-evaluations]
 verify_jwt = true

@@ -1,0 +1,19 @@
+{
+    "submission": {
+        "id": "00000000-0000-0000-0000-000000000001",
+        "startup_name": "Acme Logistics",
+        "founder_email": "founder@acme.example",
+        "problem_statement": "Small retailers have trouble getting same-day restock due to inefficient local courier networks and no real-time inventory syncing between suppliers and stores.",
+        "solution": "A lightweight API and driver network that syncs local supplier inventory and offers on-demand routing with dynamic batching to minimize dead miles.",
+        "market_understanding": "Targeting 2 million small retailers in the region; e-commerce and local delivery trends accelerating.",
+        "customer_understanding": "Owners of small grocery and convenience stores; initial pilots show reorder frequency 2x per week.",
+        "competitive_understanding": "National couriers provide delivery but not inventory-aware restocking; local players are fragmented.",
+        "unique_selling_proposition": "Inventory-aware micro-routing reduces stockouts and dead miles.",
+        "technical_understanding": "Mobile driver app, small REST API, adapters for supplier Excel/CSV feeds; batching engine for routing.",
+        "vision": "Become the standard last-mile restocking layer in regional markets.",
+        "campus_affiliation": false,
+        "pdf_file_url": null,
+        "ppt_file_url": null,
+        "created_at": "2025-10-09T00:00:00Z"
+    }
+}
