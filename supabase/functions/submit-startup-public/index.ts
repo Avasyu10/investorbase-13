@@ -33,6 +33,8 @@ serve(async (req: Request) => {
       }
     }
 
+    console.log('User ID from form:', data.user_id || 'None (public submission)');
+
     // Handle file uploads if present
     let pdfFileUrl = null;
     let pptFileUrl = null;
@@ -69,7 +71,7 @@ serve(async (req: Request) => {
       }
     }
 
-    // Insert the startup submission without user_id
+    // Insert the startup submission with or without user_id
     const { data: submission, error: insertError } = await supabaseAdmin
       .from('startup_submissions')
       .insert({
@@ -87,7 +89,7 @@ serve(async (req: Request) => {
         linkedin_profile_url: data.linkedin_profile_url || null,
         pdf_file_url: pdfFileUrl,
         ppt_file_url: pptFileUrl,
-        user_id: null, // No user authentication required
+        user_id: data.user_id || null, // Include user_id if provided, otherwise null
       })
       .select()
       .single();

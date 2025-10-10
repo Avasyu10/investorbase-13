@@ -56,8 +56,23 @@ export const StartupSubmissionForm = () => {
     setIsSubmitting(true);
 
     try {
+      // Check if user is logged in (optional)
+      let userId = null;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        userId = user?.id || null;
+      } catch {
+        // User not logged in, proceed with null
+        console.log('No authenticated user, proceeding with public submission');
+      }
+
       // Prepare form data for the edge function
       const submissionData = new FormData();
+
+      // Add user_id if available
+      if (userId) {
+        submissionData.append('user_id', userId);
+      }
 
       // Add all form fields
       Object.entries(formData).forEach(([key, value]) => {
