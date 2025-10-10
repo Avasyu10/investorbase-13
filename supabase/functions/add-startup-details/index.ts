@@ -12,25 +12,13 @@ serve(async (req: Request) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    console.log('add-startup-details invoked, has Authorization header:', Boolean(authHeader));
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.error('Invalid or missing Authorization header:', authHeader);
-      return new Response(JSON.stringify({ error: 'Invalid or missing Authorization header' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const token = authHeader.split(' ')[1];
-
+    // Create Supabase client with the auth token from the request
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       {
         global: {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: req.headers.get('Authorization')! },
         },
       }
     );
@@ -41,15 +29,15 @@ serve(async (req: Request) => {
       error: userError,
     } = await supabaseClient.auth.getUser();
 
-    console.log('User auth result:', { user: user ? 'exists' : 'null', error: userError });
-
     if (userError || !user) {
-      console.error('Authentication failed:', { userError, user });
-      return new Response(JSON.stringify({ error: 'Unauthorized - please log in again' }), {
+      console.error('Authentication failed:', userError);
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    console.log('User authenticated:', user.id);
 
     const formData = await req.formData();
     console.log('Received startup submission form data');
