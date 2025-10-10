@@ -29,7 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
         console.log('Auth state changed:', event, currentSession?.user?.email);
-        
+
         // Handle different auth events
         if (event === 'SIGNED_IN' && currentSession) {
           setSession(currentSession);
@@ -56,7 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(currentSession.user);
           }
         }
-        
+
         setIsLoading(false);
       }
     );
@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const initializeSession = async () => {
       try {
         const { data: { session: existingSession }, error } = await supabase.auth.getSession();
-        
+
         if (error) {
           console.error('Error getting session:', error);
           // Clear any stale session data
@@ -99,7 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithEmail = async (email: string, password: string, userType?: 'founder' | 'accelerator' | 'vc') => {
     try {
       setIsLoading(true);
-      
+
       // First, authenticate the user
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
@@ -109,7 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (authError) throw authError;
 
       const userId = authData.user?.id;
-      
+
       if (!userId) {
         throw new Error('Authentication failed - no user ID received');
       }
@@ -130,20 +130,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('Attempting signin with userType:', userType);
 
       // SIMPLE ACCESS CONTROL: Only block founder_signup users from accelerator/VC sections
-      if ((userType === 'accelerator' || userType === 'vc') && 
-          profileData && 
-          profileData.signup_source === 'founder_signup') {
+      if ((userType === 'accelerator' || userType === 'vc') &&
+        profileData &&
+        profileData.signup_source === 'founder_signup') {
         // Block founder_signup users from institutional signin
         console.log('Blocking founder_signup user from accessing institutional signin');
         await supabase.auth.signOut();
         throw new Error('Access denied. Founders cannot use institutional signin. Please use the founder signin option.');
       }
-      
+
+      // Navigate to startup-dashboard if the user is from startupstudio
+      if (profileData && profileData.signup_source === 'startupstudio') {
+        navigate('/startup-dashboard');
+        return;
+      }
+
+      // Explicitly check for startupstudio@investorbase.io email
+      if (email === 'startupstudio@investorbase.io') {
+        navigate('/startup-dashboard');
+        return;
+      }
+
       toast({
         title: "Successfully signed in",
         description: "Welcome back!",
       });
-      
+
       navigate('/dashboard');
     } catch (error: any) {
       console.error('Sign in error:', error);
@@ -160,13 +172,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUpWithEmail = async (email: string, password: string, metadata?: Record<string, string>) => {
     try {
       setIsLoading(true);
-      
+
       // Add signup_source to metadata for founder signups
       const signupMetadata = {
         ...metadata,
         signup_source: 'founder_signup'
       };
-      
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -177,7 +189,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) throw error;
-      
+
       const checkRedirectNeeded = async () => {
         try {
           const { data, error: profileError } = await supabase
@@ -185,7 +197,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .select('id')
             .eq('id', user?.id)
             .maybeSingle();
-            
+
           if (profileError || !data) {
             navigate('/profile/setup');
           }
@@ -193,14 +205,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.error("Error checking profile:", err);
         }
       };
-      
+
       setTimeout(checkRedirectNeeded, 1000);
-      
+
       toast({
         title: "Confirmation Link Sent",
         description: "You can continue the Sign Up process from the confirmation link.",
       });
-      
+
       return true;
     } catch (error: any) {
       console.error('Sign up error:', error);
@@ -219,37 +231,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log('Starting sign out process...');
       setIsLoading(true);
-      
+
       // Clear local state first to provide immediate feedback
       setSession(null);
       setUser(null);
-      
+
       // Then call Supabase signOut
       const { error } = await supabase.auth.signOut();
-      
+
       if (error) {
         console.error('Supabase sign out error:', error);
         // Even if there's an error, we've cleared local state
         // This handles cases where the session might be stale
       }
-      
+
       console.log('Sign out completed, navigating to home...');
-      
+
       // Navigate to home page
       navigate('/');
-      
+
       toast({
         title: "Signed out",
         description: "You've been successfully signed out.",
       });
     } catch (error: any) {
       console.error('Error during sign out process:', error);
-      
+
       // Still clear local state and redirect even if there's an error
       setSession(null);
       setUser(null);
       navigate('/');
-      
+
       toast({
         title: "Signed out",
         description: "You've been signed out.",
@@ -265,18 +277,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Use the exact URL format and ensure it points to reset-password page
       const resetUrl = `${window.location.origin}/reset-password`;
       console.log('Sending password reset email with redirect URL:', resetUrl);
-      
+
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: resetUrl,
       });
 
       if (error) throw error;
-      
+
       toast({
         title: "Password Reset Email Sent",
         description: "Check your email for the password reset link.",
       });
-      
+
       return true;
     } catch (error: any) {
       console.error('Password reset error:', error);
@@ -299,12 +311,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) throw error;
-      
+
       toast({
         title: "Password Updated",
         description: "Your password has been successfully updated.",
       });
-      
+
       return true;
     } catch (error: any) {
       console.error('Password update error:', error);
