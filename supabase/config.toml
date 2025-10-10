@@ -1,1 +1,7 @@
 project_id = "jhtnruktmtjqrfoiyrep"
+
+[functions.evaluate-problem-statement]
+verify_jwt = true
+
+[functions.submit-startup-public]
+verify_jwt = false

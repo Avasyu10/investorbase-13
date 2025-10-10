@@ -55,19 +55,6 @@ export const StartupSubmissionForm = () => {
     setIsSubmitting(true);
 
     try {
-      // Check authentication first
-      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-
-      if (authError || !authUser) {
-        toast({
-          title: "Authentication Required",
-          description: "Please log in to submit your startup details.",
-          variant: "destructive",
-        });
-        setIsSubmitting(false);
-        return;
-      }
-
       // Prepare form data for the edge function
       const submissionData = new FormData();
 
@@ -84,25 +71,9 @@ export const StartupSubmissionForm = () => {
         submissionData.append('pptFile', pptFile);
       }
 
-      // Get the current session token
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-      if (sessionError || !session?.access_token) {
-        toast({
-          title: "Session Error",
-          description: "Your session has expired. Please log in again.",
-          variant: "destructive",
-        });
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Call the add-startup-details edge function with explicit auth
-      const { data, error } = await supabase.functions.invoke('add-startup-details', {
+      // Call the public edge function (no authentication required)
+      const { data, error } = await supabase.functions.invoke('submit-startup-public', {
         body: submissionData,
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
       });
 
       if (error) throw error;
@@ -112,45 +83,8 @@ export const StartupSubmissionForm = () => {
         description: "Your startup details have been submitted successfully.",
       });
 
-      // Trigger automatic evaluation (only for logged in users)
-      try {
-        const {
-          data: { user: evalUser },
-        } = await supabase.auth.getUser();
-
-        if (evalUser && data?.data) {
-          // Invoke edge function to evaluate the full submission automatically
-          try {
-            const evalResp = await supabase.functions.invoke('evaluate-submission', {
-              body: {
-                submission: data.data
-              }
-            });
-
-            // If evalResp contains error field, log it but don't block navigation
-            if ((evalResp as any).error) {
-              console.error('Evaluation function error:', (evalResp as any).error);
-            }
-          } catch (fnErr: any) {
-            console.error('Auto-evaluation failed (edge function unreachable):', fnErr?.message || fnErr);
-            // Non-fatal: surface a friendly console note with guidance for local runs
-            console.warn('Tip: run the helper script from PowerShell to evaluate a submission locally:\n  powershell.exe -File .\\supabase\\evaluate_submission_by_id.ps1 -name "<Startup Name>"');
-          }
-        }
-      } catch (e) {
-        console.error('Auto-evaluation unexpected error:', e);
-      }
-
-      // Navigate to dashboard only if logged in
-      const {
-        data: { user: navUser },
-      } = await supabase.auth.getUser();
-
-      if (navUser) {
-        navigate("/startup-dashboard");
-      } else {
-        navigate("/thank-you");
-      }
+      // Navigate to thank you page
+      navigate("/thank-you");
     } catch (error) {
       console.error("Error submitting form:", error);
       toast({
