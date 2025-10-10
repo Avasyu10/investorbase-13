@@ -1320,6 +1320,149 @@ export type Database = {
         }
         Relationships: []
       }
+      submission_evaluations: {
+        Row: {
+          accessibility_score: number | null
+          acquisition_approach_score: number | null
+          ai_analysis_summary: string | null
+          ai_recommendations: string | null
+          created_at: string
+          differentiation_score: number | null
+          differentiation_vs_players_score: number | null
+          direct_competitors_score: number | null
+          direct_fit_score: number | null
+          dynamics_score: number | null
+          effectiveness_score: number | null
+          evaluator_user_id: string | null
+          existence_score: number | null
+          external_catalysts_score: number | null
+          feasibility_score: number | null
+          first_customers_score: number | null
+          frequency_score: number | null
+          growth_trajectory_score: number | null
+          id: string
+          market_size_score: number | null
+          overall_average: number | null
+          pain_recognition_score: number | null
+          problem_statement: string | null
+          severity_score: number | null
+          startup_name: string | null
+          startup_submission_id: string | null
+          substitutes_score: number | null
+          tech_alignment_score: number | null
+          tech_coherence_score: number | null
+          tech_complexity_awareness_score: number | null
+          tech_components_score: number | null
+          tech_feasibility_score: number | null
+          tech_realism_score: number | null
+          tech_roadmap_score: number | null
+          tech_vision_ambition_score: number | null
+          timing_readiness_score: number | null
+          unmet_need_score: number | null
+          updated_at: string
+          usp_alignment_score: number | null
+          usp_clarity_score: number | null
+          usp_defensibility_score: number | null
+          usp_differentiation_strength_score: number | null
+        }
+        Insert: {
+          accessibility_score?: number | null
+          acquisition_approach_score?: number | null
+          ai_analysis_summary?: string | null
+          ai_recommendations?: string | null
+          created_at?: string
+          differentiation_score?: number | null
+          differentiation_vs_players_score?: number | null
+          direct_competitors_score?: number | null
+          direct_fit_score?: number | null
+          dynamics_score?: number | null
+          effectiveness_score?: number | null
+          evaluator_user_id?: string | null
+          existence_score?: number | null
+          external_catalysts_score?: number | null
+          feasibility_score?: number | null
+          first_customers_score?: number | null
+          frequency_score?: number | null
+          growth_trajectory_score?: number | null
+          id?: string
+          market_size_score?: number | null
+          overall_average?: number | null
+          pain_recognition_score?: number | null
+          problem_statement?: string | null
+          severity_score?: number | null
+          startup_name?: string | null
+          startup_submission_id?: string | null
+          substitutes_score?: number | null
+          tech_alignment_score?: number | null
+          tech_coherence_score?: number | null
+          tech_complexity_awareness_score?: number | null
+          tech_components_score?: number | null
+          tech_feasibility_score?: number | null
+          tech_realism_score?: number | null
+          tech_roadmap_score?: number | null
+          tech_vision_ambition_score?: number | null
+          timing_readiness_score?: number | null
+          unmet_need_score?: number | null
+          updated_at?: string
+          usp_alignment_score?: number | null
+          usp_clarity_score?: number | null
+          usp_defensibility_score?: number | null
+          usp_differentiation_strength_score?: number | null
+        }
+        Update: {
+          accessibility_score?: number | null
+          acquisition_approach_score?: number | null
+          ai_analysis_summary?: string | null
+          ai_recommendations?: string | null
+          created_at?: string
+          differentiation_score?: number | null
+          differentiation_vs_players_score?: number | null
+          direct_competitors_score?: number | null
+          direct_fit_score?: number | null
+          dynamics_score?: number | null
+          effectiveness_score?: number | null
+          evaluator_user_id?: string | null
+          existence_score?: number | null
+          external_catalysts_score?: number | null
+          feasibility_score?: number | null
+          first_customers_score?: number | null
+          frequency_score?: number | null
+          growth_trajectory_score?: number | null
+          id?: string
+          market_size_score?: number | null
+          overall_average?: number | null
+          pain_recognition_score?: number | null
+          problem_statement?: string | null
+          severity_score?: number | null
+          startup_name?: string | null
+          startup_submission_id?: string | null
+          substitutes_score?: number | null
+          tech_alignment_score?: number | null
+          tech_coherence_score?: number | null
+          tech_complexity_awareness_score?: number | null
+          tech_components_score?: number | null
+          tech_feasibility_score?: number | null
+          tech_realism_score?: number | null
+          tech_roadmap_score?: number | null
+          tech_vision_ambition_score?: number | null
+          timing_readiness_score?: number | null
+          unmet_need_score?: number | null
+          updated_at?: string
+          usp_alignment_score?: number | null
+          usp_clarity_score?: number | null
+          usp_defensibility_score?: number | null
+          usp_differentiation_strength_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_evaluations_startup_submission_id_fkey"
+            columns: ["startup_submission_id"]
+            isOneToOne: false
+            referencedRelation: "startup_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_feedback: {
         Row: {
           created_at: string
