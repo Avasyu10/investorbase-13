@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.131.0/http/server.ts";
-import { createClient, SupabaseClient } from "https://deno.land/x/supabase_js@2.0.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -8,7 +8,7 @@ if (!supabaseUrl || !supabaseKey) {
     throw new Error("Missing Supabase environment variables");
 }
 
-const supabase: SupabaseClient = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 serve(async (req: Request) => {
     if (req.method !== "POST") {
