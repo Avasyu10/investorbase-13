@@ -100,8 +100,14 @@ serve(async (req: Request) => {
       pptFileUrl = pptUrlData.publicUrl;
     }
 
+    // Use service role key for insertion to bypass RLS
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
     // Insert the startup submission
-    const { data: submission, error: insertError } = await supabaseClient
+    const { data: submission, error: insertError } = await supabaseAdmin
       .from('startup_submissions')
       .insert({
         user_id: user.id,
