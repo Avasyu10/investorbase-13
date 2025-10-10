@@ -16,6 +16,7 @@ export const StartupSubmissionForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [pptFile, setPptFile] = useState<File | null>(null);
+  const [submissionId, setSubmissionId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     problem_statement: "",
@@ -78,13 +79,20 @@ export const StartupSubmissionForm = () => {
 
       if (error) throw error;
 
+      // Store the submission ID
+      const newSubmissionId = data?.data?.id;
+      setSubmissionId(newSubmissionId);
+
       toast({
         title: "Success!",
-        description: "Your startup details have been submitted successfully.",
+        description: `Your startup details have been submitted successfully. Submission ID: ${newSubmissionId?.slice(0, 8)}`,
+        duration: 5000,
       });
 
-      // Navigate to thank you page
-      navigate("/thank-you");
+      // Navigate to thank you page after a short delay
+      setTimeout(() => {
+        navigate("/thank-you");
+      }, 2000);
     } catch (error) {
       console.error("Error submitting form:", error);
       toast({
@@ -105,6 +113,16 @@ export const StartupSubmissionForm = () => {
           <CardDescription>
             Submit your startup details for review
           </CardDescription>
+          {submissionId && (
+            <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+              <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                Submission ID: <span className="font-mono">{submissionId}</span>
+              </p>
+              <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                Please save this ID for your records.
+              </p>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
