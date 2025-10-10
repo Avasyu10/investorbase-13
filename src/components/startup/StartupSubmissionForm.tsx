@@ -55,56 +55,55 @@ export const StartupSubmissionForm = () => {
     setIsSubmitting(true);
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      // Check authentication first
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
 
-      // Upload files first
-      let pdfUrl = null;
-      let pptUrl = null;
+      if (authError || !authUser) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to submit your startup details.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
 
-      const uploaderId = user?.id || 'anonymous';
+      // Prepare form data for the edge function
+      const submissionData = new FormData();
 
+      // Add all form fields
+      Object.entries(formData).forEach(([key, value]) => {
+        submissionData.append(key, value.toString());
+      });
+
+      // Add files if present
       if (pdfFile) {
-        const pdfPath = `${uploaderId}/${Date.now()}-${pdfFile.name}`;
-        const { error: pdfError, data: pdfData } = await supabase.storage
-          .from('startup-files')
-          .upload(pdfPath, pdfFile);
-
-        if (pdfError) throw pdfError;
-
-        const { data: pdfUrlData } = supabase.storage
-          .from('startup-files')
-          .getPublicUrl(pdfPath);
-        pdfUrl = pdfUrlData.publicUrl;
+        submissionData.append('pdfFile', pdfFile);
       }
-
       if (pptFile) {
-        const pptPath = `${uploaderId}/${Date.now()}-${pptFile.name}`;
-        const { error: pptError } = await supabase.storage
-          .from('startup-files')
-          .upload(pptPath, pptFile);
-
-        if (pptError) throw pptError;
-
-        const { data: pptUrlData } = supabase.storage
-          .from('startup-files')
-          .getPublicUrl(pptPath);
-        pptUrl = pptUrlData.publicUrl;
+        submissionData.append('pptFile', pptFile);
       }
 
-      // Insert submission
+      // Get the current session token
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-      const { data: inserted, error } = await supabase
-        .from('startup_submissions')
-        .insert({
-          ...formData,
-          user_id: user?.id || null,
-          pdf_file_url: pdfUrl,
-          ppt_file_url: pptUrl,
-        })
-        .select()
-        .single();
+      if (sessionError || !session?.access_token) {
+        toast({
+          title: "Session Error",
+          description: "Your session has expired. Please log in again.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Call the add-startup-details edge function with explicit auth
+      const { data, error } = await supabase.functions.invoke('add-startup-details', {
+        body: submissionData,
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
 
       if (error) throw error;
 
@@ -115,12 +114,16 @@ export const StartupSubmissionForm = () => {
 
       // Trigger automatic evaluation (only for logged in users)
       try {
-        if (user && inserted) {
+        const {
+          data: { user: evalUser },
+        } = await supabase.auth.getUser();
+
+        if (evalUser && data?.data) {
           // Invoke edge function to evaluate the full submission automatically
           try {
             const evalResp = await supabase.functions.invoke('evaluate-submission', {
               body: {
-                submission: inserted
+                submission: data.data
               }
             });
 
@@ -139,7 +142,11 @@ export const StartupSubmissionForm = () => {
       }
 
       // Navigate to dashboard only if logged in
-      if (user) {
+      const {
+        data: { user: navUser },
+      } = await supabase.auth.getUser();
+
+      if (navUser) {
         navigate("/startup-dashboard");
       } else {
         navigate("/thank-you");

@@ -3,12 +3,45 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface SubmissionEvaluation {
     id: string;
-    startup_name: string;
+    startup_name: string | null;
     problem_statement: string;
+    evaluator_user_id: string;
+    created_at: string;
+    existence_score: number | null;
+    severity_score: number | null;
+    frequency_score: number | null;
+    unmet_need_score: number | null;
+    direct_fit_score: number | null;
+    differentiation_score: number | null;
+    feasibility_score: number | null;
+    effectiveness_score: number | null;
+    market_size_score: number | null;
+    growth_trajectory_score: number | null;
+    timing_readiness_score: number | null;
+    external_catalysts_score: number | null;
+    first_customers_score: number | null;
+    accessibility_score: number | null;
+    acquisition_approach_score: number | null;
+    pain_recognition_score: number | null;
+    direct_competitors_score: number | null;
+    substitutes_score: number | null;
+    differentiation_vs_players_score: number | null;
+    dynamics_score: number | null;
+    usp_clarity_score: number | null;
+    usp_differentiation_strength_score: number | null;
+    usp_defensibility_score: number | null;
+    usp_alignment_score: number | null;
+    tech_vision_ambition_score: number | null;
+    tech_coherence_score: number | null;
+    tech_alignment_score: number | null;
+    tech_realism_score: number | null;
+    tech_feasibility_score: number | null;
+    tech_components_score: number | null;
+    tech_complexity_awareness_score: number | null;
+    tech_roadmap_score: number | null;
     overall_average: number | null;
     ai_analysis_summary: string | null;
     ai_recommendations: string | null;
-    created_at: string;
 }
 
 export const useSubmissionEvaluations = () => {
@@ -19,7 +52,18 @@ export const useSubmissionEvaluations = () => {
             try {
                 const res = await (supabase as any)
                     .from('submission_evaluations')
-                    .select('id, startup_name, problem_statement, overall_average, ai_analysis_summary, ai_recommendations, created_at')
+                    .select(`
+                        id, startup_name, problem_statement, evaluator_user_id, created_at,
+                        existence_score, severity_score, frequency_score, unmet_need_score,
+                        direct_fit_score, differentiation_score, feasibility_score, effectiveness_score,
+                        market_size_score, growth_trajectory_score, timing_readiness_score, external_catalysts_score,
+                        first_customers_score, accessibility_score, acquisition_approach_score, pain_recognition_score,
+                        direct_competitors_score, substitutes_score, differentiation_vs_players_score, dynamics_score,
+                        usp_clarity_score, usp_differentiation_strength_score, usp_defensibility_score, usp_alignment_score,
+                        tech_vision_ambition_score, tech_coherence_score, tech_alignment_score, tech_realism_score,
+                        tech_feasibility_score, tech_components_score, tech_complexity_awareness_score, tech_roadmap_score,
+                        overall_average, ai_analysis_summary, ai_recommendations
+                    `)
                     .order('created_at', { ascending: false });
 
                 const { data, error } = res as any;

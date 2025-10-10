@@ -179,7 +179,7 @@ const StartupDashboard = () => {
                                 setEvaluatingId(submission.id);
                                 toast({ title: 'Evaluating...', description: 'AI evaluation in progress', duration: 2000 });
 
-                                const { data, error } = await supabase.functions.invoke('evaluate-problem-statement', {
+                                const { data, error } = await supabase.functions.invoke('evaluate-submission', {
                                   body: { submission }
                                 });
 

@@ -32,14 +32,14 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    console.log('Fetching startup submissions for user:', user.id);
+    console.log('Fetching all startup submissions');
 
-    // Get all submissions for this user
+    // Get all submissions from all users
     const { data: submissions, error: fetchError } = await supabaseClient
       .from('startup_submissions')
       .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(1000);
 
     if (fetchError) {
       console.error('Fetch error:', fetchError);

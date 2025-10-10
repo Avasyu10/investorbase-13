@@ -6,18 +6,31 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
+serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    const authHeader = req.headers.get('Authorization');
+    console.log('add-startup-details invoked, has Authorization header:', Boolean(authHeader));
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('Invalid or missing Authorization header:', authHeader);
+      return new Response(JSON.stringify({ error: 'Invalid or missing Authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const token = authHeader.split(' ')[1];
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       {
         global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
+          headers: { Authorization: `Bearer ${token}` },
         },
       }
     );
@@ -28,22 +41,34 @@ serve(async (req) => {
       error: userError,
     } = await supabaseClient.auth.getUser();
 
+    console.log('User auth result:', { user: user ? 'exists' : 'null', error: userError });
+
     if (userError || !user) {
-      throw new Error('Unauthorized');
+      console.error('Authentication failed:', { userError, user });
+      return new Response(JSON.stringify({ error: 'Unauthorized - please log in again' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    const formData = await req.json();
-    console.log('Received startup submission:', formData);
+    const formData = await req.formData();
+    console.log('Received startup submission form data');
+
+    // Convert FormData to object for easier access
+    const data: Record<string, any> = {};
+    for (const [key, value] of formData.entries()) {
+      data[key] = value;
+    }
 
     // Handle file uploads if present
     let pdfFileUrl = null;
     let pptFileUrl = null;
 
-    if (formData.pdfFile) {
-      const pdfPath = `${user.id}/${Date.now()}-${formData.pdfFile.name}`;
+    if (data.pdfFile) {
+      const pdfPath = `${user.id}/${Date.now()}-${(data.pdfFile as File).name}`;
       const { data: pdfData, error: pdfError } = await supabaseClient.storage
         .from('startup-files')
-        .upload(pdfPath, formData.pdfFile);
+        .upload(pdfPath, data.pdfFile);
 
       if (pdfError) {
         console.error('PDF upload error:', pdfError);
@@ -53,15 +78,15 @@ serve(async (req) => {
       const { data: pdfUrlData } = supabaseClient.storage
         .from('startup-files')
         .getPublicUrl(pdfPath);
-      
+
       pdfFileUrl = pdfUrlData.publicUrl;
     }
 
-    if (formData.pptFile) {
-      const pptPath = `${user.id}/${Date.now()}-${formData.pptFile.name}`;
+    if (data.pptFile) {
+      const pptPath = `${user.id}/${Date.now()}-${(data.pptFile as File).name}`;
       const { data: pptData, error: pptError } = await supabaseClient.storage
         .from('startup-files')
-        .upload(pptPath, formData.pptFile);
+        .upload(pptPath, data.pptFile);
 
       if (pptError) {
         console.error('PPT upload error:', pptError);
@@ -71,7 +96,7 @@ serve(async (req) => {
       const { data: pptUrlData } = supabaseClient.storage
         .from('startup-files')
         .getPublicUrl(pptPath);
-      
+
       pptFileUrl = pptUrlData.publicUrl;
     }
 
@@ -80,18 +105,18 @@ serve(async (req) => {
       .from('startup_submissions')
       .insert({
         user_id: user.id,
-        problem_statement: formData.problem_statement,
-        solution: formData.solution,
-        market_understanding: formData.market_understanding,
-        customer_understanding: formData.customer_understanding,
-        competitive_understanding: formData.competitive_understanding,
-        unique_selling_proposition: formData.unique_selling_proposition,
-        technical_understanding: formData.technical_understanding,
-        vision: formData.vision,
-        campus_affiliation: formData.campus_affiliation,
-        startup_name: formData.startup_name,
-        founder_email: formData.founder_email,
-        linkedin_profile_url: formData.linkedin_profile_url,
+        problem_statement: data.problem_statement,
+        solution: data.solution,
+        market_understanding: data.market_understanding,
+        customer_understanding: data.customer_understanding,
+        competitive_understanding: data.competitive_understanding,
+        unique_selling_proposition: data.unique_selling_proposition,
+        technical_understanding: data.technical_understanding,
+        vision: data.vision,
+        campus_affiliation: data.campus_affiliation === 'true' || data.campus_affiliation === true,
+        startup_name: data.startup_name,
+        founder_email: data.founder_email,
+        linkedin_profile_url: data.linkedin_profile_url,
         pdf_file_url: pdfFileUrl,
         ppt_file_url: pptFileUrl,
       })
@@ -121,7 +146,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: (error as Error).message,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
