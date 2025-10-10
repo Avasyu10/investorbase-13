@@ -97,8 +97,8 @@ export const StartupSubmissionForm = () => {
         return;
       }
 
-      // Call the add-startup-details edge function with explicit auth
-      const { data, error } = await supabase.functions.invoke('add-startup-details', {
+      // Call the adding-startup-studio-details edge function with explicit auth
+      const { data, error } = await supabase.functions.invoke('adding-startup-studio-details', {
         body: submissionData,
         headers: {
           Authorization: `Bearer ${session.access_token}`,
