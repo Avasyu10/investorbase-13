@@ -4,7 +4,8 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Plus, ExternalLink } from "lucide-react";
+import { Plus, ExternalLink, Trash2 } from "lucide-react";
+import { RefreshCw } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +35,25 @@ const StartupDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [lastDeleted, setLastDeleted] = useState<StartupSubmission | null>(null);
   const [lastDeletedEvals, setLastDeletedEvals] = useState<any[] | null>(null);
+  const [selectedEvaluation, setSelectedEvaluation] = useState<any | null>(null);
+  const [selectedSubmission, setSelectedSubmission] = useState<any | null>(null);
+  // Helper to get average score from evaluation
+  const getEvalScore = (startupName: string, submissionId?: string) => {
+    // Prefer to match by submission id via startup_submission_id on evaluations if available
+    let ev = null as any;
+    if (submissionId) {
+      ev = evaluations?.find((e: any) => e.startup_submission_id === submissionId) ?? null;
+    }
+    if (!ev) ev = evaluations?.find((e: any) => e.startup_name === startupName) ?? null;
+    if (!ev) return null;
+    if (ev.overall_average) return ev.overall_average;
+    const scores = Object.keys(ev)
+      .filter((key) => key.endsWith('_score') && ev[key] !== null)
+      .map((key) => ev[key]);
+    if (scores.length === 0) return null;
+    return scores.reduce((acc: number, score: number) => acc + score, 0) / scores.length;
+  };
+  const [scoreSortAsc, setScoreSortAsc] = useState<boolean | null>(null); // null = no sort, true = asc, false = desc
 
   useEffect(() => {
     fetchSubmissions();
@@ -71,6 +91,74 @@ const StartupDashboard = () => {
     }
   };
 
+  // Build CSV from submissions and evaluations and trigger download
+  const downloadCsv = () => {
+    try {
+      const headers = [
+        'submission_id',
+        'startup_name',
+        'founder_email',
+        'linkedin_profile_url',
+        'created_at',
+        'problem_statement',
+        'solution',
+        'market_understanding',
+        'customer_understanding',
+        'competitive_understanding',
+        'unique_selling_proposition',
+        'technical_understanding',
+        'vision',
+        'evaluation_overall_average',
+        'evaluation_details_json'
+      ];
+
+      const rows = submissions.map(s => {
+        const ev = evaluations?.find((e: any) => e.startup_submission_id === s.id) ?? evaluations?.find((e: any) => e.startup_name === s.startup_name) ?? null;
+        return {
+          submission_id: s.id,
+          startup_name: s.startup_name,
+          founder_email: s.founder_email,
+          linkedin_profile_url: (s as any).linkedin_profile_url ?? '',
+          created_at: s.created_at,
+          problem_statement: s.problem_statement,
+          solution: s.solution,
+          market_understanding: (s as any).market_understanding ?? '',
+          customer_understanding: (s as any).customer_understanding ?? '',
+          competitive_understanding: (s as any).competitive_understanding ?? '',
+          unique_selling_proposition: (s as any).unique_selling_proposition ?? '',
+          technical_understanding: (s as any).technical_understanding ?? '',
+          vision: (s as any).vision ?? '',
+          evaluation_overall_average: ev?.overall_average ?? '',
+          evaluation_details_json: ev ? JSON.stringify(ev) : ''
+        };
+      });
+
+      // CSV encode
+      const escape = (v: any) => {
+        if (v === null || v === undefined) return '';
+        const s = String(v).replace(/"/g, '""');
+        return `"${s}"`;
+      };
+
+      const csv = [headers.map(h => `"${h}"`).join(',')]
+        .concat(rows.map(r => headers.map(h => escape((r as any)[h])).join(',')))
+        .join('\n');
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `startup_submissions_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('CSV download error', err);
+      toast({ title: 'Error', description: 'Failed to generate CSV' });
+    }
+  };
+
   return (
     <div className="min-h-screen w-full flex flex-col bg-[#0c0e18]">
       <div className="container mx-auto py-8">
@@ -78,8 +166,9 @@ const StartupDashboard = () => {
           <div className="flex items-center justify-between mb-8">
             <div className="flex gap-2">
               <TabsList className="flex gap-2 bg-transparent p-0">
-                <TabsTrigger value="submissions" className="px-4 py-2 rounded-lg font-semibold text-base focus:outline-none transition-colors duration-200 data-[state=active]:bg-[rgb(17,20,34)] data-[state=active]:text-white data-[state=active]:font-bold data-[state=inactive]:text-gray-400 data-[state=inactive]:font-normal">Eureka Prospects</TabsTrigger>
-                <TabsTrigger value="history" className="px-4 py-2 rounded-lg font-semibold text-base focus:outline-none transition-colors duration-200 data-[state=active]:bg-[rgb(17,20,34)] data-[state=active]:text-white data-[state=active]:font-bold data-[state=inactive]:text-gray-400 data-[state=inactive]:font-normal">New Applications</TabsTrigger>
+                <TabsTrigger value="submissions" className="px-4 py-2 rounded-lg font-semibold text-base focus:outline-none transition-colors duration-200 data-[state=active]:bg-[rgb(245,168,61)] data-[state=active]:text-black data-[state=active]:font-bold data-[state=inactive]:text-gray-400 data-[state=inactive]:font-normal">Eureka Prospects</TabsTrigger>
+                <TabsTrigger value="history" className="hidden px-4 py-2 rounded-lg font-semibold text-base focus:outline-none transition-colors duration-200 data-[state=active]:bg-[rgb(245,168,61)] data-[state=active]:text-black data-[state=active]:font-bold data-[state=inactive]:text-gray-400 data-[state=inactive]:font-normal">New Applications</TabsTrigger>
+                <TabsTrigger value="applications" className="px-4 py-2 rounded-lg font-semibold text-base focus:outline-none transition-colors duration-200 data-[state=active]:bg-[rgb(245,168,61)] data-[state=active]:text-black data-[state=active]:font-bold data-[state=inactive]:text-gray-400 data-[state=inactive]:font-normal">Applications</TabsTrigger>
               </TabsList>
             </div>
             <a href="/news-feed" className="flex items-center gap-2 px-5 py-2 rounded-lg border border-[rgb(17,20,34)] bg-transparent text-white font-semibold hover:bg-[rgb(17,20,34)] transition shadow-lg backdrop-blur-lg">
@@ -96,17 +185,27 @@ const StartupDashboard = () => {
                   View and manage your startup submissions
                 </p>
               </div>
-              <Button onClick={() => navigate("/startup-submit")} className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold px-6 py-2 rounded shadow">
-                <Plus className="mr-2 h-4 w-4" />
-                New Submission
-              </Button>
+              <div className="flex items-center gap-3">
+                <Button onClick={() => downloadCsv()} style={{ backgroundColor: 'rgb(245,168,61)' }} className="hover:opacity-95 text-black font-semibold px-4 py-2 rounded shadow">
+                  Download CSV
+                </Button>
+                <Button onClick={() => navigate("/startup-submit")} style={{ backgroundColor: 'rgb(245,168,61)' }} className="hover:opacity-95 text-black font-semibold px-6 py-2 rounded shadow">
+                  <Plus className="mr-2 h-4 w-4" />
+                  New Submission
+                </Button>
+              </div>
             </div>
 
             {/* Glass tile summary blocks using evaluation scores */}
             {(() => {
               // Helper to get average score from evaluation
-              const getEvalScore = (startupName) => {
-                const ev = evaluations?.find(e => e.startup_name === startupName);
+              const getEvalScore = (startupName, submissionId?: string) => {
+                // Prefer to match by submission id via startup_submission_id on evaluations if available
+                let ev = null;
+                if (submissionId) {
+                  ev = evaluations?.find((e: any) => e.startup_submission_id === submissionId) ?? null;
+                }
+                if (!ev) ev = evaluations?.find((e: any) => e.startup_name === startupName) ?? null;
                 if (!ev) return null;
                 if (ev.overall_average) return ev.overall_average;
                 const scores = Object.keys(ev)
@@ -168,164 +267,210 @@ const StartupDashboard = () => {
                 <table className="min-w-full rounded-lg bg-[#111422]">
                   <thead>
                     <tr className="text-gray-400 text-left border-b border-[#23262F]">
+                      <th className="py-3 px-4">Date</th>
                       <th className="py-3 px-4">Startup Name</th>
-                      <th className="py-3 px-4">Founder Email</th>
-                      <th className="py-3 px-4">Score</th>
-                      <th className="py-3 px-4">Potential</th>
+                      <th className="py-3 px-4">ID</th>
+                      <th className="py-3 px-4 cursor-pointer" onClick={() => setScoreSortAsc(prev => prev === null ? false : !prev)}>
+                        Score
+                        <span className="ml-2 text-sm text-gray-400">{scoreSortAsc === null ? '' : scoreSortAsc ? '↑' : '↓'}</span>
+                      </th>
                       <th className="py-3 px-4">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {submissions.map((submission) => {
-                      // Get score from evaluation history
-                      const ev = evaluations?.find(e => e.startup_name === submission.startup_name);
-                      let score = null;
-                      if (ev) {
-                        if (ev.overall_average) score = ev.overall_average;
-                        else {
-                          const scores = Object.keys(ev)
-                            .filter(key => key.endsWith('_score') && ev[key] !== null)
-                            .map(key => ev[key]);
-                          if (scores.length > 0) score = scores.reduce((acc, s) => acc + s, 0) / scores.length;
-                        }
+                    {(() => {
+                      const rows = submissions.map((submission) => ({ submission, score: getEvalScore(submission.startup_name, submission.id) }));
+                      if (scoreSortAsc !== null) {
+                        rows.sort((a, b) => {
+                          const as = a.score ?? -Infinity;
+                          const bs = b.score ?? -Infinity;
+                          return scoreSortAsc ? as - bs : bs - as;
+                        });
                       }
-                      let potential = '';
-                      let badgeClass = '';
-                      if (score !== null) {
-                        if (score >= 15) {
-                          potential = 'High';
-                          badgeClass = 'bg-green-100 text-green-700';
-                        } else if (score >= 10) {
-                          potential = 'Medium';
-                          badgeClass = 'bg-yellow-100 text-yellow-700';
-                        } else {
-                          potential = 'Bad';
-                          badgeClass = 'bg-red-100 text-red-700';
+                      return rows.map(({ submission, score }) => {
+                        const ev = evaluations?.find((e: any) => e.startup_submission_id === submission.id) ?? evaluations?.find((e: any) => e.startup_name === submission.startup_name);
+                        let displayScore = score;
+                        if (displayScore == null) {
+                          if (ev) {
+                            if (ev.overall_average) displayScore = ev.overall_average;
+                            else {
+                              const scores = Object.keys(ev)
+                                .filter((key) => key.endsWith('_score') && ev[key] !== null)
+                                .map((key) => ev[key]);
+                              if (scores.length > 0) displayScore = scores.reduce((acc, s) => acc + s, 0) / scores.length;
+                            }
+                          }
                         }
-                      }
-                      return (
-                        <tr key={submission.id} className="border-b border-[#23262F] hover:bg-[#20222A] transition">
-                          <td className="py-3 px-4 text-white font-semibold">{submission.startup_name}</td>
-                          <td className="py-3 px-4 text-gray-300">{submission.founder_email}</td>
-                          <td className="py-3 px-4">
-                            {score !== null ? (
-                              <span className={`px-2 py-1 rounded font-semibold ${score >= 15 ? 'bg-blue-100 text-blue-700' : score >= 10 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>{score.toFixed(1)}/20</span>
-                            ) : (
-                              <span className="px-2 py-1 rounded bg-gray-700 text-gray-300">-</span>
-                            )}
-                          </td>
-                          <td className="py-3 px-4">
-                            {score !== null ? (
-                              <span className={`px-2 py-1 rounded font-semibold ${badgeClass}`}>{potential}</span>
-                            ) : (
-                              <span className="px-2 py-1 rounded bg-gray-700 text-gray-300">-</span>
-                            )}
-                          </td>
-                          <td className="py-3 px-4">
-                            <Button
-                              onClick={async () => {
-                                // Delete the submission (with undo)
-                                try {
-                                  const { data: { session } } = await supabase.auth.getSession();
-                                  if (!session) throw new Error('You must be logged in to delete submissions');
+                        let potential = '';
+                        let badgeClass = '';
+                        if (displayScore !== null) {
+                          if (displayScore >= 15) {
+                            potential = 'High';
+                            badgeClass = 'bg-green-100 text-green-700';
+                          } else if (displayScore >= 10) {
+                            potential = 'Medium';
+                            badgeClass = 'bg-yellow-100 text-yellow-700';
+                          } else {
+                            potential = 'Bad';
+                            badgeClass = 'bg-red-100 text-red-700';
+                          }
+                        }
+                        return (
+                          <tr key={submission.id} className="border-b border-[#23262F] hover:bg-[#20222A] transition">
+                            <td className="py-3 px-4 text-gray-300">{new Date(submission.created_at).toLocaleDateString('en-US')}</td>
+                            <td className="py-3 px-4 text-white font-medium">{submission.startup_name}</td>
+                            <td className="py-3 px-4 text-white font-semibold">
+                              <button
+                                className="text-left"
+                                onClick={async () => {
+                                  try {
+                                    // fetch the submission record
+                                    const { data: submissionData, error: subErr } = await supabase
+                                      .from('startup_submissions')
+                                      .select('startup_name, founder_email, linkedin_profile_url, problem_statement, solution, market_understanding, customer_understanding, competitive_understanding, unique_selling_proposition, technical_understanding, vision')
+                                      .eq('id', submission.id)
+                                      .single();
+                                    if (subErr) {
+                                      console.error('Fetch submission error', subErr);
+                                    }
+                                    setSelectedSubmission(submissionData ?? null);
 
-                                  // capture locally for undo closure
-                                  const deleted = submission;
-                                  setLastDeleted(deleted);
+                                    // find matching evaluation (prefer by submission id)
+                                    const matched = evaluations?.find((e: any) => e.startup_submission_id === submission.id) ?? evaluations?.find((e: any) => e.startup_name === submission.startup_name) ?? null;
+                                    if (matched) setSelectedEvaluation(matched);
+                                    else setSelectedEvaluation(null);
 
-                                  // fetch related evaluations for undo before deleting
-                                  const { data: evalsData, error: evalsFetchErr } = await supabase
-                                    .from('submission_evaluations')
-                                    .select('*')
-                                    .eq('startup_name', submission.startup_name);
-                                  if (evalsFetchErr) {
-                                    console.warn('Failed to fetch related evaluations for undo capture:', evalsFetchErr);
-                                    setLastDeletedEvals(null);
-                                  } else {
-                                    setLastDeletedEvals(evalsData ?? null);
+                                  } catch (err) {
+                                    console.error('Open details error', err);
+                                    toast({ title: 'Error', description: 'Failed to open details' });
                                   }
-
-                                  const { error } = await supabase
-                                    .from('startup_submissions')
-                                    .delete()
-                                    .eq('id', submission.id);
-                                  if (error) throw error;
-
-                                  // delete related evaluations as well
-                                  if (evalsData && evalsData.length > 0) {
-                                    const { error: delEvalsErr } = await supabase
+                                }}
+                              >
+                                EU{submission.id.slice(-7).toUpperCase()}
+                              </button>
+                            </td>
+                            <td className="py-3 px-4">
+                              {displayScore !== null ? (
+                                (() => {
+                                  const pct = Math.round((displayScore / 20) * 100);
+                                  const colorClass = pct >= 75 ? 'bg-blue-100 text-blue-700' : pct >= 50 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700';
+                                  return <span className={`px-3 py-1 rounded-full font-semibold ${colorClass}`}>{pct}/100</span>;
+                                })()
+                              ) : (
+                                <span className="px-2 py-1 rounded bg-gray-700 text-gray-300">-</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4">
+                              <Button
+                                variant="ghost"
+                                onClick={async () => {
+                                  try {
+                                    const { data: { session } } = await supabase.auth.getSession();
+                                    if (!session) throw new Error('You must be logged in to delete submissions');
+                                    const deleted = submission;
+                                    setLastDeleted(deleted);
+                                    const { data: evalsData } = await supabase
                                       .from('submission_evaluations')
+                                      .select('*')
+                                      .eq('startup_submission_id', submission.id);
+                                    setLastDeletedEvals(evalsData ?? null);
+                                    const { error } = await supabase
+                                      .from('startup_submissions')
                                       .delete()
-                                      .eq('startup_name', submission.startup_name);
-                                    if (delEvalsErr) console.warn('Failed to delete related evaluations:', delEvalsErr);
+                                      .eq('id', submission.id);
+                                    if (error) throw error;
+                                    if (evalsData && evalsData.length > 0) {
+                                      await supabase
+                                        .from('submission_evaluations')
+                                        .delete()
+                                        .eq('startup_submission_id', submission.id);
+                                    }
+                                    toast({ title: 'Deleted', description: 'Submission deleted.' });
+                                    await fetchSubmissions();
+                                  } catch (err: any) {
+                                    console.error('Delete submission error:', err);
+                                    toast({ title: 'Delete failed', description: err?.message || String(err || 'Unknown error'), variant: 'destructive' });
                                   }
-
-                                  // Show toast with Undo action (ToastAction element)
-                                  toast({
-                                    title: 'Deleted',
-                                    description: 'Submission deleted. Click Undo to restore.',
-                                    duration: 8000,
-                                    action: (
-                                      <ToastAction altText="Undo deletion" aria-label="Undo deletion" onClick={async () => {
-                                        try {
-                                          // Re-insert the submission record (omit id to let DB generate new id if necessary)
-                                          const { error: insertErr } = await supabase
-                                            .from('startup_submissions')
-                                            .insert([
-                                              {
-                                                startup_name: deleted.startup_name,
-                                                founder_email: deleted.founder_email,
-                                                problem_statement: deleted.problem_statement,
-                                                solution: deleted.solution,
-                                                campus_affiliation: deleted.campus_affiliation,
-                                                pdf_file_url: deleted.pdf_file_url,
-                                                ppt_file_url: deleted.ppt_file_url,
-                                              } as any
-                                            ] as any);
-                                          if (insertErr) throw insertErr;
-
-                                          // Re-insert any captured evaluations
-                                          if (evalsData && evalsData.length > 0) {
-                                            try {
-                                              const { error: insertEvalsErr } = await supabase
-                                                .from('submission_evaluations')
-                                                .insert(evalsData as any);
-                                              if (insertEvalsErr) console.warn('Failed to restore evaluations on undo:', insertEvalsErr);
-                                            } catch (ie) {
-                                              console.error('Error restoring evaluations on undo:', ie);
-                                            }
-                                          }
-
-                                          toast({ title: 'Restored', description: 'Submission restored successfully' });
-                                          setLastDeleted(null);
-                                          setLastDeletedEvals(null);
-                                          await fetchSubmissions();
-                                        } catch (err: any) {
-                                          console.error('Undo insert error:', err);
-                                          toast({ title: 'Restore failed', description: err?.message || String(err || 'Unknown error'), variant: 'destructive' });
-                                        }
-                                      }}>Undo</ToastAction>
-                                    ) as any,
-                                  });
-
-                                  await fetchSubmissions();
-                                } catch (err: any) {
-                                  console.error('Delete submission error:', err);
-                                  toast({ title: 'Delete failed', description: err?.message || String(err || 'Unknown error'), variant: 'destructive' });
-                                }
-                              }}
-                              className="bg-red-100 text-red-700 font-semibold px-3 py-1 rounded hover:bg-red-200"
-                            >
-                              Delete
-                            </Button>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                                }}
+                                className="text-red-500 hover:bg-red-50 rounded p-1"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </td>
+                          </tr>
+                        );
+                      });
+                    })()}
                   </tbody>
                 </table>
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="applications">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h1 className="text-3xl font-bold text-white">New Applications</h1>
+                <p className="text-gray-400">Recent submissions across all your forms and channels</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button onClick={() => { fetchSubmissions(); }} className="px-4 py-2">Refresh</Button>
+                <Button onClick={() => { /* placeholder for re-run failed */ }} className="px-4 py-2">Re-run Failed/Rejected</Button>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="min-w-full rounded-lg bg-[#111422]">
+                <thead>
+                  <tr className="text-gray-400 text-left border-b border-[#23262F]">
+                    <th className="py-3 px-4">Company Name</th>
+                    <th className="py-3 px-4">Submitted</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {submissions.map(sub => {
+                    const ev = evaluations?.find((e: any) => e.startup_submission_id === sub.id) ?? evaluations?.find((e: any) => e.startup_name === sub.startup_name);
+                    const status = ev ? 'Analyzed' : '-';
+                    const timeAgo = (d: string) => {
+                      const ago = Date.now() - new Date(d).getTime();
+                      const days = Math.floor(ago / (1000 * 60 * 60 * 24));
+                      if (days === 0) return 'today';
+                      if (days === 1) return '1 day ago';
+                      if (days < 30) return `${days} days ago`;
+                      const months = Math.floor(days / 30);
+                      if (months === 1) return 'about 1 month ago';
+                      return `about ${months} months ago`;
+                    };
+                    return (
+                      <tr key={sub.id} className="border-b border-[#23262F] hover:bg-[#20222A] transition">
+                        <td className="py-3 px-4 text-white font-semibold">EU{sub.id.slice(-7).toUpperCase()}</td>
+                        <td className="py-3 px-4 text-gray-300">{timeAgo(sub.created_at)}</td>
+                        <td className="py-3 px-4"><span className="px-3 py-1 rounded-full bg-green-100 text-green-700">{status}</span></td>
+                        <td className="py-3 px-4">
+                          <Button variant="ghost" onClick={async () => {
+                            try {
+                              setEvaluatingId(sub.id);
+                              // invoke evaluate edge function if available
+                              await fetch('/api/evaluate-submission', { method: 'POST', body: JSON.stringify({ submissionId: sub.id }) });
+                              setEvaluatingId(null);
+                              toast({ title: 'Re-run invoked' });
+                            } catch (err) {
+                              console.error('Re-run error', err);
+                              setEvaluatingId(null);
+                              toast({ title: 'Error', description: 'Failed to re-run' });
+                            }
+                          }}>
+                            <RefreshCw className="w-4 h-4" />
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </TabsContent>
 
           <TabsContent value="history">
@@ -341,6 +486,62 @@ const StartupDashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
+      {/* Details modal for evaluation opened from table */}
+      {selectedEvaluation && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-card/60 backdrop-blur-md border p-6 max-w-6xl w-full mx-4 rounded-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h3 className="text-2xl font-bold">{selectedEvaluation.startup_name || 'Unnamed Startup'} — Evaluation Details</h3>
+                {(() => {
+                  const avg = selectedEvaluation.overall_average ?? (() => {
+                    const keys = Object.keys(selectedEvaluation || {}).filter(k => k.endsWith('_score') && selectedEvaluation[k] !== null);
+                    if (keys.length === 0) return null;
+                    const sum = keys.reduce((acc: number, k: string) => acc + (selectedEvaluation[k] ?? 0), 0);
+                    return sum / keys.length;
+                  })();
+                  return avg ? <p className="text-lg text-muted-foreground">Overall Score: {Number(avg).toFixed(1)}/20</p> : null;
+                })()}
+              </div>
+              <button className="text-muted-foreground hover:text-foreground" onClick={() => setSelectedEvaluation(null)}>✕</button>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <h4 className="font-semibold mb-2">Startup Details</h4>
+                <div className="text-sm text-muted-foreground mb-3">
+                  <div className="mb-2"><strong>Startup Name</strong><div className="text-sm text-gray-300">{selectedSubmission?.startup_name ?? selectedEvaluation?.startup_name}</div></div>
+                  <div className="mb-2"><strong>Founder's Email</strong><div className="text-sm text-gray-300">{selectedSubmission?.founder_email ?? '—'}</div></div>
+                  <div className="mb-2"><strong>LinkedIn Profile URL</strong><div className="text-sm text-gray-300">{selectedSubmission?.linkedin_profile_url ?? '—'}</div></div>
+                  <div className="mb-2"><strong>Problem Statement</strong><div className="text-sm text-gray-300 whitespace-pre-wrap">{selectedSubmission?.problem_statement ?? selectedEvaluation?.problem_statement ?? '—'}</div></div>
+                  <div className="mb-2"><strong>Solution</strong><div className="text-sm text-gray-300 whitespace-pre-wrap">{selectedSubmission?.solution ?? '—'}</div></div>
+                  <div className="mb-2"><strong>Market Understanding</strong><div className="text-sm text-gray-300 whitespace-pre-wrap">{selectedSubmission?.market_understanding ?? '—'}</div></div>
+                  <div className="mb-2"><strong>Customer Understanding</strong><div className="text-sm text-gray-300 whitespace-pre-wrap">{selectedSubmission?.customer_understanding ?? '—'}</div></div>
+                  <div className="mb-2"><strong>Competitive Understanding</strong><div className="text-sm text-gray-300 whitespace-pre-wrap">{selectedSubmission?.competitive_understanding ?? '—'}</div></div>
+                  <div className="mb-2"><strong>Unique Selling Proposition (USP)</strong><div className="text-sm text-gray-300 whitespace-pre-wrap">{selectedSubmission?.unique_selling_proposition ?? '—'}</div></div>
+                  <div className="mb-2"><strong>Technical Understanding</strong><div className="text-sm text-gray-300 whitespace-pre-wrap">{selectedSubmission?.technical_understanding ?? '—'}</div></div>
+                  <div className="mb-2"><strong>Vision</strong><div className="text-sm text-gray-300 whitespace-pre-wrap">{selectedSubmission?.vision ?? '—'}</div></div>
+                </div>
+                <h4 className="font-semibold mb-2">AI Analysis Summary</h4>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap mb-4">{selectedEvaluation?.ai_analysis_summary}</p>
+                <h4 className="font-semibold mb-2">AI Recommendations</h4>
+                <div className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedEvaluation?.ai_recommendations}</div>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-4">Detailed Score Breakdown</h4>
+                {/* Keep the breakdown simple here, reusing keys if present */}
+                <div className="space-y-3">
+                  {Object.keys(selectedEvaluation).filter(k => k.endsWith('_score')).map((k) => (
+                    <div key={k} className="flex justify-between bg-background/50 p-2 rounded">
+                      <div className="text-sm text-muted-foreground">{k.replace(/_/g, ' ')}</div>
+                      <div className="font-bold">{selectedEvaluation[k] ?? '—'}/20</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
