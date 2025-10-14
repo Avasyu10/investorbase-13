@@ -98,6 +98,38 @@ export const StartupSubmissionForm = () => {
       const newSubmissionId = data?.data?.id;
       setSubmissionId(newSubmissionId);
 
+      // After successfully creating the submission, trigger the evaluation edge function.
+      try {
+        if (!newSubmissionId) {
+          console.warn('No submission id returned from submit-startup-public; skipping evaluation invocation.');
+        } else {
+          // Always attempt to invoke evaluate-submission with both id and submission object.
+          // The edge function can decide whether to trust the client-provided submission object or to fetch the canonical row by id.
+          const evalPayload: any = { submissionId: newSubmissionId, submission: data?.data };
+
+          const { data: evalData, error: evalError } = await supabase.functions.invoke('evaluate-submission', {
+            body: evalPayload,
+          });
+
+          if (evalError) {
+            console.error('Error invoking evaluate-submission after create:', evalError);
+            toast({
+              title: 'Submitted but evaluation failed',
+              description: 'Your submission was received but automatic evaluation failed. It will be retried by the system.',
+              variant: 'destructive',
+            });
+          } else {
+            toast({
+              title: 'Submitted and queued for evaluation',
+              description: 'We received your submission and queued it for AI analysis. You will be notified when it completes.',
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Evaluation invocation error:', err);
+        toast({ title: 'Submitted but evaluation errored', description: 'Submission succeeded but evaluation could not be started. Please contact support if this persists.', variant: 'destructive' });
+      }
+
       toast({
         title: "Success!",
         description: `Your startup details have been submitted successfully. Submission ID: ${newSubmissionId?.slice(0, 8)}`,
