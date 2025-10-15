@@ -320,46 +320,9 @@ const StartupDashboard = () => {
                             <td className="py-3 px-4 text-white font-medium">{submission.startup_name}</td>
                             <td className="py-3 px-4 text-white">
                               <button
-                                className="text-left"
-                                onClick={async () => {
-                                  try {
-                                    // Try to find an associated company first. We attempt multiple heuristics:
-                                    // 1) Check companies table for a company with a startup_id or startupstudio_id matching the submission id
-                                    // 2) Fallback: try to match by startup name (exact match)
-                                    // If a company is found, navigate to its company page. Otherwise open the submission details modal as before.
-
-                                    // 1) search companies by startup_id or startupstudio_id
-                                    const { data: companiesByStartupId } = await supabase
-                                      .from('companies')
-                                      .select('id')
-                                      .or(`startup_id.eq.${submission.id},startupstudio_id.eq.${submission.id}`)
-                                      .limit(1);
-
-                                    if (companiesByStartupId && companiesByStartupId.length > 0) {
-                                      const companyId = companiesByStartupId[0].id;
-                                      navigate(`/company/${companyId}`);
-                                      return;
-                                    }
-
-                                    // 2) try exact name match against companies.name
-                                    const { data: companiesByName } = await supabase
-                                      .from('companies')
-                                      .select('id')
-                                      .ilike('name', submission.startup_name)
-                                      .limit(1);
-
-                                    if (companiesByName && companiesByName.length > 0) {
-                                      navigate(`/company/${companiesByName[0].id}`);
-                                      return;
-                                    }
-
-                                    // No company found — navigate to the submission detail page
-                                    navigate(`/submission/${submission.id}`);
-                                    return;
-                                  } catch (err) {
-                                    console.error('Open details / navigate error', err);
-                                    toast({ title: 'Error', description: 'Failed to open details or navigate' });
-                                  }
+                                className="text-blue-400 hover:text-blue-300 underline cursor-pointer transition"
+                                onClick={() => {
+                                  navigate(`/submission/${submission.id}`);
                                 }}
                               >
                                 EU{submission.id.slice(-7).toUpperCase()}
