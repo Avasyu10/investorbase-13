@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ChevronLeft, Mail, Linkedin, TrendingUp, Lightbulb, Target, Users, Award, Globe, Newspaper, TrendingUpIcon, Zap, ShieldCheck } from "lucide-react";
+import { ChevronLeft, Mail, Linkedin, User, TrendingUp, Lightbulb, Target, Users, Award } from "lucide-react";
 import FormResponsesDialog from "@/components/companies/FormResponsesDialog";
 import SubmissionDetailsDialog from "@/components/companies/SubmissionDetailsDialog";
 
@@ -169,29 +169,29 @@ const SubmissionDetail = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#0f1729]">
+        <div className="min-h-screen bg-background">
             <div className="container mx-auto px-4 py-6 animate-fade-in">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-4">
                         <Button
                             variant="outline"
                             size="sm"
                             onClick={() => navigate(-1)}
-                            className="flex items-center border-[#2a3447] hover:bg-[#1a2332]"
+                            className="flex items-center"
                         >
                             <ChevronLeft className="mr-1 h-4 w-4" /> Back
                         </Button>
                         <div>
-                            <h1 className="text-3xl font-bold tracking-tight text-white">{submission?.startup_name ?? 'Submission Details'}</h1>
-                            <p className="text-gray-400 mt-1">Comprehensive evaluation and analysis</p>
+                            <h1 className="text-3xl font-bold tracking-tight">{submission?.startup_name ?? 'Submission Details'}</h1>
+                            <p className="text-muted-foreground mt-1">Comprehensive evaluation and analysis</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
                         {overallScore != null && (
-                            <div className="text-right px-4 py-2 bg-[#1a2332] rounded-lg border border-[#2a3447]">
-                                <div className="text-sm text-gray-400">Overall Score</div>
-                                <div className="text-2xl font-bold text-[#f59e0b]">{Number(overallScore).toFixed(1)}/20</div>
+                            <div className="text-right px-4 py-2 bg-card rounded-lg border shadow-sm">
+                                <div className="text-sm text-muted-foreground">Overall Score</div>
+                                <div className="text-2xl font-bold">{Number(overallScore).toFixed(1)}/20</div>
                             </div>
                         )}
                         {id && <SubmissionDetailsDialog submissionId={id} />}
@@ -202,230 +202,214 @@ const SubmissionDetail = () => {
                 {isLoading ? (
                     <div className="flex items-center justify-center py-12">
                         <div className="animate-pulse space-y-4 w-full max-w-4xl">
-                            <div className="h-8 bg-[#1a2332] rounded w-1/3"></div>
-                            <div className="h-4 bg-[#1a2332] rounded w-full"></div>
-                            <div className="h-4 bg-[#1a2332] rounded w-2/3"></div>
+                            <div className="h-8 bg-muted rounded w-1/3"></div>
+                            <div className="h-4 bg-muted rounded w-full"></div>
+                            <div className="h-4 bg-muted rounded w-2/3"></div>
                         </div>
                     </div>
                 ) : (
                     <>
-                        {/* Submission Categories */}
-                        <h2 className="text-2xl font-bold text-[#f59e0b] mb-6">Submission Categories</h2>
-                        
-                        <div className="space-y-4 mb-8">
-                            {/* Problem & Solution - Highlighted */}
-                            <div className="bg-[#1a2332] border-2 border-[#f59e0b] rounded-lg p-5">
-                                <div className="flex items-start gap-3 mb-3">
-                                    <Target className="h-6 w-6 text-[#f59e0b] mt-0.5 flex-shrink-0" />
-                                    <div className="flex-1">
-                                        <h3 className="text-lg font-semibold text-white mb-2">Problem & Solution</h3>
-                                        <p className="text-gray-400 text-sm leading-relaxed">
-                                            Comprehensive problem statement and innovative solution approach.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Market Understanding */}
-                            <div className="bg-[#1a2332] border border-[#2a3447] rounded-lg p-5">
-                                <div className="flex items-start gap-3">
-                                    <Globe className="h-6 w-6 text-[#10b981] mt-0.5 flex-shrink-0" />
-                                    <div className="flex-1">
-                                        <h3 className="text-lg font-semibold text-white mb-2">Market Research</h3>
-                                        <p className="text-gray-400 text-sm leading-relaxed">
-                                            Market size, trends, and competitive landscape analysis.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Customer Understanding */}
-                            <div className="bg-[#1a2332] border border-[#2a3447] rounded-lg p-5">
-                                <div className="flex items-start gap-3">
-                                    <Users className="h-6 w-6 text-[#10b981] mt-0.5 flex-shrink-0" />
-                                    <div className="flex-1">
-                                        <h3 className="text-lg font-semibold text-white mb-2">Customer Insights</h3>
-                                        <p className="text-gray-400 text-sm leading-relaxed">
-                                            Deep understanding of customer needs, behaviors, and pain points.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Competitive Analysis */}
-                            <div className="bg-[#1a2332] border border-[#2a3447] rounded-lg p-5">
-                                <div className="flex items-start gap-3">
-                                    <TrendingUpIcon className="h-6 w-6 text-[#f59e0b] mt-0.5 flex-shrink-0" />
-                                    <div className="flex-1">
-                                        <h3 className="text-lg font-semibold text-white mb-2">Competitive Advantage</h3>
-                                        <p className="text-gray-400 text-sm leading-relaxed">
-                                            Unique positioning and differentiation in the market landscape.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Detailed Summary Section */}
-                        <h2 className="text-2xl font-bold text-[#f59e0b] mb-6">Submission Summary</h2>
-                        
-                        <div className="bg-[#1a2332] border border-[#2a3447] rounded-lg p-6 mb-8">
-                            <div className="space-y-6 text-white">
-                                {/* Problem Statement */}
-                                {submission?.problem_statement && (
-                                    <div>
-                                        <p className="text-base leading-relaxed">{submission.problem_statement}</p>
-                                    </div>
-                                )}
-
-                                {/* Solution */}
-                                {submission?.solution && (
-                                    <div>
-                                        <p className="text-base leading-relaxed">{submission.solution}</p>
-                                    </div>
-                                )}
-
-                                {/* Market Analysis */}
-                                {submission?.market_understanding && (
-                                    <div>
-                                        <p className="text-gray-300 text-base leading-relaxed">{submission.market_understanding}</p>
-                                    </div>
-                                )}
-
-                                {/* Customer Understanding */}
-                                {submission?.customer_understanding && (
-                                    <div>
-                                        <p className="text-gray-300 text-base leading-relaxed">{submission.customer_understanding}</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Key Highlights */}
-                        <h3 className="text-xl font-bold text-white mb-4">Key Highlights:</h3>
-                        <div className="bg-[#1a2332] border border-[#2a3447] rounded-lg p-6 mb-8">
-                            <div className="space-y-4">
-                                {/* Competitive Advantage */}
-                                {submission?.competitive_understanding && (
+                        {/* Contact & Founder Information */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                            <Card className="border-0 shadow-card">
+                                <CardContent className="p-4">
                                     <div className="flex items-start gap-3">
-                                        <span className="text-white font-bold flex-shrink-0">*</span>
-                                        <div>
-                                            <span className="text-white font-semibold">Competitive Landscape: </span>
-                                            <span className="text-gray-300">{submission.competitive_understanding}</span>
+                                        <Mail className="h-5 w-5 text-primary mt-0.5" />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium">Contact Email</p>
+                                            <p className="text-sm text-muted-foreground truncate">{submission?.founder_email || 'Not provided'}</p>
                                         </div>
                                     </div>
-                                )}
-
-                                {/* USP */}
-                                {submission?.unique_selling_proposition && (
-                                    <div className="flex items-start gap-3">
-                                        <span className="text-white font-bold flex-shrink-0">*</span>
-                                        <div>
-                                            <span className="text-white font-semibold">Unique Value Proposition: </span>
-                                            <span className="text-gray-300">{submission.unique_selling_proposition}</span>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Technical Understanding */}
-                                {submission?.technical_understanding && (
-                                    <div className="flex items-start gap-3">
-                                        <span className="text-white font-bold flex-shrink-0">*</span>
-                                        <div>
-                                            <span className="text-white font-semibold">Technical Capability: </span>
-                                            <span className="text-gray-300">{submission.technical_understanding}</span>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Vision */}
-                                {submission?.vision && (
-                                    <div className="flex items-start gap-3">
-                                        <span className="text-white font-bold flex-shrink-0">*</span>
-                                        <div>
-                                            <span className="text-white font-semibold">Long-term Vision: </span>
-                                            <span className="text-gray-300">{submission.vision}</span>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Contact Information */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                            <div className="bg-[#1a2332] border border-[#2a3447] rounded-lg p-4">
-                                <div className="flex items-start gap-3">
-                                    <Mail className="h-5 w-5 text-[#f59e0b] mt-0.5" />
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-gray-400">Contact Email</p>
-                                        <p className="text-sm text-white truncate">{submission?.founder_email || 'Not provided'}</p>
-                                    </div>
-                                </div>
-                            </div>
+                                </CardContent>
+                            </Card>
 
                             {submission?.linkedin_profile_url && (
-                                <div className="bg-[#1a2332] border border-[#2a3447] rounded-lg p-4">
+                                <Card className="border-0 shadow-card">
+                                    <CardContent className="p-4">
+                                        <div className="flex items-start gap-3">
+                                            <Linkedin className="h-5 w-5 text-primary mt-0.5" />
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-medium">LinkedIn Profile</p>
+                                                <a 
+                                                    href={submission.linkedin_profile_url} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="text-sm text-primary hover:underline truncate block"
+                                                >
+                                                    View Profile
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )}
+
+                            <Card className="border-0 shadow-card">
+                                <CardContent className="p-4">
                                     <div className="flex items-start gap-3">
-                                        <Linkedin className="h-5 w-5 text-[#f59e0b] mt-0.5" />
+                                        <TrendingUp className="h-5 w-5 text-primary mt-0.5" />
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium text-gray-400">LinkedIn Profile</p>
-                                            <a 
-                                                href={submission.linkedin_profile_url} 
-                                                target="_blank" 
-                                                rel="noopener noreferrer"
-                                                className="text-sm text-[#f59e0b] hover:underline truncate block"
-                                            >
-                                                View Profile
-                                            </a>
+                                            <p className="text-sm font-medium">Submission Date</p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {submission?.created_at ? new Date(submission.created_at).toLocaleDateString() : 'N/A'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        {/* Main Content Card */}
+                        <Card className="border-0 shadow-card mb-6">
+                            <CardContent className="p-6">
+                                <div className="mb-6">
+                                    <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
+                                        <Target className="h-5 w-5 text-primary" />
+                                        Problem & Solution
+                                    </h3>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <Badge variant="outline" className="mb-2">Problem Statement</Badge>
+                                            <p className="text-sm text-muted-foreground leading-relaxed">
+                                                {submission?.problem_statement || 'Not provided'}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <Badge variant="outline" className="mb-2">Solution</Badge>
+                                            <p className="text-sm text-muted-foreground leading-relaxed">
+                                                {submission?.solution || 'Not provided'}
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
-                            )}
 
-                            <div className="bg-[#1a2332] border border-[#2a3447] rounded-lg p-4">
-                                <div className="flex items-start gap-3">
-                                    <TrendingUp className="h-5 w-5 text-[#f59e0b] mt-0.5" />
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-gray-400">Submission Date</p>
-                                        <p className="text-sm text-white">
-                                            {submission?.created_at ? new Date(submission.created_at).toLocaleDateString() : 'N/A'}
-                                        </p>
+                                <div className="border-t pt-6 mb-6">
+                                    <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
+                                        <Users className="h-5 w-5 text-primary" />
+                                        Market & Customer Understanding
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <Badge variant="secondary" className="mb-2">Market</Badge>
+                                            <p className="text-sm text-muted-foreground leading-relaxed">
+                                                {submission?.market_understanding || 'Not provided'}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <Badge variant="secondary" className="mb-2">Customer</Badge>
+                                            <p className="text-sm text-muted-foreground leading-relaxed">
+                                                {submission?.customer_understanding || 'Not provided'}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+
+                                <div className="border-t pt-6">
+                                    <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
+                                        <Award className="h-5 w-5 text-primary" />
+                                        Competitive Advantage
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <Badge variant="secondary" className="mb-2">Competitive Landscape</Badge>
+                                            <p className="text-sm text-muted-foreground leading-relaxed">
+                                                {submission?.competitive_understanding || 'Not provided'}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <Badge variant="secondary" className="mb-2">Unique Selling Proposition</Badge>
+                                            <p className="text-sm text-muted-foreground leading-relaxed">
+                                                {submission?.unique_selling_proposition || 'Not provided'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Technical & Vision */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                            <Card className="border-0 shadow-card">
+                                <CardHeader>
+                                    <CardTitle className="text-lg flex items-center gap-2">
+                                        <Lightbulb className="h-5 w-5 text-primary" />
+                                        Technical Understanding
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-sm text-muted-foreground leading-relaxed">
+                                        {submission?.technical_understanding || 'Not provided'}
+                                    </p>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="border-0 shadow-card">
+                                <CardHeader>
+                                    <CardTitle className="text-lg flex items-center gap-2">
+                                        <Target className="h-5 w-5 text-primary" />
+                                        Vision
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-sm text-muted-foreground leading-relaxed">
+                                        {submission?.vision || 'Not provided'}
+                                    </p>
+                                </CardContent>
+                            </Card>
                         </div>
 
-                        {/* AI Evaluation Section */}
-                        {evaluation && (
-                            <>
-                                <h2 className="text-2xl font-bold text-[#f59e0b] mb-6">AI Evaluation</h2>
-                                
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                                    {/* AI Analysis */}
-                                    <div className="lg:col-span-2 bg-[#1a2332] border border-[#2a3447] rounded-lg p-6">
-                                        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                                            <Lightbulb className="h-5 w-5 text-[#f59e0b]" />
-                                            Analysis Summary
-                                        </h3>
-                                        {evaluation['ai_analysis_summary'] ? (
-                                            <div className="space-y-3 text-gray-300">
+                        {/* Progress bar */}
+                        {overallScore != null && (
+                            <div className="mb-6">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-sm font-medium">Overall Progress</span>
+                                    <span className="text-sm text-muted-foreground">{Math.round((overallScore / 20) * 100)}%</span>
+                                </div>
+                                <Progress 
+                                    value={(overallScore / 20) * 100} 
+                                    className="h-3"
+                                />
+                            </div>
+                        )}
+
+                        {/* AI Assessment & Score */}
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                            <div className="lg:col-span-2">
+                                <Card className="border-0 shadow-card h-full">
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <Lightbulb className="h-5 w-5 text-primary" />
+                                            AI Analysis Summary
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        {(evaluation && evaluation['ai_analysis_summary']) ? (
+                                            <div className="space-y-3">
                                                 {String(evaluation['ai_analysis_summary']).split(/\n|\.|!/).filter(Boolean).slice(0, 5).map((line, i) => (
                                                     <div key={i} className="flex gap-3 items-start">
-                                                        <span className="text-[#f59e0b] mt-1">•</span>
-                                                        <p className="text-sm leading-relaxed">{line.trim()}</p>
+                                                        <div className="text-primary mt-1">
+                                                            <Lightbulb className="h-4 w-4" />
+                                                        </div>
+                                                        <p className="text-sm text-muted-foreground leading-relaxed">{line.trim()}</p>
                                                     </div>
                                                 ))}
                                             </div>
                                         ) : (
-                                            <p className="text-gray-400 text-sm">
-                                                No AI analysis available yet.
-                                            </p>
+                                            <div className="flex gap-3 items-start p-4 bg-muted/50 rounded-lg">
+                                                <Lightbulb className="h-5 w-5 text-muted-foreground mt-0.5" />
+                                                <p className="text-sm text-muted-foreground">
+                                                    The submission has not been evaluated yet or no AI analysis is available.
+                                                </p>
+                                            </div>
                                         )}
                                         
-                                        {evaluation['ai_recommendations'] && (
-                                            <div className="mt-6 pt-6 border-t border-[#2a3447]">
-                                                <h4 className="font-semibold text-white mb-3">Recommendations:</h4>
-                                                <div className="space-y-2">
+                                        {evaluation && evaluation['ai_recommendations'] && (
+                                            <div className="border-t pt-4 mt-4">
+                                                <h4 className="font-semibold mb-3 flex items-center gap-2">
+                                                    <Target className="h-4 w-4 text-primary" />
+                                                    Recommendations
+                                                </h4>
+                                                <ol className="list-decimal list-inside space-y-2">
                                                     {(() => {
                                                         const raw = String(evaluation['ai_recommendations']);
                                                         let items: string[] = [];
@@ -435,46 +419,54 @@ const SubmissionDetail = () => {
                                                             items = raw.split(/\r?\n/).filter(Boolean).map(s => s.trim());
                                                         }
                                                         return items.map((it, idx) => (
-                                                            <div key={idx} className="flex gap-3 items-start">
-                                                                <span className="text-white font-bold flex-shrink-0">*</span>
-                                                                <p className="text-sm text-gray-300 leading-relaxed">{it}</p>
-                                                            </div>
+                                                            <li key={idx} className="text-sm text-muted-foreground leading-relaxed ml-4">
+                                                                {it}
+                                                            </li>
                                                         ));
                                                     })()}
-                                                </div>
+                                                </ol>
                                             </div>
                                         )}
-                                    </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
 
-                                    {/* Score Card */}
-                                    <div className="bg-[#1a2332] border border-[#2a3447] rounded-lg p-6 flex flex-col items-center justify-center">
-                                        <h3 className="text-lg font-semibold text-white mb-6">Overall Score</h3>
-                                        <div className="text-center">
-                                            <div className="text-6xl font-bold text-[#f59e0b] mb-2">
-                                                {evaluation['overall_average'] != null 
-                                                    ? Math.round(Number(evaluation['overall_average']) * 5) 
-                                                    : Math.round((overallScore ?? 0) * 5)}
-                                            </div>
-                                            <p className="text-gray-400 text-sm">out of 100</p>
-                                            <Badge 
-                                                className="mt-4 bg-[#f59e0b]/20 text-[#f59e0b] border-[#f59e0b]"
-                                            >
-                                                {((overallScore ?? 0) / 20) >= 4.0 ? 'Excellent' :
-                                                 ((overallScore ?? 0) / 20) >= 3.0 ? 'Good' :
-                                                 ((overallScore ?? 0) / 20) >= 2.0 ? 'Average' :
-                                                 ((overallScore ?? 0) / 20) >= 1.0 ? 'Below Average' : 'Needs Improvement'}
-                                            </Badge>
+                            <Card className="border-0 shadow-card">
+                                <CardHeader>
+                                    <CardTitle className="text-lg">Evaluation Score</CardTitle>
+                                </CardHeader>
+                                <CardContent className="flex flex-col items-center justify-center py-8">
+                                    <div className="relative">
+                                        <div className={`text-6xl font-bold mb-2 ${getScoreColor(overallScore ?? 0)} bg-clip-text text-transparent bg-gradient-to-br from-primary to-primary/60`}>
+                                            {evaluation && evaluation['overall_average'] != null 
+                                                ? Math.round(Number(evaluation['overall_average']) * 5) 
+                                                : Math.round((overallScore ?? 0) * 5)}
                                         </div>
+                                        <p className="text-muted-foreground text-center">out of 100</p>
                                     </div>
-                                </div>
-                            </>
-                        )}
+                                    <Badge 
+                                        variant="secondary" 
+                                        className="mt-4"
+                                    >
+                                        {((overallScore ?? 0) / 20) >= 4.0 ? 'Excellent' :
+                                         ((overallScore ?? 0) / 20) >= 3.0 ? 'Good' :
+                                         ((overallScore ?? 0) / 20) >= 2.0 ? 'Average' :
+                                         ((overallScore ?? 0) / 20) >= 1.0 ? 'Below Average' : 'Needs Improvement'}
+                                    </Badge>
+                                </CardContent>
+                            </Card>
+                        </div>
 
                         {/* Detailed Score Breakdown */}
-                        {evaluation && Object.keys(evaluation).filter(k => k.endsWith('_score')).length > 0 && (
-                            <>
-                                <h2 className="text-2xl font-bold text-[#f59e0b] mb-6">Score Breakdown</h2>
-                                <div className="bg-[#1a2332] border border-[#2a3447] rounded-lg p-6">
+                        <Card className="border-0 shadow-card">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Award className="h-5 w-5 text-primary" />
+                                    Detailed Score Breakdown
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                {evaluation && Object.keys(evaluation).filter(k => k.endsWith('_score')).length > 0 ? (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         {Object.keys(evaluation).filter(k => k.endsWith('_score')).sort().map((k) => {
                                             const raw = evaluation[k];
@@ -483,26 +475,26 @@ const SubmissionDetail = () => {
                                             return (
                                                 <div key={k} className="space-y-2">
                                                     <div className="flex items-center justify-between">
-                                                        <span className="text-sm font-medium text-white capitalize">
+                                                        <span className="text-sm font-medium capitalize">
                                                             {k.replace(/_/g, ' ').replace(' score', '')}
                                                         </span>
-                                                        <Badge className="bg-[#f59e0b]/20 text-[#f59e0b] border-[#f59e0b]">
+                                                        <Badge variant="outline">
                                                             {num != null ? `${num}/20` : 'N/A'}
                                                         </Badge>
                                                     </div>
-                                                    <div className="w-full bg-[#0f1729] rounded-full h-2">
-                                                        <div 
-                                                            className="bg-[#f59e0b] h-2 rounded-full transition-all"
-                                                            style={{ width: `${pct}%` }}
-                                                        />
-                                                    </div>
+                                                    <Progress value={pct} className="h-2" />
                                                 </div>
                                             );
                                         })}
                                     </div>
-                                </div>
-                            </>
-                        )}
+                                ) : (
+                                    <div className="text-center py-8">
+                                        <Award className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                                        <p className="text-muted-foreground">No evaluation scores available yet.</p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
                     </>
                 )}
             </div>
