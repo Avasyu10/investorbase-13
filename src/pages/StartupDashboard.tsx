@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/exhaustive-deps */
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/layout/Navbar";
@@ -35,8 +36,6 @@ const StartupDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [lastDeleted, setLastDeleted] = useState<StartupSubmission | null>(null);
   const [lastDeletedEvals, setLastDeletedEvals] = useState<any[] | null>(null);
-  const [selectedEvaluation, setSelectedEvaluation] = useState<any | null>(null);
-  const [selectedSubmission, setSelectedSubmission] = useState<any | null>(null);
   // Helper to get average score from evaluation
   const getEvalScore = (startupName: string, submissionId?: string) => {
     // Prefer to match by submission id via startup_submission_id on evaluations if available
@@ -319,30 +318,47 @@ const StartupDashboard = () => {
                           <tr key={submission.id} className="border-b border-[#23262F] hover:bg-[#20222A] transition">
                             <td className="py-3 px-4 text-gray-300">{new Date(submission.created_at).toLocaleDateString('en-US')}</td>
                             <td className="py-3 px-4 text-white font-medium">{submission.startup_name}</td>
-                            <td className="py-3 px-4 text-white font-semibold">
+                            <td className="py-3 px-4 text-white">
                               <button
                                 className="text-left"
                                 onClick={async () => {
                                   try {
-                                    // fetch the submission record
-                                    const { data: submissionData, error: subErr } = await supabase
-                                      .from('startup_submissions')
-                                      .select('startup_name, founder_email, linkedin_profile_url, problem_statement, solution, market_understanding, customer_understanding, competitive_understanding, unique_selling_proposition, technical_understanding, vision')
-                                      .eq('id', submission.id)
-                                      .single();
-                                    if (subErr) {
-                                      console.error('Fetch submission error', subErr);
+                                    // Try to find an associated company first. We attempt multiple heuristics:
+                                    // 1) Check companies table for a company with a startup_id or startupstudio_id matching the submission id
+                                    // 2) Fallback: try to match by startup name (exact match)
+                                    // If a company is found, navigate to its company page. Otherwise open the submission details modal as before.
+
+                                    // 1) search companies by startup_id or startupstudio_id
+                                    const { data: companiesByStartupId } = await supabase
+                                      .from('companies')
+                                      .select('id')
+                                      .or(`startup_id.eq.${submission.id},startupstudio_id.eq.${submission.id}`)
+                                      .limit(1);
+
+                                    if (companiesByStartupId && companiesByStartupId.length > 0) {
+                                      const companyId = companiesByStartupId[0].id;
+                                      navigate(`/company/${companyId}`);
+                                      return;
                                     }
-                                    setSelectedSubmission(submissionData ?? null);
 
-                                    // find matching evaluation (prefer by submission id)
-                                    const matched = evaluations?.find((e: any) => e.startup_submission_id === submission.id) ?? evaluations?.find((e: any) => e.startup_name === submission.startup_name) ?? null;
-                                    if (matched) setSelectedEvaluation(matched);
-                                    else setSelectedEvaluation(null);
+                                    // 2) try exact name match against companies.name
+                                    const { data: companiesByName } = await supabase
+                                      .from('companies')
+                                      .select('id')
+                                      .ilike('name', submission.startup_name)
+                                      .limit(1);
 
+                                    if (companiesByName && companiesByName.length > 0) {
+                                      navigate(`/company/${companiesByName[0].id}`);
+                                      return;
+                                    }
+
+                                    // No company found — navigate to the submission detail page
+                                    navigate(`/submission/${submission.id}`);
+                                    return;
                                   } catch (err) {
-                                    console.error('Open details error', err);
-                                    toast({ title: 'Error', description: 'Failed to open details' });
+                                    console.error('Open details / navigate error', err);
+                                    toast({ title: 'Error', description: 'Failed to open details or navigate' });
                                   }
                                 }}
                               >
@@ -445,7 +461,7 @@ const StartupDashboard = () => {
                     };
                     return (
                       <tr key={sub.id} className="border-b border-[#23262F] hover:bg-[#20222A] transition">
-                        <td className="py-3 px-4 text-white font-semibold">EU{sub.id.slice(-7).toUpperCase()}</td>
+                        <td className="py-3 px-4 text-white">EU{sub.id.slice(-7).toUpperCase()}</td>
                         <td className="py-3 px-4 text-gray-300">{timeAgo(sub.created_at)}</td>
                         <td className="py-3 px-4"><span className="px-3 py-1 rounded-full bg-green-100 text-green-700">{status}</span></td>
                         <td className="py-3 px-4">
@@ -486,62 +502,7 @@ const StartupDashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
-      {/* Details modal for evaluation opened from table */}
-      {selectedEvaluation && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-card/60 backdrop-blur-md border p-6 max-w-6xl w-full mx-4 rounded-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h3 className="text-2xl font-bold">{selectedEvaluation.startup_name || 'Unnamed Startup'} — Evaluation Details</h3>
-                {(() => {
-                  const avg = selectedEvaluation.overall_average ?? (() => {
-                    const keys = Object.keys(selectedEvaluation || {}).filter(k => k.endsWith('_score') && selectedEvaluation[k] !== null);
-                    if (keys.length === 0) return null;
-                    const sum = keys.reduce((acc: number, k: string) => acc + (selectedEvaluation[k] ?? 0), 0);
-                    return sum / keys.length;
-                  })();
-                  return avg ? <p className="text-lg text-muted-foreground">Overall Score: {Number(avg).toFixed(1)}/20</p> : null;
-                })()}
-              </div>
-              <button className="text-muted-foreground hover:text-foreground" onClick={() => setSelectedEvaluation(null)}>✕</button>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-semibold mb-2">Startup Details</h4>
-                <div className="text-sm text-muted-foreground mb-3">
-                  <div className="mb-2"><strong>Startup Name</strong><div className="text-sm text-gray-300">{selectedSubmission?.startup_name ?? selectedEvaluation?.startup_name}</div></div>
-                  <div className="mb-2"><strong>Founder's Email</strong><div className="text-sm text-gray-300">{selectedSubmission?.founder_email ?? '—'}</div></div>
-                  <div className="mb-2"><strong>LinkedIn Profile URL</strong><div className="text-sm text-gray-300">{selectedSubmission?.linkedin_profile_url ?? '—'}</div></div>
-                  <div className="mb-2"><strong>Problem Statement</strong><div className="text-sm text-gray-300 whitespace-pre-wrap">{selectedSubmission?.problem_statement ?? selectedEvaluation?.problem_statement ?? '—'}</div></div>
-                  <div className="mb-2"><strong>Solution</strong><div className="text-sm text-gray-300 whitespace-pre-wrap">{selectedSubmission?.solution ?? '—'}</div></div>
-                  <div className="mb-2"><strong>Market Understanding</strong><div className="text-sm text-gray-300 whitespace-pre-wrap">{selectedSubmission?.market_understanding ?? '—'}</div></div>
-                  <div className="mb-2"><strong>Customer Understanding</strong><div className="text-sm text-gray-300 whitespace-pre-wrap">{selectedSubmission?.customer_understanding ?? '—'}</div></div>
-                  <div className="mb-2"><strong>Competitive Understanding</strong><div className="text-sm text-gray-300 whitespace-pre-wrap">{selectedSubmission?.competitive_understanding ?? '—'}</div></div>
-                  <div className="mb-2"><strong>Unique Selling Proposition (USP)</strong><div className="text-sm text-gray-300 whitespace-pre-wrap">{selectedSubmission?.unique_selling_proposition ?? '—'}</div></div>
-                  <div className="mb-2"><strong>Technical Understanding</strong><div className="text-sm text-gray-300 whitespace-pre-wrap">{selectedSubmission?.technical_understanding ?? '—'}</div></div>
-                  <div className="mb-2"><strong>Vision</strong><div className="text-sm text-gray-300 whitespace-pre-wrap">{selectedSubmission?.vision ?? '—'}</div></div>
-                </div>
-                <h4 className="font-semibold mb-2">AI Analysis Summary</h4>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap mb-4">{selectedEvaluation?.ai_analysis_summary}</p>
-                <h4 className="font-semibold mb-2">AI Recommendations</h4>
-                <div className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedEvaluation?.ai_recommendations}</div>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-4">Detailed Score Breakdown</h4>
-                {/* Keep the breakdown simple here, reusing keys if present */}
-                <div className="space-y-3">
-                  {Object.keys(selectedEvaluation).filter(k => k.endsWith('_score')).map((k) => (
-                    <div key={k} className="flex justify-between bg-background/50 p-2 rounded">
-                      <div className="text-sm text-muted-foreground">{k.replace(/_/g, ' ')}</div>
-                      <div className="font-bold">{selectedEvaluation[k] ?? '—'}/20</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Details now open on their own page at /submission/:id */}
     </div>
   );
 };

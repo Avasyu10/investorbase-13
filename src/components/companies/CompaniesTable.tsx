@@ -7,6 +7,7 @@ import { formatDistanceToNow, format } from "date-fns"; // Import 'format'
 import { Star, Trash2, Phone, Mail, Globe, Download, Edit, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw } from "lucide-react";
 import { EditCompanyDialog } from "./EditCompanyDialog";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useDeleteCompany } from "@/hooks/useDeleteCompany";
 import { toast } from "@/hooks/use-toast";
 import { usePdfDownload } from "@/hooks/usePdfDownload";
@@ -193,7 +194,7 @@ export function CompaniesTable({
 
   const handleRerunAnalysis = async (e: React.MouseEvent, company: Company) => {
     e.stopPropagation();
-    
+
     const eurekaData = (company as any).eureka_form_submissions;
     if (!eurekaData?.id) {
       toast({
@@ -240,8 +241,8 @@ export function CompaniesTable({
   const shouldShowRerunButton = (company: Company): boolean => {
     const eurekaData = (company as any).eureka_form_submissions;
     const analysisStatus = eurekaData?.analysis_status?.toLowerCase();
-    return analysisStatus === 'failed' || analysisStatus === 'processing' || 
-           (analysisStatus === 'completed' && company.overall_score < 60);
+    return analysisStatus === 'failed' || analysisStatus === 'processing' ||
+      (analysisStatus === 'completed' && company.overall_score < 60);
   };
 
   const handleDownloadPdf = () => {
@@ -277,244 +278,6 @@ export function CompaniesTable({
   // General users table format (is_bits, is_iitbombay, is_vc all false)
   if (isGeneralUser) {
     return <>
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="text-lg font-semibold">Companies Prospects</h3>
-                <p className="text-sm text-muted-foreground">
-                  {localCompanies.length} companies found
-                </p>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="font-semibold w-[200px]">Company</TableHead>
-                  <TableHead className="font-semibold w-[120px]">Source</TableHead>
-                  <TableHead className="font-semibold w-[150px]">Industry</TableHead>
-                  <TableHead className="font-semibold w-[120px]">Status</TableHead>
-                  <TableHead className="font-semibold w-[150px]">Team POC</TableHead>
-                  <TableHead className="w-[100px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {localCompanies.map(company => {
-                const companyDetails = (company as any).company_details;
-                const status = companyDetails?.status || 'New';
-                const teamMemberName = companyDetails?.teammember_name || '';
-                const isCompanyDeleting = deletingCompanies.has(company.id);
-                const industry = company.industry || "—";
-                return <TableRow key={company.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onCompanyClick(company.id)}>
-                    <TableCell className="font-medium">
-                      <span className="font-semibold text-foreground">{company.name}</span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="capitalize text-xs">
-                        {company.source || 'Dashboard'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm">{industry}</span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getStatusBadgeColor(status)}>
-                        <span className="text-xs font-medium">{status}</span>
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm">{teamMemberName || "—"}</span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                        <Button variant="ghost" size="sm" onClick={e => handleEditClick(e, company)} className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={e => handleDeleteClick(e, company.id)} disabled={isCompanyDeleting || isDeleting} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>;
-              })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-
-        <EditCompanyDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} companyId={selectedCompanyForEdit?.id || ""} currentTeamMember={selectedCompanyForEdit?.teamMember || ""} currentStatus={selectedCompanyForEdit?.status || "New"} onUpdate={(teamMember, status) => {
-        if (selectedCompanyForEdit) {
-          handleCompanyUpdate(selectedCompanyForEdit.id, teamMember, status);
-        }
-      }} />
-      </>;
-  }
-
-  // VC and BITS combined view - simplified table with Stage instead of Source
-  if (isVCAndBits) {
-    return <Card>
-        <CardHeader className="pb-3">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="text-lg font-semibold">Companies Prospects</h3>
-              <p className="text-sm text-muted-foreground">
-                {localCompanies.length} companies found
-              </p>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="font-semibold w-[200px]">Company</TableHead>
-                <TableHead className="font-semibold w-[150px]">Industry</TableHead>
-                <TableHead className="font-semibold w-[100px]">Stage</TableHead>
-                {!isBitsQuestion && <TableHead className="font-semibold w-[100px]">
-                    <Button variant="ghost" onClick={() => handleSortClick('overall_score')} className="h-auto p-0 font-semibold hover:bg-transparent flex items-center gap-1">
-                      Score
-                      {getSortIcon('overall_score')}
-                    </Button>
-                  </TableHead>}
-                <TableHead className="w-[60px]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {localCompanies.map(company => {
-              const formattedScore = Math.round(company.overall_score);
-              const isCompanyDeleting = deletingCompanies.has(company.id);
-              const industry = company.industry || "—";
-              const stage = getStageFromResponseReceived(company);
-              return <TableRow key={company.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onCompanyClick(company.id)}>
-                    <TableCell className="font-medium">
-                      <span className="font-semibold text-foreground">{company.name}</span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm">{industry}</span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="capitalize text-xs">
-                        {stage}
-                      </Badge>
-                    </TableCell>
-                    {!isBitsQuestion && <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Badge className={getScoreBadgeColor(formattedScore)}>
-                            <span className={`font-semibold text-xs ${getScoreColor(formattedScore)}`}>
-                              {formattedScore}
-                            </span>
-                          </Badge>
-                        </div>
-                      </TableCell>}
-                    <TableCell>
-                      <Button variant="ghost" size="sm" onClick={e => handleDeleteClick(e, company.id)} disabled={isCompanyDeleting || isDeleting} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>;
-            })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>;
-  }
-
-  // IIT Bombay table format - removed Link column
-  if (isIITBombay) {
-    return <Card>
-        <CardHeader className="pb-3">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="text-lg font-semibold">Eureka Companies</h3>
-              <p className="text-sm text-muted-foreground">
-                {localCompanies.length} companies found
-              </p>
-            </div>
-              {/* Removed download button as per prompt, if it was intended to be removed */}
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                {/* New "Date" Column */}
-                <TableHead className="font-semibold w-[120px]">Date</TableHead>
-                <TableHead className="font-semibold w-[150px]">Idea ID</TableHead>
-                <TableHead className="font-semibold w-[180px]">Eureka ID</TableHead>
-                <TableHead className="font-semibold w-[80px]">
-                  <Button variant="ghost" onClick={() => handleSortClick('overall_score')} className="h-auto p-0 font-semibold hover:bg-transparent flex items-center gap-1">
-                    Score
-                    {getSortIcon('overall_score')}
-                  </Button>
-                </TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {localCompanies.map(company => {
-              const formattedScore = Math.round(company.overall_score);
-              const isCompanyDeleting = deletingCompanies.has(company.id);
-              const isCompanyRerunning = rerunningCompanies.has(company.id);
-              const submissionDate = company.created_at ? format(new Date(company.created_at), 'MMM dd, yyyy') : "—"; // Format date
-              const eurekaData = (company as any).eureka_form_submissions;
-              const ideaId = eurekaData?.idea_id || "—";
-              const showRerunButton = shouldShowRerunButton(company);
-              return <TableRow key={company.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onCompanyClick(company.id)}>
-                    {/* New "Date" Cell */}
-                    <TableCell className="text-sm font-bold text-muted-foreground">
-                      {submissionDate}
-                    </TableCell>
-                    {/* New "Idea ID" Cell */}
-                    <TableCell className="text-sm">
-                      {ideaId}
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      {company.name}
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getScoreBadgeColor(formattedScore)}>
-                        <span className={`font-semibold ${getScoreColor(formattedScore)}`}>
-                          {formattedScore}/100
-                        </span>
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                        {showRerunButton && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={e => handleRerunAnalysis(e, company)} 
-                            disabled={isCompanyRerunning}
-                            className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
-                            title="Rerun analysis"
-                          >
-                            <RefreshCw className={`h-4 w-4 ${isCompanyRerunning ? 'animate-spin' : ''}`} />
-                          </Button>
-                        )}
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={e => handleDeleteClick(e, company.id)} 
-                          disabled={isCompanyDeleting || isDeleting} 
-                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>;
-            })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>;
-  }
-
-  // Regular table format for other users with edit functionality
-  return <>
       <Card>
         <CardHeader className="pb-3">
           <div className="flex justify-between items-center">
@@ -530,24 +293,270 @@ export function CompaniesTable({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="font-semibold w-[100px]">Company</TableHead>
-                <TableHead className="font-semibold w-[120px]">Contact</TableHead>
-                <TableHead className="font-semibold w-[100px]">Email</TableHead>
-                <TableHead className="font-semibold w-[80px]">Source</TableHead>
-                <TableHead className="font-semibold w-[100px]">Industry</TableHead>
-                <TableHead className="font-semibold w-[80px]">
-                  <Button variant="ghost" onClick={() => handleSortClick('overall_score')} className="h-auto p-0 font-semibold hover:bg-transparent flex items-center gap-1">
-                    Score
-                    {getSortIcon('overall_score')}
-                  </Button>
-                </TableHead>
-                <TableHead className="font-semibold w-[100px]">Status</TableHead>
-                <TableHead className="font-semibold w-[140px]">Team POC</TableHead>
+                <TableHead className="font-semibold w-[200px]">Company</TableHead>
+                <TableHead className="font-semibold w-[120px]">Source</TableHead>
+                <TableHead className="font-semibold w-[150px]">Industry</TableHead>
+                <TableHead className="font-semibold w-[120px]">Status</TableHead>
+                <TableHead className="font-semibold w-[150px]">Team POC</TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {localCompanies.map(company => {
+                const companyDetails = (company as any).company_details;
+                const status = companyDetails?.status || 'New';
+                const teamMemberName = companyDetails?.teammember_name || '';
+                const isCompanyDeleting = deletingCompanies.has(company.id);
+                const industry = company.industry || "—";
+                return <TableRow key={company.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onCompanyClick(company.id)}>
+                  <TableCell className="font-medium">
+                    <span className="font-semibold text-foreground">{company.name}</span>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="capitalize text-xs">
+                      {company.source || 'Dashboard'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm">{industry}</span>
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={getStatusBadgeColor(status)}>
+                      <span className="text-xs font-medium">{status}</span>
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm">{teamMemberName || "—"}</span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                      <Button variant="ghost" size="sm" onClick={e => handleEditClick(e, company)} className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50">
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={e => handleDeleteClick(e, company.id)} disabled={isCompanyDeleting || isDeleting} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>;
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <EditCompanyDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} companyId={selectedCompanyForEdit?.id || ""} currentTeamMember={selectedCompanyForEdit?.teamMember || ""} currentStatus={selectedCompanyForEdit?.status || "New"} onUpdate={(teamMember, status) => {
+        if (selectedCompanyForEdit) {
+          handleCompanyUpdate(selectedCompanyForEdit.id, teamMember, status);
+        }
+      }} />
+    </>;
+  }
+
+  // VC and BITS combined view - simplified table with Stage instead of Source
+  if (isVCAndBits) {
+    return <Card>
+      <CardHeader className="pb-3">
+        <div className="flex justify-between items-center">
+          <div>
+            <h3 className="text-lg font-semibold">Companies Prospects</h3>
+            <p className="text-sm text-muted-foreground">
+              {localCompanies.length} companies found
+            </p>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="font-semibold w-[200px]">Company</TableHead>
+              <TableHead className="font-semibold w-[150px]">Industry</TableHead>
+              <TableHead className="font-semibold w-[100px]">Stage</TableHead>
+              {!isBitsQuestion && <TableHead className="font-semibold w-[100px]">
+                <Button variant="ghost" onClick={() => handleSortClick('overall_score')} className="h-auto p-0 font-semibold hover:bg-transparent flex items-center gap-1">
+                  Score
+                  {getSortIcon('overall_score')}
+                </Button>
+              </TableHead>}
+              <TableHead className="w-[60px]">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {localCompanies.map(company => {
+              const formattedScore = Math.round(company.overall_score);
+              const isCompanyDeleting = deletingCompanies.has(company.id);
+              const industry = company.industry || "—";
+              const stage = getStageFromResponseReceived(company);
+              const navigate = useNavigate();
+              return <TableRow key={company.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => {
+                const startupId = (company as any).startup_id || (company as any).startupstudio_id;
+                if (startupId) {
+                  navigate(`/startups/${startupId}`);
+                  return;
+                }
+                onCompanyClick(company.id);
+              }}>
+                <TableCell className="font-medium">
+                  <span className="font-semibold text-foreground">{company.name}</span>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm">{industry}</span>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="capitalize text-xs">
+                    {stage}
+                  </Badge>
+                </TableCell>
+                {!isBitsQuestion && <TableCell>
+                  <div className="flex items-center gap-2">
+                    <Badge className={getScoreBadgeColor(formattedScore)}>
+                      <span className={`font-semibold text-xs ${getScoreColor(formattedScore)}`}>
+                        {formattedScore}
+                      </span>
+                    </Badge>
+                  </div>
+                </TableCell>}
+                <TableCell>
+                  <Button variant="ghost" size="sm" onClick={e => handleDeleteClick(e, company.id)} disabled={isCompanyDeleting || isDeleting} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>;
+            })}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>;
+  }
+
+  // IIT Bombay table format - removed Link column
+  if (isIITBombay) {
+    return <Card>
+      <CardHeader className="pb-3">
+        <div className="flex justify-between items-center">
+          <div>
+            <h3 className="text-lg font-semibold">Eureka Companies</h3>
+            <p className="text-sm text-muted-foreground">
+              {localCompanies.length} companies found
+            </p>
+          </div>
+          {/* Removed download button as per prompt, if it was intended to be removed */}
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {/* New "Date" Column */}
+              <TableHead className="font-semibold w-[120px]">Date</TableHead>
+              <TableHead className="font-semibold w-[150px]">Idea ID</TableHead>
+              <TableHead className="font-semibold w-[180px]">Eureka ID</TableHead>
+              <TableHead className="font-semibold w-[80px]">
+                <Button variant="ghost" onClick={() => handleSortClick('overall_score')} className="h-auto p-0 font-semibold hover:bg-transparent flex items-center gap-1">
+                  Score
+                  {getSortIcon('overall_score')}
+                </Button>
+              </TableHead>
+              <TableHead className="w-[100px]">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {localCompanies.map(company => {
+              const formattedScore = Math.round(company.overall_score);
+              const isCompanyDeleting = deletingCompanies.has(company.id);
+              const isCompanyRerunning = rerunningCompanies.has(company.id);
+              const submissionDate = company.created_at ? format(new Date(company.created_at), 'MMM dd, yyyy') : "—"; // Format date
+              const eurekaData = (company as any).eureka_form_submissions;
+              const ideaId = eurekaData?.idea_id || "—";
+              const showRerunButton = shouldShowRerunButton(company);
+              return <TableRow key={company.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onCompanyClick(company.id)}>
+                {/* New "Date" Cell */}
+                <TableCell className="text-sm font-bold text-muted-foreground">
+                  {submissionDate}
+                </TableCell>
+                {/* New "Idea ID" Cell */}
+                <TableCell className="text-sm">
+                  {ideaId}
+                </TableCell>
+                <TableCell className="font-medium">
+                  {company.name}
+                </TableCell>
+                <TableCell>
+                  <Badge className={getScoreBadgeColor(formattedScore)}>
+                    <span className={`font-semibold ${getScoreColor(formattedScore)}`}>
+                      {formattedScore}/100
+                    </span>
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                    {showRerunButton && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={e => handleRerunAnalysis(e, company)}
+                        disabled={isCompanyRerunning}
+                        className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                        title="Rerun analysis"
+                      >
+                        <RefreshCw className={`h-4 w-4 ${isCompanyRerunning ? 'animate-spin' : ''}`} />
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={e => handleDeleteClick(e, company.id)}
+                      disabled={isCompanyDeleting || isDeleting}
+                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>;
+            })}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>;
+  }
+
+  // Regular table format for other users with edit functionality
+  return <>
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex justify-between items-center">
+          <div>
+            <h3 className="text-lg font-semibold">Companies Prospects</h3>
+            <p className="text-sm text-muted-foreground">
+              {localCompanies.length} companies found
+            </p>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="font-semibold w-[100px]">Company</TableHead>
+              <TableHead className="font-semibold w-[120px]">Contact</TableHead>
+              <TableHead className="font-semibold w-[100px]">Email</TableHead>
+              <TableHead className="font-semibold w-[80px]">Source</TableHead>
+              <TableHead className="font-semibold w-[100px]">Industry</TableHead>
+              <TableHead className="font-semibold w-[80px]">
+                <Button variant="ghost" onClick={() => handleSortClick('overall_score')} className="h-auto p-0 font-semibold hover:bg-transparent flex items-center gap-1">
+                  Score
+                  {getSortIcon('overall_score')}
+                </Button>
+              </TableHead>
+              <TableHead className="font-semibold w-[100px]">Status</TableHead>
+              <TableHead className="font-semibold w-[140px]">Team POC</TableHead>
+              <TableHead className="w-[100px]">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {localCompanies.map(company => {
               const formattedScore = Math.round(company.overall_score);
               const companyDetails = (company as any).company_details;
               // Fix: Use 'New' as default only if no company_details exist or status is null/undefined
@@ -563,74 +572,74 @@ export function CompaniesTable({
               const industry = company.industry || "—";
               const teamMemberName = companyDetails?.teammember_name || '';
               return <TableRow key={company.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onCompanyClick(company.id)}>
-                    <TableCell className="font-medium">
-                      <div className="flex flex-col">
-                        <span className="font-semibold text-foreground">{company.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-1">
-                        {contactInfo && <span className="text-sm">{contactInfo}</span>}
-                        {phoneNumber && <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Phone className="h-3 w-3" />
-                            <span>{phoneNumber}</span>
-                          </div>}
-                        {!contactInfo && !phoneNumber && <span className="text-sm">—</span>}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {contactEmail ? <div className="flex items-center gap-1 text-sm">
-                            <Mail className="h-3 w-3 text-muted-foreground" />
-                            <span className="truncate">{contactEmail}</span>
-                          </div> : "—"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="capitalize text-xs">
-                        {company.source || 'Dashboard'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm">{industry}</span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        
-                        <Badge className={getScoreBadgeColor(formattedScore)}>
-                          <span className={`font-semibold text-xs ${getScoreColor(formattedScore)}`}>
-                            {formattedScore}
-                          </span>
-                        </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getStatusBadgeColor(status)}>
-                        <span className="text-xs font-medium">{status}</span>
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm">{teamMemberName || "—"}</span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                        <Button variant="ghost" size="sm" onClick={e => handleEditClick(e, company)} className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={e => handleDeleteClick(e, company.id)} disabled={isCompanyDeleting || isDeleting} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>;
-            })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                <TableCell className="font-medium">
+                  <div className="flex flex-col">
+                    <span className="font-semibold text-foreground">{company.name}</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-col gap-1">
+                    {contactInfo && <span className="text-sm">{contactInfo}</span>}
+                    {phoneNumber && <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Phone className="h-3 w-3" />
+                      <span>{phoneNumber}</span>
+                    </div>}
+                    {!contactInfo && !phoneNumber && <span className="text-sm">—</span>}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  {contactEmail ? <div className="flex items-center gap-1 text-sm">
+                    <Mail className="h-3 w-3 text-muted-foreground" />
+                    <span className="truncate">{contactEmail}</span>
+                  </div> : "—"}
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="capitalize text-xs">
+                    {company.source || 'Dashboard'}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm">{industry}</span>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
 
-      <EditCompanyDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} companyId={selectedCompanyForEdit?.id || ""} currentTeamMember={selectedCompanyForEdit?.teamMember || ""} currentStatus={selectedCompanyForEdit?.status || "New"} onUpdate={(teamMember, status) => {
+                    <Badge className={getScoreBadgeColor(formattedScore)}>
+                      <span className={`font-semibold text-xs ${getScoreColor(formattedScore)}`}>
+                        {formattedScore}
+                      </span>
+                    </Badge>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Badge className={getStatusBadgeColor(status)}>
+                    <span className="text-xs font-medium">{status}</span>
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm">{teamMemberName || "—"}</span>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                    <Button variant="ghost" size="sm" onClick={e => handleEditClick(e, company)} className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50">
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={e => handleDeleteClick(e, company.id)} disabled={isCompanyDeleting || isDeleting} className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>;
+            })}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+
+    <EditCompanyDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} companyId={selectedCompanyForEdit?.id || ""} currentTeamMember={selectedCompanyForEdit?.teamMember || ""} currentStatus={selectedCompanyForEdit?.status || "New"} onUpdate={(teamMember, status) => {
       if (selectedCompanyForEdit) {
         handleCompanyUpdate(selectedCompanyForEdit.id, teamMember, status);
       }
     }} />
-    </>;
+  </>;
 }
