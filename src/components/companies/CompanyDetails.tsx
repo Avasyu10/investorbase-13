@@ -584,115 +584,117 @@ const CompanyDetails = () => {
               }
             })()}
             
-            {/* Real-Time Market Research Section */}
-            <div className="mt-8">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl sm:text-2xl font-semibold flex items-center gap-2">
-                  <BarChart2 className="h-5 w-5 text-[#f59e0b]" />
-                  Real-Time Market Research
-                </h2>
-                <Button
-                  variant="outline"
-                  className="flex items-center gap-2"
-                  onClick={async () => {
-                    if (!id) return;
-                    toast({
-                      title: "Updating Research",
-                      description: "Fetching latest market insights...",
-                    });
-                    
-                    try {
-                      const assessmentText = company?.assessment_points?.join(', ') || company?.name || '';
-                      const { error } = await supabase.functions.invoke('research-with-perplexity', {
-                        body: { 
-                          companyId: id,
-                          assessmentText: assessmentText
-                        }
+            {/* Real-Time Market Research Section - Hidden */}
+            {false && (
+              <div className="mt-8">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl sm:text-2xl font-semibold flex items-center gap-2">
+                    <BarChart2 className="h-5 w-5 text-[#f59e0b]" />
+                    Real-Time Market Research
+                  </h2>
+                  <Button
+                    variant="outline"
+                    className="flex items-center gap-2"
+                    onClick={async () => {
+                      if (!id) return;
+                      toast({
+                        title: "Updating Research",
+                        description: "Fetching latest market insights...",
                       });
                       
-                      if (error) throw error;
-                      
-                      queryClient.invalidateQueries({ queryKey: ['company', id] });
-                      toast({
-                        title: "Research Updated",
-                        description: "Latest market insights have been fetched successfully",
-                      });
-                    } catch (error) {
-                      console.error('Error updating research:', error);
-                      toast({
-                        title: "Error",
-                        description: "Failed to update research",
-                        variant: "destructive",
-                      });
-                    }
-                  }}
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  Update Research
-                </Button>
-              </div>
-              
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Research Categories - Left Column */}
-                <div className="lg:col-span-1">
-                  <h3 className="text-lg font-semibold text-[#f59e0b] mb-4">Research Categories</h3>
-                  
-                  <div className="space-y-4">
-                    {/* Market Research */}
-                    <Card className="border-0 shadow-subtle bg-[#1a1d2e] hover:bg-[#20243a] transition-colors cursor-pointer">
-                      <CardContent className="p-4">
-                        <div className="flex items-start gap-3">
-                          <Globe className="h-5 w-5 text-[#3b82f6] flex-shrink-0 mt-1" />
-                          <div>
-                            <h4 className="font-semibold text-white mb-1">Market Research</h4>
-                            <p className="text-sm text-gray-400">
-                              Comprehensive market analysis with up-to-date insights from reputable sources.
-                            </p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    
-                    {/* Latest News */}
-                    <Card className="border-0 shadow-subtle bg-[#1a1d2e] hover:bg-[#20243a] transition-colors cursor-pointer">
-                      <CardContent className="p-4">
-                        <div className="flex items-start gap-3">
-                          <Newspaper className="h-5 w-5 text-[#10b981] flex-shrink-0 mt-1" />
-                          <div>
-                            <h4 className="font-semibold text-white mb-1">Latest News</h4>
-                            <p className="text-sm text-gray-400">
-                              Recent industry news and events with relevant implications for this company.
-                            </p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    
-                    {/* Market Trends */}
-                    <Card className="border-2 border-[#f59e0b] shadow-subtle bg-[#1a1d2e] hover:bg-[#20243a] transition-colors cursor-pointer">
-                      <CardContent className="p-4">
-                        <div className="flex items-start gap-3">
-                          <TrendingUp className="h-5 w-5 text-[#f59e0b] flex-shrink-0 mt-1" />
-                          <div>
-                            <h4 className="font-semibold text-white mb-1">Market Trends</h4>
-                            <p className="text-sm text-gray-400">
-                              Current trends, market size data, and competitive landscape analysis.
-                            </p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
+                      try {
+                        const assessmentText = company?.assessment_points?.join(', ') || company?.name || '';
+                        const { error } = await supabase.functions.invoke('research-with-perplexity', {
+                          body: { 
+                            companyId: id,
+                            assessmentText: assessmentText
+                          }
+                        });
+                        
+                        if (error) throw error;
+                        
+                        queryClient.invalidateQueries({ queryKey: ['company', id] });
+                        toast({
+                          title: "Research Updated",
+                          description: "Latest market insights have been fetched successfully",
+                        });
+                      } catch (error) {
+                        console.error('Error updating research:', error);
+                        toast({
+                          title: "Error",
+                          description: "Failed to update research",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Update Research
+                  </Button>
                 </div>
                 
-                {/* Market Insights - Right Column */}
-                <div className="lg:col-span-2">
-                  <h3 className="text-lg font-semibold text-[#f59e0b] mb-4">Market Insights</h3>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Research Categories - Left Column */}
+                  <div className="lg:col-span-1">
+                    <h3 className="text-lg font-semibold text-[#f59e0b] mb-4">Research Categories</h3>
+                    
+                    <div className="space-y-4">
+                      {/* Market Research */}
+                      <Card className="border-0 shadow-subtle bg-[#1a1d2e] hover:bg-[#20243a] transition-colors cursor-pointer">
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-3">
+                            <Globe className="h-5 w-5 text-[#3b82f6] flex-shrink-0 mt-1" />
+                            <div>
+                              <h4 className="font-semibold text-white mb-1">Market Research</h4>
+                              <p className="text-sm text-gray-400">
+                                Comprehensive market analysis with up-to-date insights from reputable sources.
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      
+                      {/* Latest News */}
+                      <Card className="border-0 shadow-subtle bg-[#1a1d2e] hover:bg-[#20243a] transition-colors cursor-pointer">
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-3">
+                            <Newspaper className="h-5 w-5 text-[#10b981] flex-shrink-0 mt-1" />
+                            <div>
+                              <h4 className="font-semibold text-white mb-1">Latest News</h4>
+                              <p className="text-sm text-gray-400">
+                                Recent industry news and events with relevant implications for this company.
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      
+                      {/* Market Trends */}
+                      <Card className="border-2 border-[#f59e0b] shadow-subtle bg-[#1a1d2e] hover:bg-[#20243a] transition-colors cursor-pointer">
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-3">
+                            <TrendingUp className="h-5 w-5 text-[#f59e0b] flex-shrink-0 mt-1" />
+                            <div>
+                              <h4 className="font-semibold text-white mb-1">Market Trends</h4>
+                              <p className="text-sm text-gray-400">
+                                Current trends, market size data, and competitive landscape analysis.
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </div>
                   
-                  <MarketResearchDisplay companyId={id || ''} />
+                  {/* Market Insights - Right Column */}
+                  <div className="lg:col-span-2">
+                    <h3 className="text-lg font-semibold text-[#f59e0b] mb-4">Market Insights</h3>
+                    
+                    <MarketResearchDisplay companyId={id || ''} />
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
         
