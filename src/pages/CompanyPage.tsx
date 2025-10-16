@@ -43,45 +43,88 @@ const CompanyPage = () => {
       if (!id || !company) return;
 
       try {
-        // Check if verdicts already exist
-        const { data: enrichment } = await supabase
-          .from('company_enrichment')
-          .select('enrichment_data')
+        // Check if verdicts already exist in the new table
+        const { data: existingVerdicts, error: fetchError } = await supabase
+          .from('section_verdicts')
+          .select('*')
           .eq('company_id', id)
           .maybeSingle();
 
-        if (enrichment?.enrichment_data) {
-          const enrichmentData = enrichment.enrichment_data as any;
-          
-          if (enrichmentData.section_verdicts) {
-            const verdicts = enrichmentData.section_verdicts;
-            const scores = enrichmentData.section_scores;
-            
-            const formattedVerdicts: SectionVerdicts = {};
-            Object.keys(verdicts).forEach((key) => {
-              const scoreData = scores?.find((s: any) => s.name === key);
-              formattedVerdicts[key] = {
-                score: scoreData?.score || 0,
-                maxScore: 20,
-                verdict: verdicts[key],
-                detailedScores: scoreData?.detailedScores || {},
-              };
-            });
+        if (fetchError && fetchError.code !== 'PGRST116') {
+          console.error('Error fetching verdicts:', fetchError);
+          throw fetchError;
+        }
 
-            setSectionVerdicts(formattedVerdicts);
+        if (existingVerdicts) {
+          // Format existing verdicts
+          const formattedVerdicts: SectionVerdicts = {
+            'Problem Statement': {
+              score: existingVerdicts.problem_statement_score || 0,
+              maxScore: 20,
+              verdict: existingVerdicts.problem_statement_verdict || '',
+              detailedScores: existingVerdicts.detailed_scores?.['Problem Statement'] || {},
+            },
+            'Solution': {
+              score: existingVerdicts.solution_score || 0,
+              maxScore: 20,
+              verdict: existingVerdicts.solution_verdict || '',
+              detailedScores: existingVerdicts.detailed_scores?.['Solution'] || {},
+            },
+            'Market Understanding': {
+              score: existingVerdicts.market_understanding_score || 0,
+              maxScore: 20,
+              verdict: existingVerdicts.market_understanding_verdict || '',
+              detailedScores: existingVerdicts.detailed_scores?.['Market Understanding'] || {},
+            },
+            'Customer Understanding': {
+              score: existingVerdicts.customer_understanding_score || 0,
+              maxScore: 20,
+              verdict: existingVerdicts.customer_understanding_verdict || '',
+              detailedScores: existingVerdicts.detailed_scores?.['Customer Understanding'] || {},
+            },
+            'Competitor Understanding': {
+              score: existingVerdicts.competitor_understanding_score || 0,
+              maxScore: 20,
+              verdict: existingVerdicts.competitor_understanding_verdict || '',
+              detailedScores: existingVerdicts.detailed_scores?.['Competitor Understanding'] || {},
+            },
+            'USP': {
+              score: existingVerdicts.usp_score || 0,
+              maxScore: 20,
+              verdict: existingVerdicts.usp_verdict || '',
+              detailedScores: existingVerdicts.detailed_scores?.['USP'] || {},
+            },
+            'Vision': {
+              score: existingVerdicts.vision_score || 0,
+              maxScore: 20,
+              verdict: existingVerdicts.vision_verdict || '',
+              detailedScores: existingVerdicts.detailed_scores?.['Vision'] || {},
+            },
+            'Technology Understanding': {
+              score: existingVerdicts.technology_understanding_score || 0,
+              maxScore: 20,
+              verdict: existingVerdicts.technology_understanding_verdict || '',
+              detailedScores: existingVerdicts.detailed_scores?.['Technology Understanding'] || {},
+            },
+          };
 
-            // Parse overall assessment
-            const assessment = enrichmentData.overall_assessment || '';
-            const points = assessment.split('\n').filter((line: string) => line.trim().startsWith('-') || line.trim().startsWith('•'));
-            setOverallAssessment(points.map((p: string) => p.replace(/^[-•]\s*/, '').trim()));
-          } else {
-            generateVerdicts();
-          }
+          setSectionVerdicts(formattedVerdicts);
+
+          // Parse overall assessment
+          const assessment = existingVerdicts.overall_assessment || '';
+          const points = assessment.split('\n').filter((line: string) => line.trim().startsWith('-') || line.trim().startsWith('•'));
+          setOverallAssessment(points.map((p: string) => p.replace(/^[-•]\s*/, '').trim()));
         } else {
+          // Generate new verdicts
           generateVerdicts();
         }
       } catch (error) {
         console.error('Error fetching verdicts:', error);
+        toast({
+          title: 'Error Loading Analysis',
+          description: 'Could not load AI analysis. Please try again.',
+          variant: 'destructive',
+        });
       }
     };
 
@@ -92,37 +135,95 @@ const CompanyPage = () => {
     if (!id || isGenerating) return;
 
     setIsGenerating(true);
+    
+    toast({
+      title: 'Generating AI Analysis',
+      description: 'Please wait while we generate comprehensive verdicts...',
+    });
+
     try {
-      const { data, error } = await supabase.functions.invoke('generate-section-verdicts', {
+      const { data, error } = await supabase.functions.invoke('generate-ai-verdicts', {
         body: { companyId: id },
       });
 
-      if (error) throw error;
-
-      if (data?.verdicts) {
-        const formattedVerdicts: SectionVerdicts = {};
-        Object.keys(data.verdicts).forEach((key) => {
-          const scoreData = data.sections?.find((s: any) => s.name === key);
-          formattedVerdicts[key] = {
-            score: scoreData?.score || 0,
-            maxScore: 20,
-            verdict: data.verdicts[key],
-            detailedScores: scoreData?.detailedScores || {},
-          };
-        });
-
-        setSectionVerdicts(formattedVerdicts);
-
-        // Parse overall assessment
-        const assessment = data.overall_assessment || '';
-        const points = assessment.split('\n').filter((line: string) => line.trim().startsWith('-') || line.trim().startsWith('•'));
-        setOverallAssessment(points.map((p: string) => p.replace(/^[-•]\s*/, '').trim()));
+      if (error) {
+        throw new Error(error.message || 'Failed to invoke function');
       }
-    } catch (error) {
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Unknown error occurred');
+      }
+
+      const verdictData = data.data;
+
+      // Format verdicts
+      const formattedVerdicts: SectionVerdicts = {
+        'Problem Statement': {
+          score: verdictData.problem_statement_score || 0,
+          maxScore: 20,
+          verdict: verdictData.problem_statement_verdict || '',
+          detailedScores: verdictData.detailed_scores?.['Problem Statement'] || {},
+        },
+        'Solution': {
+          score: verdictData.solution_score || 0,
+          maxScore: 20,
+          verdict: verdictData.solution_verdict || '',
+          detailedScores: verdictData.detailed_scores?.['Solution'] || {},
+        },
+        'Market Understanding': {
+          score: verdictData.market_understanding_score || 0,
+          maxScore: 20,
+          verdict: verdictData.market_understanding_verdict || '',
+          detailedScores: verdictData.detailed_scores?.['Market Understanding'] || {},
+        },
+        'Customer Understanding': {
+          score: verdictData.customer_understanding_score || 0,
+          maxScore: 20,
+          verdict: verdictData.customer_understanding_verdict || '',
+          detailedScores: verdictData.detailed_scores?.['Customer Understanding'] || {},
+        },
+        'Competitor Understanding': {
+          score: verdictData.competitor_understanding_score || 0,
+          maxScore: 20,
+          verdict: verdictData.competitor_understanding_verdict || '',
+          detailedScores: verdictData.detailed_scores?.['Competitor Understanding'] || {},
+        },
+        'USP': {
+          score: verdictData.usp_score || 0,
+          maxScore: 20,
+          verdict: verdictData.usp_verdict || '',
+          detailedScores: verdictData.detailed_scores?.['USP'] || {},
+        },
+        'Vision': {
+          score: verdictData.vision_score || 0,
+          maxScore: 20,
+          verdict: verdictData.vision_verdict || '',
+          detailedScores: verdictData.detailed_scores?.['Vision'] || {},
+        },
+        'Technology Understanding': {
+          score: verdictData.technology_understanding_score || 0,
+          maxScore: 20,
+          verdict: verdictData.technology_understanding_verdict || '',
+          detailedScores: verdictData.detailed_scores?.['Technology Understanding'] || {},
+        },
+      };
+
+      setSectionVerdicts(formattedVerdicts);
+
+      // Parse overall assessment
+      const assessment = verdictData.overall_assessment || '';
+      const points = assessment.split('\n').filter((line: string) => line.trim().startsWith('-') || line.trim().startsWith('•'));
+      setOverallAssessment(points.map((p: string) => p.replace(/^[-•]\s*/, '').trim()));
+
+      toast({
+        title: 'Analysis Complete',
+        description: 'AI verdicts generated successfully!',
+      });
+    } catch (error: any) {
       console.error('Error generating verdicts:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to generate analysis verdicts',
+        title: 'Analysis Failed',
+        description: error.message || 'Failed to generate AI analysis. Please try again.',
         variant: 'destructive',
       });
     } finally {

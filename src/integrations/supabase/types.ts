@@ -1263,6 +1263,95 @@ export type Database = {
           },
         ]
       }
+      section_verdicts: {
+        Row: {
+          company_id: string
+          competitor_understanding_score: number | null
+          competitor_understanding_verdict: string | null
+          created_at: string | null
+          customer_understanding_score: number | null
+          customer_understanding_verdict: string | null
+          detailed_scores: Json | null
+          id: string
+          market_understanding_score: number | null
+          market_understanding_verdict: string | null
+          overall_assessment: string | null
+          overall_score: number | null
+          problem_statement_score: number | null
+          problem_statement_verdict: string | null
+          solution_score: number | null
+          solution_verdict: string | null
+          technology_understanding_score: number | null
+          technology_understanding_verdict: string | null
+          updated_at: string | null
+          user_id: string
+          usp_score: number | null
+          usp_verdict: string | null
+          vision_score: number | null
+          vision_verdict: string | null
+        }
+        Insert: {
+          company_id: string
+          competitor_understanding_score?: number | null
+          competitor_understanding_verdict?: string | null
+          created_at?: string | null
+          customer_understanding_score?: number | null
+          customer_understanding_verdict?: string | null
+          detailed_scores?: Json | null
+          id?: string
+          market_understanding_score?: number | null
+          market_understanding_verdict?: string | null
+          overall_assessment?: string | null
+          overall_score?: number | null
+          problem_statement_score?: number | null
+          problem_statement_verdict?: string | null
+          solution_score?: number | null
+          solution_verdict?: string | null
+          technology_understanding_score?: number | null
+          technology_understanding_verdict?: string | null
+          updated_at?: string | null
+          user_id: string
+          usp_score?: number | null
+          usp_verdict?: string | null
+          vision_score?: number | null
+          vision_verdict?: string | null
+        }
+        Update: {
+          company_id?: string
+          competitor_understanding_score?: number | null
+          competitor_understanding_verdict?: string | null
+          created_at?: string | null
+          customer_understanding_score?: number | null
+          customer_understanding_verdict?: string | null
+          detailed_scores?: Json | null
+          id?: string
+          market_understanding_score?: number | null
+          market_understanding_verdict?: string | null
+          overall_assessment?: string | null
+          overall_score?: number | null
+          problem_statement_score?: number | null
+          problem_statement_verdict?: string | null
+          solution_score?: number | null
+          solution_verdict?: string | null
+          technology_understanding_score?: number | null
+          technology_understanding_verdict?: string | null
+          updated_at?: string | null
+          user_id?: string
+          usp_score?: number | null
+          usp_verdict?: string | null
+          vision_score?: number | null
+          vision_verdict?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "section_verdicts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sections: {
         Row: {
           company_id: string
