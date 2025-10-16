@@ -215,20 +215,17 @@ Deno.serve(async (req) => {
       },
     ];
 
-    // Generate Gemini verdicts for each section using Gemini 2.5 Pro
+    // Generate all verdicts with a single Gemini API call using JSON output
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
     if (!GEMINI_API_KEY) {
       throw new Error('GEMINI_API_KEY not configured');
     }
 
-    const verdicts: Record<string, string> = {};
-    const sectionScores: Record<string, number> = {};
+    console.log('Generating all verdicts with single Gemini API call');
 
-    for (const section of sections) {
-      console.log(`Generating verdict for ${section.name}`);
-      
-      // Get the submission data for the section
-      const sectionData = {
+    // Build comprehensive prompt for all sections
+    const sectionsData = sections.map(section => {
+      const sectionContent = {
         'Problem Statement': submission?.problem_statement,
         'Solution': submission?.solution,
         'Market Understanding': submission?.market_understanding,
@@ -239,128 +236,124 @@ Deno.serve(async (req) => {
         'Technology Understanding': submission?.technical_understanding,
       }[section.name] || '';
 
-      const detailedScoresText = Object.entries(section.detailedScores)
+      const detailedScores = Object.entries(section.detailedScores)
         .map(([key, value]) => `${key}: ${value}/20`)
-        .join('\n');
+        .join(', ');
 
-      const prompt = `You are an expert venture capital analyst. Analyze this startup section and provide a comprehensive verdict.
+      return {
+        name: section.name,
+        score: section.score,
+        percentage: Math.round((section.score / 20) * 100),
+        detailedScores,
+        content: sectionContent,
+      };
+    });
 
-Company: ${company.name}
-Section: ${section.name}
-Overall Score: ${section.score}/20 (${Math.round((section.score / 20) * 100)}%)
-
-Detailed Scores:
-${detailedScoresText}
-
-Submission Content:
-${sectionData}
-
-Provide a 2-3 sentence analysis starting with "The score of ${section.score}/20 (${Math.round((section.score / 20) * 100)}%) was given because..." that:
-1. Explains the key strengths and critical weaknesses
-2. References specific details from the submission
-3. Provides actionable insights
-4. Uses a balanced, constructive tone
-
-Keep it concise and insightful.`;
-
-      try {
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{
-                parts: [{ text: prompt }]
-              }],
-              generationConfig: {
-                temperature: 0.7,
-                maxOutputTokens: 300,
-              },
-            }),
-          }
-        );
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`Gemini API error for ${section.name}:`, errorText);
-          verdicts[section.name] = `The score of ${section.score}/20 was given based on the evaluation metrics, but a detailed analysis could not be generated at this time.`;
-        } else {
-          const data = await response.json();
-          const verdict = data.candidates?.[0]?.content?.parts?.[0]?.text || 
-            `The score of ${section.score}/20 was given based on the evaluation metrics.`;
-          
-          verdicts[section.name] = verdict.trim();
-        }
-      } catch (error) {
-        console.error(`Error generating verdict for ${section.name}:`, error);
-        verdicts[section.name] = `The score of ${section.score}/20 was given based on the evaluation metrics.`;
-      }
-
-      sectionScores[section.name] = section.score;
-    }
-
-    // Generate overall assessment
-    console.log('Generating overall assessment');
-    const overallPrompt = `You are an expert venture capital analyst. Provide a comprehensive overall assessment for this startup.
+    const comprehensivePrompt = `You are an expert venture capital analyst. Analyze this startup comprehensively and provide verdicts for all sections plus an overall assessment.
 
 Company: ${company.name}
 Overall Score: ${evaluation.overall_average || 0}/20
 
-Section Scores:
-${sections.map(s => `- ${s.name}: ${s.score}/20 (${Math.round((s.score / 20) * 100)}%)`).join('\n')}
+SECTIONS TO ANALYZE:
 
-Problem Statement:
-${submission?.problem_statement || 'Not provided'}
+${sectionsData.map((s, idx) => `
+${idx + 1}. ${s.name}
+   Score: ${s.score}/20 (${s.percentage}%)
+   Detailed Scores: ${s.detailedScores}
+   Submission Content: ${s.content || 'Not provided'}
+`).join('\n')}
 
-Solution:
-${submission?.solution || 'Not provided'}
-
-AI Analysis Summary:
+PREVIOUS AI ANALYSIS:
 ${evaluation.ai_analysis_summary || 'Not available'}
 
-AI Recommendations:
+PREVIOUS RECOMMENDATIONS:
 ${evaluation.ai_recommendations || 'Not available'}
 
-Provide 4-6 concise bullet points that:
-1. Highlight key strengths with specific details
-2. Identify critical weaknesses and gaps
-3. Assess market opportunity and timing
-4. Evaluate competitive positioning
-5. Comment on team capability and vision
-6. Provide investment recommendation with rationale
+Generate a JSON response with the following structure. For each section verdict, provide a 2-3 sentence analysis starting with "The score of [X]/20 ([Y]%) was given because..." that explains key strengths, weaknesses, and actionable insights. For the overall assessment, provide 4-6 bullet points covering strengths, weaknesses, market opportunity, competitive positioning, and investment recommendation.
 
-Format as bullet points starting with "- " for each point.`;
+{
+  "verdicts": {
+    "Problem Statement": "verdict text here",
+    "Solution": "verdict text here",
+    "Market Understanding": "verdict text here",
+    "Customer Understanding": "verdict text here",
+    "Competitor Understanding": "verdict text here",
+    "USP": "verdict text here",
+    "Vision": "verdict text here",
+    "Technology Understanding": "verdict text here"
+  },
+  "overallAssessment": "Overall assessment with bullet points starting with - "
+}
 
-    let overallAssessment = evaluation.ai_analysis_summary || 'Assessment generating...';
+Return ONLY valid JSON, no markdown formatting or additional text.`;
+
+    let verdicts: Record<string, string> = {};
+    let overallAssessment = '';
+
     try {
-      const overallResponse = await fetch(
+      const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{
-              parts: [{ text: overallPrompt }]
+              parts: [{ text: comprehensivePrompt }]
             }],
             generationConfig: {
               temperature: 0.7,
-              maxOutputTokens: 800,
+              maxOutputTokens: 4096,
+              responseMimeType: "application/json",
             },
           }),
         }
       );
 
-      if (overallResponse.ok) {
-        const data = await overallResponse.json();
-        overallAssessment = data.candidates?.[0]?.content?.parts?.[0]?.text || overallAssessment;
-      } else {
-        const errorText = await overallResponse.text();
-        console.error('Error generating overall assessment:', errorText);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Gemini API error:', errorText);
+        throw new Error(`Gemini API failed: ${errorText}`);
       }
+
+      const data = await response.json();
+      const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      
+      if (!responseText) {
+        throw new Error('No response from Gemini API');
+      }
+
+      console.log('Raw Gemini response:', responseText);
+
+      // Parse JSON response
+      let parsedResponse;
+      try {
+        // Remove markdown code blocks if present
+        const cleanJson = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        parsedResponse = JSON.parse(cleanJson);
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError);
+        throw new Error('Failed to parse Gemini JSON response');
+      }
+
+      verdicts = parsedResponse.verdicts || {};
+      overallAssessment = parsedResponse.overallAssessment || evaluation.ai_analysis_summary || 'Assessment not available';
+
+      console.log('Successfully parsed verdicts from Gemini');
+
     } catch (error) {
-      console.error('Error generating overall assessment:', error);
+      console.error('Error generating verdicts with Gemini:', error);
+      
+      // Fallback verdicts
+      sections.forEach(section => {
+        verdicts[section.name] = `The score of ${section.score}/20 (${Math.round((section.score / 20) * 100)}%) was given based on the evaluation metrics.`;
+      });
+      overallAssessment = evaluation.ai_analysis_summary || 'Assessment could not be generated at this time.';
     }
+
+    const sectionScores: Record<string, number> = {};
+    sections.forEach(section => {
+      sectionScores[section.name] = section.score;
+    });
 
     // Calculate overall score
     const overallScore = sections.reduce((sum, s) => sum + s.score, 0) / sections.length;
