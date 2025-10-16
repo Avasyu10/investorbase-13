@@ -340,12 +340,27 @@ const StartupDashboard = () => {
                                     if (existingCompanies && existingCompanies.length > 0) {
                                       companyId = existingCompanies[0].id;
                                     } else {
-                                      // Create new company from submission data
-                                      const evaluation = evaluations?.find((e: any) => 
-                                        e.startup_submission_id === submission.id || e.startup_name === submission.startup_name
-                                      );
+                                       // Create new company from submission data
+                                       const evaluation = evaluations?.find((e: any) => 
+                                         e.startup_submission_id === submission.id || e.startup_name === submission.startup_name
+                                       );
 
-                                      const overallScore = evaluation?.overall_average || displayScore || 0;
+                                       // Calculate overall score from evaluation or fallback to display score
+                                       let overallScore = displayScore || 0;
+                                       if (evaluation) {
+                                         if (evaluation.overall_average) {
+                                           overallScore = evaluation.overall_average;
+                                         } else {
+                                           // Calculate from individual scores if overall_average is null
+                                           const scoreKeys = Object.keys(evaluation).filter(key => 
+                                             key.endsWith('_score') && evaluation[key] !== null
+                                           );
+                                           if (scoreKeys.length > 0) {
+                                             const sum = scoreKeys.reduce((acc, key) => acc + evaluation[key], 0);
+                                             overallScore = sum / scoreKeys.length;
+                                           }
+                                         }
+                                       }
 
                                       // Get full submission data
                                       const { data: fullSubmission } = await supabase

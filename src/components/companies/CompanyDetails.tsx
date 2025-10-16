@@ -87,10 +87,10 @@ const CompanyDetails = () => {
     return company.sections.find(section => section.type === 'SLIDE_NOTES');
   }, [company?.sections, isIITBombayUser]);
 
-  // Check if this company is from a BARC form submission
+  // Check if this company is from a BARC form submission and enrich if needed
   useEffect(() => {
     const checkBarcFormOrigin = async () => {
-      if (!id) return;
+      if (!id || !company) return;
       
       try {
         const { data: barcSubmission, error } = await supabase
@@ -102,13 +102,31 @@ const CompanyDetails = () => {
         if (!error && barcSubmission) {
           setIsFromBarcForm(true);
         }
+
+        // Enrich company data if response_received is null or empty
+        if (!company.response_received || company.response_received === 'null') {
+          console.log('Enriching company data...');
+          
+          const { data: enrichData, error: enrichError } = await supabase.functions.invoke(
+            'enrich-company-data',
+            { body: { companyId: id } }
+          );
+
+          if (enrichError) {
+            console.error('Error enriching company:', enrichError);
+          } else {
+            console.log('Company enriched successfully');
+            // Refresh the company data
+            queryClient.invalidateQueries({ queryKey: ['company', id] });
+          }
+        }
       } catch (error) {
         console.error('Error checking BARC form origin:', error);
       }
     };
 
     checkBarcFormOrigin();
-  }, [id]);
+  }, [id, company, queryClient]);
 
   // Use company data directly from useCompanyDetails if available
   useEffect(() => {
@@ -409,6 +427,161 @@ const CompanyDetails = () => {
                 )}
               </>
             )}
+            
+            {/* Submission Details Section - Show for all users */}
+            {company.response_received && company.response_received !== 'null' && (() => {
+              try {
+                const responseData = JSON.parse(company.response_received);
+                const submission = responseData?.submission;
+                const evaluation = responseData?.evaluation;
+                
+                if (!submission) return null;
+                
+                return (
+                  <div className="mt-8">
+                    <h2 className="text-xl sm:text-2xl font-semibold mb-6 flex items-center gap-2">
+                      <Briefcase className="h-5 w-5 text-primary" />
+                      Startup Details
+                    </h2>
+                    
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                      {/* Problem Statement */}
+                      {submission.problem_statement && (
+                        <Card className="border-0 shadow-subtle">
+                          <CardHeader>
+                            <CardTitle className="text-lg">Problem Statement</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-muted-foreground">{submission.problem_statement}</p>
+                          </CardContent>
+                        </Card>
+                      )}
+                      
+                      {/* Solution */}
+                      {submission.solution && (
+                        <Card className="border-0 shadow-subtle">
+                          <CardHeader>
+                            <CardTitle className="text-lg">Solution</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-muted-foreground">{submission.solution}</p>
+                          </CardContent>
+                        </Card>
+                      )}
+                      
+                      {/* Market Understanding */}
+                      {submission.market_understanding && (
+                        <Card className="border-0 shadow-subtle">
+                          <CardHeader>
+                            <CardTitle className="text-lg">Market Understanding</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-muted-foreground">{submission.market_understanding}</p>
+                          </CardContent>
+                        </Card>
+                      )}
+                      
+                      {/* Customer Understanding */}
+                      {submission.customer_understanding && (
+                        <Card className="border-0 shadow-subtle">
+                          <CardHeader>
+                            <CardTitle className="text-lg">Customer Understanding</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-muted-foreground">{submission.customer_understanding}</p>
+                          </CardContent>
+                        </Card>
+                      )}
+                      
+                      {/* Competitive Understanding */}
+                      {submission.competitive_understanding && (
+                        <Card className="border-0 shadow-subtle">
+                          <CardHeader>
+                            <CardTitle className="text-lg">Competitive Landscape</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-muted-foreground">{submission.competitive_understanding}</p>
+                          </CardContent>
+                        </Card>
+                      )}
+                      
+                      {/* USP */}
+                      {submission.unique_selling_proposition && (
+                        <Card className="border-0 shadow-subtle">
+                          <CardHeader>
+                            <CardTitle className="text-lg">Unique Selling Proposition</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-muted-foreground">{submission.unique_selling_proposition}</p>
+                          </CardContent>
+                        </Card>
+                      )}
+                      
+                      {/* Technical Understanding */}
+                      {submission.technical_understanding && (
+                        <Card className="border-0 shadow-subtle">
+                          <CardHeader>
+                            <CardTitle className="text-lg">Technical Approach</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-muted-foreground">{submission.technical_understanding}</p>
+                          </CardContent>
+                        </Card>
+                      )}
+                      
+                      {/* Vision */}
+                      {submission.vision && (
+                        <Card className="border-0 shadow-subtle">
+                          <CardHeader>
+                            <CardTitle className="text-lg">Vision</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-muted-foreground">{submission.vision}</p>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+                    
+                    {/* AI Evaluation Section */}
+                    {evaluation && (
+                      <div className="mt-8">
+                        <h2 className="text-xl sm:text-2xl font-semibold mb-6 flex items-center gap-2">
+                          <BotMessageSquare className="h-5 w-5 text-primary" />
+                          AI Evaluation
+                        </h2>
+                        
+                        {/* AI Analysis Summary */}
+                        {evaluation.ai_analysis_summary && (
+                          <Card className="border-0 shadow-subtle mb-6">
+                            <CardHeader>
+                              <CardTitle>Analysis Summary</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <p className="text-muted-foreground leading-relaxed">{evaluation.ai_analysis_summary}</p>
+                            </CardContent>
+                          </Card>
+                        )}
+                        
+                        {/* AI Recommendations */}
+                        {evaluation.ai_recommendations && (
+                          <Card className="border-0 shadow-subtle mb-6">
+                            <CardHeader>
+                              <CardTitle>Recommendations</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="text-muted-foreground leading-relaxed whitespace-pre-line">{evaluation.ai_recommendations}</div>
+                            </CardContent>
+                          </Card>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              } catch (error) {
+                console.error('Error parsing response_received:', error);
+                return null;
+              }
+            })()}
           </div>
         </div>
         
