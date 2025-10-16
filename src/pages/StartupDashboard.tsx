@@ -409,7 +409,7 @@ const StartupDashboard = () => {
                                     }
 
                                     if (companyId) {
-                                      navigate(`/company-details/${companyId}`);
+                                      navigate(`/company/${companyId}`);
                                     }
                                   } catch (err) {
                                     console.error('Navigation error:', err);
