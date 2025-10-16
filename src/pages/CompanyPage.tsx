@@ -1,39 +1,161 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useMemo, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, BarChart2, Lightbulb } from "lucide-react";
 import { useStartupDetails } from "@/hooks/useStartupDetails";
 import { CompanyInfoCard } from "@/components/companies/CompanyInfoCard";
-import { SectionCard } from "@/components/companies/SectionCard";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+interface SectionVerdict {
+  score: number;
+  maxScore: number;
+  verdict: string;
+}
+
+interface SectionVerdicts {
+  [key: string]: SectionVerdict;
+}
 
 const CompanyPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { company, isLoading } = useStartupDetails(id);
+  const [sectionVerdicts, setSectionVerdicts] = useState<SectionVerdicts | null>(null);
+  const [overallAssessment, setOverallAssessment] = useState<string[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedSection, setSelectedSection] = useState<{ name: string; data: SectionVerdict } | null>(null);
 
   // Scroll to top when component mounts
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
+  // Fetch or generate section verdicts
+  useEffect(() => {
+    const fetchVerdicts = async () => {
+      if (!id || !company) return;
+
+      try {
+        // Check if verdicts already exist
+        const { data: enrichment } = await supabase
+          .from('company_enrichment')
+          .select('enrichment_data')
+          .eq('company_id', id)
+          .maybeSingle();
+
+        if (enrichment?.enrichment_data) {
+          const enrichmentData = enrichment.enrichment_data as any;
+          
+          if (enrichmentData.section_verdicts) {
+            const verdicts = enrichmentData.section_verdicts;
+            const scores = enrichmentData.section_scores;
+            
+            const formattedVerdicts: SectionVerdicts = {};
+            Object.keys(verdicts).forEach((key) => {
+              const scoreData = scores?.find((s: any) => s.name === key);
+              formattedVerdicts[key] = {
+                score: scoreData?.score * 20 || 0,
+                maxScore: 100,
+                verdict: verdicts[key],
+              };
+            });
+
+            setSectionVerdicts(formattedVerdicts);
+
+            // Parse overall assessment
+            const assessment = enrichmentData.overall_assessment || '';
+            const points = assessment.split('\n').filter((line: string) => line.trim().startsWith('-') || line.trim().startsWith('•'));
+            setOverallAssessment(points.map((p: string) => p.replace(/^[-•]\s*/, '').trim()));
+          } else {
+            generateVerdicts();
+          }
+        } else {
+          generateVerdicts();
+        }
+      } catch (error) {
+        console.error('Error fetching verdicts:', error);
+      }
+    };
+
+    fetchVerdicts();
+  }, [id, company]);
+
+  const generateVerdicts = async () => {
+    if (!id || isGenerating) return;
+
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-section-verdicts', {
+        body: { companyId: id },
+      });
+
+      if (error) throw error;
+
+      if (data?.verdicts) {
+        const formattedVerdicts: SectionVerdicts = {};
+        Object.keys(data.verdicts).forEach((key) => {
+          const scoreData = data.sections?.find((s: any) => s.name === key);
+          formattedVerdicts[key] = {
+            score: scoreData?.score * 20 || 0,
+            maxScore: 100,
+            verdict: data.verdicts[key],
+          };
+        });
+
+        setSectionVerdicts(formattedVerdicts);
+
+        // Parse overall assessment
+        const assessment = data.overall_assessment || '';
+        const points = assessment.split('\n').filter((line: string) => line.trim().startsWith('-') || line.trim().startsWith('•'));
+        setOverallAssessment(points.map((p: string) => p.replace(/^[-•]\s*/, '').trim()));
+      }
+    } catch (error) {
+      console.error('Error generating verdicts:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to generate analysis verdicts',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const handleBack = useCallback(() => {
     navigate("/startup-dashboard");
   }, [navigate]);
 
-  const handleSectionClick = useCallback((sectionId: number | string) => {
-    // For now, just log - can implement section detail view later
-    console.log("Section clicked:", sectionId);
-  }, []);
-
-  // Calculate score color
+  // Calculate score color (for 100-point scale)
   const getScoreColor = (score: number) => {
-    if (score >= 16) return "text-emerald-600";
-    if (score >= 12) return "text-blue-600";
-    if (score >= 8) return "text-amber-600";
-    if (score >= 4) return "text-orange-600";
+    if (score >= 80) return "text-emerald-600";
+    if (score >= 60) return "text-blue-600";
+    if (score >= 40) return "text-amber-600";
+    if (score >= 20) return "text-orange-600";
     return "text-red-600";
+  };
+
+  // Get badge color for score
+  const getBadgeColor = (score: number) => {
+    if (score >= 80) return "bg-emerald-600 text-white hover:bg-emerald-700";
+    if (score >= 60) return "bg-blue-600 text-white hover:bg-blue-700";
+    if (score >= 40) return "bg-amber-600 text-white hover:bg-amber-700";
+    if (score >= 20) return "bg-orange-600 text-white hover:bg-orange-700";
+    return "bg-red-600 text-white hover:bg-red-700";
+  };
+
+  // Get progress bar color
+  const getProgressColor = (score: number) => {
+    if (score >= 80) return "bg-emerald-500";
+    if (score >= 60) return "bg-blue-500";
+    if (score >= 40) return "bg-amber-500";
+    if (score >= 20) return "bg-orange-500";
+    return "bg-red-500";
   };
 
   // Get score description
@@ -125,15 +247,19 @@ const CompanyPage = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-5">
-            {company.assessment_points && company.assessment_points.length > 0 ? (
+            {isGenerating ? (
+              <div className="flex items-center gap-3">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+                <p className="text-sm text-muted-foreground">Generating AI analysis...</p>
+              </div>
+            ) : overallAssessment.length > 0 ? (
               <div className="space-y-3">
-                {company.assessment_points.map((point, index) => (
+                {overallAssessment.map((point, index) => (
                   <div key={index} className="flex gap-3 items-start">
                     <Lightbulb className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                    <p 
-                      className="text-sm text-muted-foreground" 
-                      dangerouslySetInnerHTML={{ __html: highlightNumbers(point) }}
-                    />
+                    <p className="text-sm text-muted-foreground">
+                      {point}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -141,7 +267,7 @@ const CompanyPage = () => {
               <div className="flex gap-3 items-start">
                 <Lightbulb className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-muted-foreground">
-                  {company.enrichment ? "Generating detailed assessment..." : "Detailed assessment will be generated shortly..."}
+                  Detailed assessment will be generated shortly...
                 </p>
               </div>
             )}
@@ -176,19 +302,107 @@ const CompanyPage = () => {
           </Card>
         )}
 
-        {/* Sections */}
-        {company.sections && company.sections.length > 0 && (
-          <div className="space-y-4">
-            <h2 className="text-2xl font-semibold mb-4">Detailed Analysis</h2>
-            {company.sections.map((section: any) => (
-              <SectionCard
-                key={section.id}
-                section={section}
-                onClick={() => handleSectionClick(section.id)}
-              />
-            ))}
+        {/* Section Metrics */}
+        {sectionVerdicts && Object.keys(sectionVerdicts).length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
+              <BarChart2 className="h-6 w-6 text-primary" />
+              Section Metrics
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Object.entries(sectionVerdicts).map(([sectionName, data]) => (
+                <Card
+                  key={sectionName}
+                  className="border-0 shadow-card cursor-pointer hover:shadow-lg transition-shadow"
+                  onClick={() => setSelectedSection({ name: sectionName, data })}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between mb-3">
+                      <CardTitle className="text-lg font-semibold">
+                        {sectionName}
+                      </CardTitle>
+                      <Badge className={getBadgeColor(data.score)}>
+                        {data.score}/{data.maxScore}
+                      </Badge>
+                    </div>
+                    <div className="relative">
+                      <Progress 
+                        value={data.score} 
+                        className="h-2"
+                      />
+                      <div 
+                        className={`absolute top-0 left-0 h-2 rounded-full ${getProgressColor(data.score)}`}
+                        style={{ width: `${data.score}%` }}
+                      />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground line-clamp-4">
+                      {data.verdict}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         )}
+
+        {/* Section Detail Dialog */}
+        <Dialog open={!!selectedSection} onOpenChange={(open) => !open && setSelectedSection(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center justify-between">
+                <span>{selectedSection?.name}</span>
+                {selectedSection && (
+                  <Badge className={getBadgeColor(selectedSection.data.score)}>
+                    {selectedSection.data.score}/{selectedSection.data.maxScore}
+                  </Badge>
+                )}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="mt-4">
+              {selectedSection && (
+                <>
+                  <div className="mb-4">
+                    <div className="relative">
+                      <Progress 
+                        value={selectedSection.data.score} 
+                        className="h-3"
+                      />
+                      <div 
+                        className={`absolute top-0 left-0 h-3 rounded-full ${getProgressColor(selectedSection.data.score)}`}
+                        style={{ width: `${selectedSection.data.score}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div className="prose prose-sm max-w-none dark:prose-invert">
+                    <p className="text-muted-foreground whitespace-pre-line">
+                      {selectedSection.data.verdict}
+                    </p>
+                  </div>
+                  {company.evaluation && (
+                    <div className="mt-6 pt-6 border-t">
+                      <h4 className="font-semibold mb-3">Detailed Scores</h4>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        {Object.entries(company.evaluation)
+                          .filter(([key, value]) => key.endsWith('_score') && value !== null)
+                          .map(([key, value]) => (
+                            <div key={key} className="flex justify-between">
+                              <span className="text-muted-foreground">
+                                {key.replace(/_score$/, '').replace(/_/g, ' ')}:
+                              </span>
+                              <span className="font-medium">{value}/5</span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

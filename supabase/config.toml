@@ -9,6 +9,9 @@ verify_jwt = false
 [functions.enrich-company-data]
 verify_jwt = false
 
+[functions.generate-section-verdicts]
+verify_jwt = false
+
 [functions.gemini-enrich-company]
 verify_jwt = false
 
