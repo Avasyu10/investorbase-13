@@ -602,8 +602,12 @@ const CompanyDetails = () => {
                     });
                     
                     try {
+                      const assessmentText = company?.assessment_points?.join(', ') || company?.name || '';
                       const { error } = await supabase.functions.invoke('research-with-perplexity', {
-                        body: { companyId: id }
+                        body: { 
+                          companyId: id,
+                          assessmentText: assessmentText
+                        }
                       });
                       
                       if (error) throw error;

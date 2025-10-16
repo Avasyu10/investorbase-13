@@ -7,4 +7,10 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.enrich-company-data]
-verify_jwt = true
+verify_jwt = false
+
+[functions.gemini-enrich-company]
+verify_jwt = false
+
+[functions.research-with-perplexity]
+verify_jwt = false

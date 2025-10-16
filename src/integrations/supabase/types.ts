@@ -308,6 +308,56 @@ export type Database = {
           },
         ]
       }
+      company_enrichment: {
+        Row: {
+          company_id: string
+          competitive_landscape: string | null
+          created_at: string | null
+          enrichment_data: Json | null
+          growth_potential: string | null
+          id: string
+          investment_thesis: string | null
+          market_analysis: string | null
+          risk_factors: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          competitive_landscape?: string | null
+          created_at?: string | null
+          enrichment_data?: Json | null
+          growth_potential?: string | null
+          id?: string
+          investment_thesis?: string | null
+          market_analysis?: string | null
+          risk_factors?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          competitive_landscape?: string | null
+          created_at?: string | null
+          enrichment_data?: Json | null
+          growth_potential?: string | null
+          id?: string
+          investment_thesis?: string | null
+          market_analysis?: string | null
+          risk_factors?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_enrichment_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_scrapes: {
         Row: {
           company_id: string | null

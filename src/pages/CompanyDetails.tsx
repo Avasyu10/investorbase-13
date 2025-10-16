@@ -303,8 +303,12 @@ function CompanyDetails() {
                     });
                     
                     try {
+                      const assessmentText = company.assessment_points?.join(', ') || company.name;
                       const { error } = await supabase.functions.invoke('research-with-perplexity', {
-                        body: { companyId: company.id }
+                        body: { 
+                          companyId: company.id,
+                          assessmentText: assessmentText
+                        }
                       });
                       
                       if (error) throw error;
