@@ -15,6 +15,7 @@ interface SectionVerdict {
   score: number;
   maxScore: number;
   verdict: string;
+  detailedScores?: { [key: string]: number };
 }
 
 interface SectionVerdicts {
@@ -60,9 +61,10 @@ const CompanyPage = () => {
             Object.keys(verdicts).forEach((key) => {
               const scoreData = scores?.find((s: any) => s.name === key);
               formattedVerdicts[key] = {
-                score: scoreData?.score * 20 || 0,
-                maxScore: 100,
+                score: scoreData?.score || 0,
+                maxScore: 20,
                 verdict: verdicts[key],
+                detailedScores: scoreData?.detailedScores || {},
               };
             });
 
@@ -102,9 +104,10 @@ const CompanyPage = () => {
         Object.keys(data.verdicts).forEach((key) => {
           const scoreData = data.sections?.find((s: any) => s.name === key);
           formattedVerdicts[key] = {
-            score: scoreData?.score * 20 || 0,
-            maxScore: 100,
+            score: scoreData?.score || 0,
+            maxScore: 20,
             verdict: data.verdicts[key],
+            detailedScores: scoreData?.detailedScores || {},
           };
         });
 
@@ -131,31 +134,39 @@ const CompanyPage = () => {
     navigate("/startup-dashboard");
   }, [navigate]);
 
-  // Calculate score color (for 100-point scale)
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-emerald-600";
-    if (score >= 60) return "text-blue-600";
-    if (score >= 40) return "text-amber-600";
-    if (score >= 20) return "text-orange-600";
+  // Calculate score color (for 20-point scale)
+  const getScoreColor = (score: number, maxScore: number = 20) => {
+    const percentage = (score / maxScore) * 100;
+    if (percentage >= 80) return "text-emerald-600";
+    if (percentage >= 60) return "text-blue-600";
+    if (percentage >= 40) return "text-amber-600";
+    if (percentage >= 20) return "text-orange-600";
     return "text-red-600";
   };
 
   // Get badge color for score
-  const getBadgeColor = (score: number) => {
-    if (score >= 80) return "bg-emerald-600 text-white hover:bg-emerald-700";
-    if (score >= 60) return "bg-blue-600 text-white hover:bg-blue-700";
-    if (score >= 40) return "bg-amber-600 text-white hover:bg-amber-700";
-    if (score >= 20) return "bg-orange-600 text-white hover:bg-orange-700";
+  const getBadgeColor = (score: number, maxScore: number = 20) => {
+    const percentage = (score / maxScore) * 100;
+    if (percentage >= 80) return "bg-emerald-600 text-white hover:bg-emerald-700";
+    if (percentage >= 60) return "bg-blue-600 text-white hover:bg-blue-700";
+    if (percentage >= 40) return "bg-amber-600 text-white hover:bg-amber-700";
+    if (percentage >= 20) return "bg-orange-600 text-white hover:bg-orange-700";
     return "bg-red-600 text-white hover:bg-red-700";
   };
 
   // Get progress bar color
-  const getProgressColor = (score: number) => {
-    if (score >= 80) return "bg-emerald-500";
-    if (score >= 60) return "bg-blue-500";
-    if (score >= 40) return "bg-amber-500";
-    if (score >= 20) return "bg-orange-500";
+  const getProgressColor = (score: number, maxScore: number = 20) => {
+    const percentage = (score / maxScore) * 100;
+    if (percentage >= 80) return "bg-emerald-500";
+    if (percentage >= 60) return "bg-blue-500";
+    if (percentage >= 40) return "bg-amber-500";
+    if (percentage >= 20) return "bg-orange-500";
     return "bg-red-500";
+  };
+
+  // Calculate percentage from score
+  const getScorePercentage = (score: number, maxScore: number = 20) => {
+    return Math.round((score / maxScore) * 100);
   };
 
   // Get score description
@@ -311,51 +322,57 @@ const CompanyPage = () => {
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {Object.entries(sectionVerdicts).map(([sectionName, data]) => (
-                <Card
-                  key={sectionName}
-                  className="border-0 shadow-card cursor-pointer hover:shadow-lg transition-shadow"
-                  onClick={() => setSelectedSection({ name: sectionName, data })}
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between mb-3">
-                      <CardTitle className="text-lg font-semibold">
-                        {sectionName}
-                      </CardTitle>
-                      <Badge className={getBadgeColor(data.score)}>
-                        {data.score}/{data.maxScore}
-                      </Badge>
-                    </div>
-                    <div className="relative">
-                      <Progress 
-                        value={data.score} 
-                        className="h-2"
-                      />
-                      <div 
-                        className={`absolute top-0 left-0 h-2 rounded-full ${getProgressColor(data.score)}`}
-                        style={{ width: `${data.score}%` }}
-                      />
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground line-clamp-4">
-                      {data.verdict}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
+              {Object.entries(sectionVerdicts).map(([sectionName, data]) => {
+                const percentage = getScorePercentage(data.score, data.maxScore);
+                return (
+                  <Card
+                    key={sectionName}
+                    className="border-0 shadow-card cursor-pointer hover:shadow-lg transition-shadow"
+                    onClick={() => setSelectedSection({ name: sectionName, data })}
+                  >
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between mb-3">
+                        <CardTitle className="text-lg font-semibold">
+                          {sectionName}
+                        </CardTitle>
+                        <Badge className={getBadgeColor(data.score, data.maxScore)}>
+                          {data.score}/{data.maxScore}
+                        </Badge>
+                      </div>
+                      <div className="relative">
+                        <Progress 
+                          value={percentage} 
+                          className="h-2"
+                        />
+                        <div 
+                          className={`absolute top-0 left-0 h-2 rounded-full ${getProgressColor(data.score, data.maxScore)}`}
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {percentage}% Score
+                      </p>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground line-clamp-4">
+                        {data.verdict}
+                      </p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           </div>
         )}
 
         {/* Section Detail Dialog */}
         <Dialog open={!!selectedSection} onOpenChange={(open) => !open && setSelectedSection(null)}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center justify-between">
                 <span>{selectedSection?.name}</span>
                 {selectedSection && (
-                  <Badge className={getBadgeColor(selectedSection.data.score)}>
+                  <Badge className={getBadgeColor(selectedSection.data.score, selectedSection.data.maxScore)}>
                     {selectedSection.data.score}/{selectedSection.data.maxScore}
                   </Badge>
                 )}
@@ -364,37 +381,65 @@ const CompanyPage = () => {
             <div className="mt-4">
               {selectedSection && (
                 <>
-                  <div className="mb-4">
+                  <div className="mb-6 p-4 bg-muted rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-muted-foreground">Overall Score</span>
+                      <span className={`text-2xl font-bold ${getScoreColor(selectedSection.data.score, selectedSection.data.maxScore)}`}>
+                        {getScorePercentage(selectedSection.data.score, selectedSection.data.maxScore)}%
+                      </span>
+                    </div>
                     <div className="relative">
                       <Progress 
-                        value={selectedSection.data.score} 
+                        value={getScorePercentage(selectedSection.data.score, selectedSection.data.maxScore)} 
                         className="h-3"
                       />
                       <div 
-                        className={`absolute top-0 left-0 h-3 rounded-full ${getProgressColor(selectedSection.data.score)}`}
-                        style={{ width: `${selectedSection.data.score}%` }}
+                        className={`absolute top-0 left-0 h-3 rounded-full ${getProgressColor(selectedSection.data.score, selectedSection.data.maxScore)}`}
+                        style={{ width: `${getScorePercentage(selectedSection.data.score, selectedSection.data.maxScore)}%` }}
                       />
                     </div>
                   </div>
-                  <div className="prose prose-sm max-w-none dark:prose-invert">
-                    <p className="text-muted-foreground whitespace-pre-line">
+                  
+                  <div className="mb-6">
+                    <h4 className="font-semibold mb-3 flex items-center gap-2">
+                      <Lightbulb className="h-5 w-5" />
+                      AI Verdict
+                    </h4>
+                    <p className="text-sm text-muted-foreground whitespace-pre-line">
                       {selectedSection.data.verdict}
                     </p>
                   </div>
-                  {company.evaluation && (
-                    <div className="mt-6 pt-6 border-t">
-                      <h4 className="font-semibold mb-3">Detailed Scores</h4>
-                      <div className="grid grid-cols-2 gap-3 text-sm">
-                        {Object.entries(company.evaluation)
-                          .filter(([key, value]) => key.endsWith('_score') && value !== null)
-                          .map(([key, value]) => (
-                            <div key={key} className="flex justify-between">
-                              <span className="text-muted-foreground">
-                                {key.replace(/_score$/, '').replace(/_/g, ' ')}:
-                              </span>
-                              <span className="font-medium">{value}/5</span>
+
+                  {selectedSection.data.detailedScores && Object.keys(selectedSection.data.detailedScores).length > 0 && (
+                    <div>
+                      <h4 className="font-semibold mb-3 flex items-center gap-2">
+                        <BarChart2 className="h-5 w-5" />
+                        Detailed Score Breakdown
+                      </h4>
+                      <div className="space-y-3">
+                        {Object.entries(selectedSection.data.detailedScores).map(([metric, score]) => {
+                          const percentage = getScorePercentage(score as number, 20);
+                          return (
+                            <div key={metric} className="space-y-1">
+                              <div className="flex justify-between text-sm">
+                                <span className="font-medium">{metric}</span>
+                                <span className={`font-semibold ${getScoreColor(score as number, 20)}`}>
+                                  {score}/20 ({percentage}%)
+                                </span>
+                              </div>
+                              <div className="relative">
+                                <Progress 
+                                  value={percentage} 
+                                  className="h-2"
+                                />
+                                <div 
+                                  className={`absolute top-0 left-0 h-2 rounded-full ${getProgressColor(score as number, 20)}`}
+                                  style={{ width: `${percentage}%` }}
+                                />
+                              </div>
                             </div>
-                          ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}

@@ -9,6 +9,7 @@ interface SectionScore {
   name: string;
   score: number;
   maxScore: number;
+  detailedScores: { [key: string]: number };
 }
 
 Deno.serve(async (req) => {
@@ -30,69 +31,124 @@ Deno.serve(async (req) => {
 
     console.log('Generating section verdicts for company:', companyId);
 
-    // Get company and evaluation data
-    const { data: company } = await supabaseClient
+    // Get company data with user_id
+    const { data: company, error: companyError } = await supabaseClient
       .from('companies')
-      .select('name, response_received')
+      .select('name, user_id')
       .eq('id', companyId)
       .single();
 
-    if (!company || !company.response_received) {
-      throw new Error('Company data not found');
+    if (companyError || !company) {
+      throw new Error('Company not found: ' + (companyError?.message || 'Unknown error'));
     }
 
-    const responseData = JSON.parse(company.response_received);
-    const evaluation = responseData.evaluation;
-    const submission = responseData.submission;
+    // Get startup submission
+    const { data: submission, error: submissionError } = await supabaseClient
+      .from('startup_submissions')
+      .select('*')
+      .eq('startup_name', company.name)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    if (!evaluation) {
-      throw new Error('No evaluation found');
+    if (submissionError) {
+      console.error('Error fetching submission:', submissionError);
     }
 
-    // Map evaluation scores to section data
+    // Get submission evaluation with all detailed scores
+    const { data: evaluation, error: evaluationError } = await supabaseClient
+      .from('submission_evaluations')
+      .select('*')
+      .or(`startup_submission_id.eq.${submission?.id},startup_name.eq.${company.name}`)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (evaluationError || !evaluation) {
+      throw new Error('Evaluation not found: ' + (evaluationError?.message || 'No evaluation data'));
+    }
+
+    // Calculate section scores (all scores are out of 20, average them)
     const sections: SectionScore[] = [
       {
-        name: 'Problem & Solution',
+        name: 'Problem Statement',
         score: Math.round(
           ((evaluation.existence_score || 0) +
             (evaluation.severity_score || 0) +
             (evaluation.frequency_score || 0) +
-            (evaluation.direct_fit_score || 0) +
+            (evaluation.unmet_need_score || 0)) / 4
+        ),
+        maxScore: 20,
+        detailedScores: {
+          'Existence Score': evaluation.existence_score || 0,
+          'Severity Score': evaluation.severity_score || 0,
+          'Frequency Score': evaluation.frequency_score || 0,
+          'Unmet Need Score': evaluation.unmet_need_score || 0,
+        },
+      },
+      {
+        name: 'Solution',
+        score: Math.round(
+          ((evaluation.direct_fit_score || 0) +
             (evaluation.differentiation_score || 0) +
             (evaluation.feasibility_score || 0) +
-            (evaluation.effectiveness_score || 0)) / 7
+            (evaluation.effectiveness_score || 0)) / 4
         ),
-        maxScore: 5,
+        maxScore: 20,
+        detailedScores: {
+          'Direct Fit Score': evaluation.direct_fit_score || 0,
+          'Differentiation Score': evaluation.differentiation_score || 0,
+          'Feasibility Score': evaluation.feasibility_score || 0,
+          'Effectiveness Score': evaluation.effectiveness_score || 0,
+        },
       },
       {
-        name: 'Target Customers',
-        score: Math.round(
-          ((evaluation.first_customers_score || 0) +
-            (evaluation.accessibility_score || 0) +
-            (evaluation.acquisition_approach_score || 0) +
-            (evaluation.pain_recognition_score || 0)) / 4
-        ),
-        maxScore: 5,
-      },
-      {
-        name: 'Competitors',
-        score: Math.round(
-          ((evaluation.direct_competitors_score || 0) +
-            (evaluation.substitutes_score || 0) +
-            (evaluation.differentiation_vs_players_score || 0) +
-            (evaluation.dynamics_score || 0)) / 4
-        ),
-        maxScore: 5,
-      },
-      {
-        name: 'Revenue Model',
+        name: 'Market Understanding',
         score: Math.round(
           ((evaluation.market_size_score || 0) +
             (evaluation.growth_trajectory_score || 0) +
             (evaluation.timing_readiness_score || 0) +
             (evaluation.external_catalysts_score || 0)) / 4
         ),
-        maxScore: 5,
+        maxScore: 20,
+        detailedScores: {
+          'Market Size Score': evaluation.market_size_score || 0,
+          'Growth Trajectory Score': evaluation.growth_trajectory_score || 0,
+          'Timing Readiness Score': evaluation.timing_readiness_score || 0,
+          'External Catalysts Score': evaluation.external_catalysts_score || 0,
+        },
+      },
+      {
+        name: 'Customer Understanding',
+        score: Math.round(
+          ((evaluation.first_customers_score || 0) +
+            (evaluation.accessibility_score || 0) +
+            (evaluation.acquisition_approach_score || 0) +
+            (evaluation.pain_recognition_score || 0)) / 4
+        ),
+        maxScore: 20,
+        detailedScores: {
+          'First Customers Score': evaluation.first_customers_score || 0,
+          'Accessibility Score': evaluation.accessibility_score || 0,
+          'Acquisition Approach Score': evaluation.acquisition_approach_score || 0,
+          'Pain Recognition Score': evaluation.pain_recognition_score || 0,
+        },
+      },
+      {
+        name: 'Competitor Understanding',
+        score: Math.round(
+          ((evaluation.direct_competitors_score || 0) +
+            (evaluation.substitutes_score || 0) +
+            (evaluation.differentiation_vs_players_score || 0) +
+            (evaluation.dynamics_score || 0)) / 4
+        ),
+        maxScore: 20,
+        detailedScores: {
+          'Direct Competitors Score': evaluation.direct_competitors_score || 0,
+          'Substitutes Score': evaluation.substitutes_score || 0,
+          'Differentiation vs Players Score': evaluation.differentiation_vs_players_score || 0,
+          'Dynamics Score': evaluation.dynamics_score || 0,
+        },
       },
       {
         name: 'USP',
@@ -102,17 +158,45 @@ Deno.serve(async (req) => {
             (evaluation.usp_defensibility_score || 0) +
             (evaluation.usp_alignment_score || 0)) / 4
         ),
-        maxScore: 5,
+        maxScore: 20,
+        detailedScores: {
+          'USP Clarity Score': evaluation.usp_clarity_score || 0,
+          'USP Differentiation Strength Score': evaluation.usp_differentiation_strength_score || 0,
+          'USP Defensibility Score': evaluation.usp_defensibility_score || 0,
+          'USP Alignment Score': evaluation.usp_alignment_score || 0,
+        },
       },
       {
-        name: 'Prototype',
+        name: 'Vision',
+        score: Math.round(
+          ((evaluation.tech_vision_ambition_score || 0) +
+            (evaluation.tech_coherence_score || 0) +
+            (evaluation.tech_alignment_score || 0) +
+            (evaluation.tech_realism_score || 0)) / 4
+        ),
+        maxScore: 20,
+        detailedScores: {
+          'Vision Ambition Score': evaluation.tech_vision_ambition_score || 0,
+          'Tech Coherence Score': evaluation.tech_coherence_score || 0,
+          'Tech Alignment Score': evaluation.tech_alignment_score || 0,
+          'Tech Realism Score': evaluation.tech_realism_score || 0,
+        },
+      },
+      {
+        name: 'Technology Understanding',
         score: Math.round(
           ((evaluation.tech_feasibility_score || 0) +
             (evaluation.tech_components_score || 0) +
             (evaluation.tech_complexity_awareness_score || 0) +
             (evaluation.tech_roadmap_score || 0)) / 4
         ),
-        maxScore: 5,
+        maxScore: 20,
+        detailedScores: {
+          'Tech Feasibility Score': evaluation.tech_feasibility_score || 0,
+          'Tech Components Score': evaluation.tech_components_score || 0,
+          'Tech Complexity Awareness Score': evaluation.tech_complexity_awareness_score || 0,
+          'Tech Roadmap Score': evaluation.tech_roadmap_score || 0,
+        },
       },
     ];
 
@@ -125,28 +209,44 @@ Deno.serve(async (req) => {
     const verdicts: Record<string, string> = {};
 
     for (const section of sections) {
-      const prompt = `You are an expert venture capital analyst. Analyze the following startup section and provide a critical verdict explaining why the score was given.
+      // Get the submission data for the section
+      const sectionData = {
+        'Problem Statement': submission?.problem_statement,
+        'Solution': submission?.solution,
+        'Market Understanding': submission?.market_understanding,
+        'Customer Understanding': submission?.customer_understanding,
+        'Competitor Understanding': submission?.competitive_understanding,
+        'USP': submission?.unique_selling_proposition,
+        'Vision': submission?.vision,
+        'Technology Understanding': submission?.technical_understanding,
+      }[section.name] || '';
+
+      const detailedScoresText = Object.entries(section.detailedScores)
+        .map(([key, value]) => `${key}: ${value}/20`)
+        .join('\n');
+
+      const prompt = `You are an expert venture capital analyst. Analyze this startup section and provide a comprehensive verdict.
 
 Company: ${company.name}
 Section: ${section.name}
-Score: ${section.score}/${section.maxScore}
+Overall Score: ${section.score}/20 (${Math.round((section.score / 20) * 100)}%)
 
-Submission Data:
-${JSON.stringify(submission, null, 2)}
+Detailed Scores:
+${detailedScoresText}
 
-Evaluation Scores:
-${JSON.stringify(evaluation, null, 2)}
+Submission Content:
+${sectionData}
 
-Provide a single paragraph (2-3 sentences) starting with "The score of ${section.score * 20} was given because..." that:
-1. Explains the key strengths and weaknesses
-2. Mentions specific details from the submission
-3. Provides concrete, actionable insights
-4. Uses a critical but constructive tone
+Provide a 2-3 sentence analysis starting with "The score of ${section.score}/20 (${Math.round((section.score / 20) * 100)}%) was given because..." that:
+1. Explains the key strengths and critical weaknesses
+2. References specific details from the submission
+3. Provides actionable insights
+4. Uses a balanced, constructive tone
 
-Keep it concise, specific, and insightful.`;
+Keep it concise and insightful.`;
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -164,13 +264,13 @@ Keep it concise, specific, and insightful.`;
 
       if (!response.ok) {
         console.error('Gemini API error:', await response.text());
-        verdicts[section.name] = `The score of ${section.score * 20} was given based on the evaluation metrics, but a detailed analysis could not be generated at this time.`;
+        verdicts[section.name] = `The score of ${section.score}/20 was given based on the evaluation metrics, but a detailed analysis could not be generated at this time.`;
         continue;
       }
 
       const data = await response.json();
       const verdict = data.candidates?.[0]?.content?.parts?.[0]?.text || 
-        `The score of ${section.score * 20} was given based on the evaluation metrics.`;
+        `The score of ${section.score}/20 was given based on the evaluation metrics.`;
       
       verdicts[section.name] = verdict.trim();
     }
@@ -182,10 +282,13 @@ Company: ${company.name}
 Overall Score: ${evaluation.overall_average || 0}/20
 
 Section Scores:
-${sections.map(s => `- ${s.name}: ${s.score * 20}/100`).join('\n')}
+${sections.map(s => `- ${s.name}: ${s.score}/20 (${Math.round((s.score / 20) * 100)}%)`).join('\n')}
 
-Submission Data:
-${JSON.stringify(submission, null, 2)}
+Problem Statement:
+${submission?.problem_statement || 'Not provided'}
+
+Solution:
+${submission?.solution || 'Not provided'}
 
 AI Analysis Summary:
 ${evaluation.ai_analysis_summary || 'Not available'}
@@ -193,17 +296,18 @@ ${evaluation.ai_analysis_summary || 'Not available'}
 AI Recommendations:
 ${evaluation.ai_recommendations || 'Not available'}
 
-Provide 3-5 concise bullet points that:
+Provide 4-6 concise bullet points that:
 1. Highlight key strengths with specific details
 2. Identify critical weaknesses and gaps
 3. Assess market opportunity and timing
 4. Evaluate competitive positioning
-5. Provide investment recommendation
+5. Comment on team capability and vision
+6. Provide investment recommendation with rationale
 
-Format each point as a complete sentence with specific insights.`;
+Format as bullet points starting with "- " for each point.`;
 
     const overallResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -213,7 +317,7 @@ Format each point as a complete sentence with specific insights.`;
           }],
           generationConfig: {
             temperature: 0.7,
-            maxOutputTokens: 600,
+            maxOutputTokens: 800,
           },
         }),
       }
@@ -223,14 +327,16 @@ Format each point as a complete sentence with specific insights.`;
     if (overallResponse.ok) {
       const data = await overallResponse.json();
       overallAssessment = data.candidates?.[0]?.content?.parts?.[0]?.text || overallAssessment;
+    } else {
+      console.error('Error generating overall assessment:', await overallResponse.text());
     }
 
-    // Store in company_enrichment table
+    // Store in company_enrichment table with proper user_id
     const { error: enrichError } = await supabaseClient
       .from('company_enrichment')
       .upsert({
         company_id: companyId,
-        user_id: responseData.user_id || company.user_id,
+        user_id: company.user_id,
         enrichment_data: {
           section_verdicts: verdicts,
           section_scores: sections,
