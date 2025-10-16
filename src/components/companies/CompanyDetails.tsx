@@ -50,33 +50,6 @@ const CompanyDetails = () => {
     };
   }, [company]);
 
-  // Check if current user is IIT Bombay user
-  useEffect(() => {
-    const checkUserType = async () => {
-      if (!user) return;
-      
-      try {
-        const { data: userProfile } = await supabase
-          .from('profiles')
-          .select('is_iitbombay')
-          .eq('id', user.id)
-          .single();
-        
-        const isIITBombay = userProfile?.is_iitbombay || false;
-        
-        // Redirect non-IIT Bombay users to the dedicated company details page
-        if (!isIITBombay && id) {
-          navigate(`/company-details/${id}`, { replace: true });
-          return;
-        }
-      } catch (error) {
-        console.error('Error checking user type:', error);
-      }
-    };
-
-    checkUserType();
-  }, [user, id, navigate]);
-
   // Memoize sorted sections for better performance, filtering out slide notes for IIT Bombay users
   const sortedSections = useMemo(() => {
     if (!company?.sections) return [];
