@@ -1,39 +1,56 @@
-
-import CompanyDetails from "@/components/companies/CompanyDetails";
-import { useParams } from "react-router-dom";
-import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
-import { InvestorResearch } from "@/components/companies/InvestorResearch";
-import { supabase } from "@/integrations/supabase/client";
+import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useCallback } from "react";
+import { Progress } from "@/components/ui/progress";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, BarChart2, Lightbulb } from "lucide-react";
+import { useStartupDetails } from "@/hooks/useStartupDetails";
+import { CompanyInfoCard } from "@/components/companies/CompanyInfoCard";
+import { SectionCard } from "@/components/companies/SectionCard";
 
 const CompanyPage = () => {
   const { id } = useParams<{ id: string }>();
-  const [isInvestorResearchModalOpen, setIsInvestorResearchModalOpen] = useState(false);
-  const { company, isLoading } = useCompanyDetails(id);
-  const [userId, setUserId] = useState<string | null>(null);
-  
-  // Get user ID
-  useEffect(() => {
-    const getUser = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          setUserId(user.id);
-        }
-      } catch (error) {
-        console.error('Error getting user:', error);
-      }
-    };
-    
-    getUser();
-  }, []);
-  
+  const navigate = useNavigate();
+  const { company, isLoading } = useStartupDetails(id);
+
   // Scroll to top when component mounts
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
-  
+
+  const handleBack = useCallback(() => {
+    navigate("/startup-dashboard");
+  }, [navigate]);
+
+  const handleSectionClick = useCallback((sectionId: number | string) => {
+    // For now, just log - can implement section detail view later
+    console.log("Section clicked:", sectionId);
+  }, []);
+
+  // Calculate score color
+  const getScoreColor = (score: number) => {
+    if (score >= 16) return "text-emerald-600";
+    if (score >= 12) return "text-blue-600";
+    if (score >= 8) return "text-amber-600";
+    if (score >= 4) return "text-orange-600";
+    return "text-red-600";
+  };
+
+  // Get score description
+  const getScoreDescription = (score: number): string => {
+    if (score >= 16) return `Excellent Potential (${Math.round(score)}/20): Outstanding startup with exceptional potential and strong fundamentals.`;
+    if (score >= 12) return `Good Potential (${Math.round(score)}/20): Solid startup with good potential. Worth serious consideration.`;
+    if (score >= 8) return `Average Potential (${Math.round(score)}/20): Decent fundamentals but areas need improvement.`;
+    if (score >= 4) return `Below Average (${Math.round(score)}/20): Significant concerns exist. Requires improvement.`;
+    return `Poor Prospect (${Math.round(score)}/20): Major deficiencies across multiple areas.`;
+  };
+
+  // Highlight numbers in assessment points
+  const highlightNumbers = (text: string) => {
+    return text.replace(/(\d+(?:\.\d+)?%?|\$\d+(?:\.\d+)?[KMBTkmbt]?|\d+(?:\.\d+)?[KMBTkmbt])/g, 
+      (match) => `<span class="font-medium text-primary">${match}</span>`);
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -56,35 +73,123 @@ const CompanyPage = () => {
       </div>
     );
   }
-  
+
+  const displayScore = company.overall_score;
+  const formattedScore = Math.round(displayScore);
+
   return (
-    <div className="animate-fade-in pt-0">      
-      <CompanyDetails />
-      
-      {/* Investor Research Modal */}
-      <Dialog open={isInvestorResearchModalOpen} onOpenChange={setIsInvestorResearchModalOpen}>
-        <DialogContent className="max-w-4xl w-[95vw]">
-          <DialogHeader>
-            <DialogTitle className="text-xl flex items-center gap-2">
-              <span className="h-5 w-5 text-[#1EAEDB]"></span>
-              Investor Research
-            </DialogTitle>
-            <DialogDescription>
-              Comprehensive investor-focused research and analysis for this company
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="mt-4">
-            {company && userId && (
-              <InvestorResearch 
-                companyId={company.id.toString()}
-                assessmentPoints={company.assessment_points || []}
-                userId={userId}
-              />
-            )}
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-6 max-w-7xl">
+        {/* Header */}
+        <div className="mb-6">
+          <Button
+            variant="ghost"
+            onClick={handleBack}
+            className="mb-4 -ml-2"
+          >
+            <ChevronLeft className="mr-2 h-4 w-4" />
+            Back to Dashboard
+          </Button>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground mb-2">
+                {company.name}
+              </h1>
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <span>
+                  Score: <span className={`font-semibold ${getScoreColor(displayScore)}`}>
+                    {formattedScore}/20
+                  </span>
+                </span>
+              </div>
+            </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+
+        {/* Company Info Card */}
+        <CompanyInfoCard
+          website={company.website}
+          stage={company.stage}
+          industry={company.industry}
+          introduction={company.introduction || company.description}
+          companyName={company.name}
+        />
+
+        {/* Overall Assessment */}
+        <Card className="mb-8 shadow-card border-0">
+          <CardHeader className="bg-secondary/50 border-b pb-4">
+            <CardTitle className="text-xl font-semibold flex items-center gap-2">
+              <BarChart2 className="h-5 w-5" />
+              Overall Assessment
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-5">
+            {company.assessment_points && company.assessment_points.length > 0 ? (
+              <div className="space-y-3">
+                {company.assessment_points.map((point, index) => (
+                  <div key={index} className="flex gap-3 items-start">
+                    <Lightbulb className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                    <p 
+                      className="text-sm text-muted-foreground" 
+                      dangerouslySetInnerHTML={{ __html: highlightNumbers(point) }}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex gap-3 items-start">
+                <Lightbulb className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground">
+                  {company.enrichment ? "Generating detailed assessment..." : "Detailed assessment will be generated shortly..."}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* AI Analysis from Evaluation */}
+        {company.evaluation?.ai_analysis_summary && (
+          <Card className="mb-8 shadow-card border-0">
+            <CardHeader className="bg-secondary/50 border-b pb-4">
+              <CardTitle className="text-xl font-semibold">AI Analysis Summary</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-5">
+              <p className="text-sm text-muted-foreground whitespace-pre-line">
+                {company.evaluation.ai_analysis_summary}
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* AI Recommendations */}
+        {company.evaluation?.ai_recommendations && (
+          <Card className="mb-8 shadow-card border-0">
+            <CardHeader className="bg-secondary/50 border-b pb-4">
+              <CardTitle className="text-xl font-semibold">AI Recommendations</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-5">
+              <p className="text-sm text-muted-foreground whitespace-pre-line">
+                {company.evaluation.ai_recommendations}
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Sections */}
+        {company.sections && company.sections.length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-semibold mb-4">Detailed Analysis</h2>
+            {company.sections.map((section: any) => (
+              <SectionCard
+                key={section.id}
+                section={section}
+                onClick={() => handleSectionClick(section.id)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
