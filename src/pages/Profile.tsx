@@ -12,7 +12,6 @@ import { InvestorPitchEmail } from "@/components/profile/InvestorPitchEmail";
 import { ConditionalAlertsSection } from "@/components/profile/ConditionalAlertsSection";
 import { CreateBarcFormButton } from "@/components/profile/CreateBarcFormButton";
 import { ProfileNavigation } from "@/components/profile/ProfileNavigation";
-import { ApiKeyManager } from "@/components/profile/ApiKeyManager";
 import { Loader2, GraduationCap, Copy, ExternalLink, Building, Tag, Layers, Globe, Mail, Save, Plus, X, FileText, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -585,7 +584,6 @@ const Profile = () => {
             <>
               <TabsTrigger value="email">Investor Pitch Email</TabsTrigger>
               <TabsTrigger value="alerts">Alerts</TabsTrigger>
-              <TabsTrigger value="api-keys">API Keys</TabsTrigger>
             </>
           )}
         </TabsList>
@@ -964,9 +962,6 @@ const Profile = () => {
             </TabsContent>
             <TabsContent value="alerts">
               <ConditionalAlertsSection />
-            </TabsContent>
-            <TabsContent value="api-keys">
-              <ApiKeyManager />
             </TabsContent>
           </>
         )}

@@ -1,290 +1,39 @@
-import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState, useCallback } from "react";
-import { Progress } from "@/components/ui/progress";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, BarChart2, Lightbulb } from "lucide-react";
-import { useStartupDetails } from "@/hooks/useStartupDetails";
-import { CompanyInfoCard } from "@/components/companies/CompanyInfoCard";
+
+import CompanyDetails from "@/components/companies/CompanyDetails";
+import { useParams } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
+import { InvestorResearch } from "@/components/companies/InvestorResearch";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-
-interface SectionVerdict {
-  score: number;
-  maxScore: number;
-  verdict: string;
-  detailedScores?: { [key: string]: number };
-}
-
-interface SectionVerdicts {
-  [key: string]: SectionVerdict;
-}
 
 const CompanyPage = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const { company, isLoading } = useStartupDetails(id);
-  const [sectionVerdicts, setSectionVerdicts] = useState<SectionVerdicts | null>(null);
-  const [overallAssessment, setOverallAssessment] = useState<string[]>([]);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [selectedSection, setSelectedSection] = useState<{ name: string; data: SectionVerdict } | null>(null);
-
+  const [isInvestorResearchModalOpen, setIsInvestorResearchModalOpen] = useState(false);
+  const { company, isLoading } = useCompanyDetails(id);
+  const [userId, setUserId] = useState<string | null>(null);
+  
+  // Get user ID
+  useEffect(() => {
+    const getUser = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setUserId(user.id);
+        }
+      } catch (error) {
+        console.error('Error getting user:', error);
+      }
+    };
+    
+    getUser();
+  }, []);
+  
   // Scroll to top when component mounts
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
-
-  // Fetch or generate section verdicts
-  useEffect(() => {
-    const fetchVerdicts = async () => {
-      if (!id || !company) return;
-
-      try {
-        // Check if verdicts already exist in the new table
-        const { data: existingVerdicts, error: fetchError } = await supabase
-          .from('section_verdicts')
-          .select('*')
-          .eq('company_id', id)
-          .maybeSingle();
-
-        if (fetchError && fetchError.code !== 'PGRST116') {
-          console.error('Error fetching verdicts:', fetchError);
-          throw fetchError;
-        }
-
-        if (existingVerdicts) {
-          // Format existing verdicts
-          const formattedVerdicts: SectionVerdicts = {
-            'Problem Statement': {
-              score: existingVerdicts.problem_statement_score || 0,
-              maxScore: 20,
-              verdict: existingVerdicts.problem_statement_verdict || '',
-              detailedScores: existingVerdicts.detailed_scores?.['Problem Statement'] || {},
-            },
-            'Solution': {
-              score: existingVerdicts.solution_score || 0,
-              maxScore: 20,
-              verdict: existingVerdicts.solution_verdict || '',
-              detailedScores: existingVerdicts.detailed_scores?.['Solution'] || {},
-            },
-            'Market Understanding': {
-              score: existingVerdicts.market_understanding_score || 0,
-              maxScore: 20,
-              verdict: existingVerdicts.market_understanding_verdict || '',
-              detailedScores: existingVerdicts.detailed_scores?.['Market Understanding'] || {},
-            },
-            'Customer Understanding': {
-              score: existingVerdicts.customer_understanding_score || 0,
-              maxScore: 20,
-              verdict: existingVerdicts.customer_understanding_verdict || '',
-              detailedScores: existingVerdicts.detailed_scores?.['Customer Understanding'] || {},
-            },
-            'Competitor Understanding': {
-              score: existingVerdicts.competitor_understanding_score || 0,
-              maxScore: 20,
-              verdict: existingVerdicts.competitor_understanding_verdict || '',
-              detailedScores: existingVerdicts.detailed_scores?.['Competitor Understanding'] || {},
-            },
-            'USP': {
-              score: existingVerdicts.usp_score || 0,
-              maxScore: 20,
-              verdict: existingVerdicts.usp_verdict || '',
-              detailedScores: existingVerdicts.detailed_scores?.['USP'] || {},
-            },
-            'Vision': {
-              score: existingVerdicts.vision_score || 0,
-              maxScore: 20,
-              verdict: existingVerdicts.vision_verdict || '',
-              detailedScores: existingVerdicts.detailed_scores?.['Vision'] || {},
-            },
-            'Technology Understanding': {
-              score: existingVerdicts.technology_understanding_score || 0,
-              maxScore: 20,
-              verdict: existingVerdicts.technology_understanding_verdict || '',
-              detailedScores: existingVerdicts.detailed_scores?.['Technology Understanding'] || {},
-            },
-          };
-
-          setSectionVerdicts(formattedVerdicts);
-
-          // Parse overall assessment
-          const assessment = existingVerdicts.overall_assessment || '';
-          const points = assessment.split('\n').filter((line: string) => line.trim().startsWith('-') || line.trim().startsWith('•'));
-          setOverallAssessment(points.map((p: string) => p.replace(/^[-•]\s*/, '').trim()));
-        } else {
-          // Generate new verdicts
-          generateVerdicts();
-        }
-      } catch (error) {
-        console.error('Error fetching verdicts:', error);
-        toast({
-          title: 'Error Loading Analysis',
-          description: 'Could not load AI analysis. Please try again.',
-          variant: 'destructive',
-        });
-      }
-    };
-
-    fetchVerdicts();
-  }, [id, company]);
-
-  const generateVerdicts = async () => {
-    if (!id || isGenerating) return;
-
-    setIsGenerating(true);
-    
-    toast({
-      title: 'Generating AI Analysis',
-      description: 'Please wait while we generate comprehensive verdicts...',
-    });
-
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-ai-verdicts', {
-        body: { companyId: id },
-      });
-
-      if (error) {
-        throw new Error(error.message || 'Failed to invoke function');
-      }
-
-      if (!data?.success) {
-        throw new Error(data?.error || 'Unknown error occurred');
-      }
-
-      const verdictData = data.data;
-
-      // Format verdicts
-      const formattedVerdicts: SectionVerdicts = {
-        'Problem Statement': {
-          score: verdictData.problem_statement_score || 0,
-          maxScore: 20,
-          verdict: verdictData.problem_statement_verdict || '',
-          detailedScores: verdictData.detailed_scores?.['Problem Statement'] || {},
-        },
-        'Solution': {
-          score: verdictData.solution_score || 0,
-          maxScore: 20,
-          verdict: verdictData.solution_verdict || '',
-          detailedScores: verdictData.detailed_scores?.['Solution'] || {},
-        },
-        'Market Understanding': {
-          score: verdictData.market_understanding_score || 0,
-          maxScore: 20,
-          verdict: verdictData.market_understanding_verdict || '',
-          detailedScores: verdictData.detailed_scores?.['Market Understanding'] || {},
-        },
-        'Customer Understanding': {
-          score: verdictData.customer_understanding_score || 0,
-          maxScore: 20,
-          verdict: verdictData.customer_understanding_verdict || '',
-          detailedScores: verdictData.detailed_scores?.['Customer Understanding'] || {},
-        },
-        'Competitor Understanding': {
-          score: verdictData.competitor_understanding_score || 0,
-          maxScore: 20,
-          verdict: verdictData.competitor_understanding_verdict || '',
-          detailedScores: verdictData.detailed_scores?.['Competitor Understanding'] || {},
-        },
-        'USP': {
-          score: verdictData.usp_score || 0,
-          maxScore: 20,
-          verdict: verdictData.usp_verdict || '',
-          detailedScores: verdictData.detailed_scores?.['USP'] || {},
-        },
-        'Vision': {
-          score: verdictData.vision_score || 0,
-          maxScore: 20,
-          verdict: verdictData.vision_verdict || '',
-          detailedScores: verdictData.detailed_scores?.['Vision'] || {},
-        },
-        'Technology Understanding': {
-          score: verdictData.technology_understanding_score || 0,
-          maxScore: 20,
-          verdict: verdictData.technology_understanding_verdict || '',
-          detailedScores: verdictData.detailed_scores?.['Technology Understanding'] || {},
-        },
-      };
-
-      setSectionVerdicts(formattedVerdicts);
-
-      // Parse overall assessment
-      const assessment = verdictData.overall_assessment || '';
-      const points = assessment.split('\n').filter((line: string) => line.trim().startsWith('-') || line.trim().startsWith('•'));
-      setOverallAssessment(points.map((p: string) => p.replace(/^[-•]\s*/, '').trim()));
-
-      toast({
-        title: 'Analysis Complete',
-        description: 'AI verdicts generated successfully!',
-      });
-    } catch (error: any) {
-      console.error('Error generating verdicts:', error);
-      toast({
-        title: 'Analysis Failed',
-        description: error.message || 'Failed to generate AI analysis. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handleBack = useCallback(() => {
-    navigate("/startup-dashboard");
-  }, [navigate]);
-
-  // Calculate score color (for 20-point scale)
-  const getScoreColor = (score: number, maxScore: number = 20) => {
-    const percentage = (score / maxScore) * 100;
-    if (percentage >= 80) return "text-emerald-600";
-    if (percentage >= 60) return "text-blue-600";
-    if (percentage >= 40) return "text-amber-600";
-    if (percentage >= 20) return "text-orange-600";
-    return "text-red-600";
-  };
-
-  // Get badge color for score
-  const getBadgeColor = (score: number, maxScore: number = 20) => {
-    const percentage = (score / maxScore) * 100;
-    if (percentage >= 80) return "bg-emerald-600 text-white hover:bg-emerald-700";
-    if (percentage >= 60) return "bg-blue-600 text-white hover:bg-blue-700";
-    if (percentage >= 40) return "bg-amber-600 text-white hover:bg-amber-700";
-    if (percentage >= 20) return "bg-orange-600 text-white hover:bg-orange-700";
-    return "bg-red-600 text-white hover:bg-red-700";
-  };
-
-  // Get progress bar color
-  const getProgressColor = (score: number, maxScore: number = 20) => {
-    const percentage = (score / maxScore) * 100;
-    if (percentage >= 80) return "bg-emerald-500";
-    if (percentage >= 60) return "bg-blue-500";
-    if (percentage >= 40) return "bg-amber-500";
-    if (percentage >= 20) return "bg-orange-500";
-    return "bg-red-500";
-  };
-
-  // Calculate percentage from score
-  const getScorePercentage = (score: number, maxScore: number = 20) => {
-    return Math.round((score / maxScore) * 100);
-  };
-
-  // Get score description
-  const getScoreDescription = (score: number): string => {
-    if (score >= 16) return `Excellent Potential (${Math.round(score)}/20): Outstanding startup with exceptional potential and strong fundamentals.`;
-    if (score >= 12) return `Good Potential (${Math.round(score)}/20): Solid startup with good potential. Worth serious consideration.`;
-    if (score >= 8) return `Average Potential (${Math.round(score)}/20): Decent fundamentals but areas need improvement.`;
-    if (score >= 4) return `Below Average (${Math.round(score)}/20): Significant concerns exist. Requires improvement.`;
-    return `Poor Prospect (${Math.round(score)}/20): Major deficiencies across multiple areas.`;
-  };
-
-  // Highlight numbers in assessment points
-  const highlightNumbers = (text: string) => {
-    return text.replace(/(\d+(?:\.\d+)?%?|\$\d+(?:\.\d+)?[KMBTkmbt]?|\d+(?:\.\d+)?[KMBTkmbt])/g, 
-      (match) => `<span class="font-medium text-primary">${match}</span>`);
-  };
-
+  
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -307,249 +56,35 @@ const CompanyPage = () => {
       </div>
     );
   }
-
-  const displayScore = company.overall_score;
-  const formattedScore = Math.round(displayScore);
-
+  
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-6 max-w-7xl">
-        {/* Header */}
-        <div className="mb-6">
-          <Button
-            variant="ghost"
-            onClick={handleBack}
-            className="mb-4 -ml-2"
-          >
-            <ChevronLeft className="mr-2 h-4 w-4" />
-            Back to Dashboard
-          </Button>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground mb-2">
-                {company.name}
-              </h1>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <span>
-                  Score: <span className={`font-semibold ${getScoreColor(displayScore)}`}>
-                    {formattedScore}/20
-                  </span>
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Company Info Card */}
-        <CompanyInfoCard
-          website={company.website}
-          stage={company.stage}
-          industry={company.industry}
-          introduction={company.introduction || company.description}
-          companyName={company.name}
-        />
-
-        {/* Overall Assessment */}
-        <Card className="mb-8 shadow-card border-0">
-          <CardHeader className="bg-secondary/50 border-b pb-4">
-            <CardTitle className="text-xl font-semibold flex items-center gap-2">
-              <BarChart2 className="h-5 w-5" />
-              Overall Assessment
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-5">
-            {isGenerating ? (
-              <div className="flex items-center gap-3">
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
-                <p className="text-sm text-muted-foreground">Generating AI analysis...</p>
-              </div>
-            ) : overallAssessment.length > 0 ? (
-              <div className="space-y-3">
-                {overallAssessment.map((point, index) => (
-                  <div key={index} className="flex gap-3 items-start">
-                    <Lightbulb className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-muted-foreground">
-                      {point}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex gap-3 items-start">
-                <Lightbulb className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-muted-foreground">
-                  Detailed assessment will be generated shortly...
-                </p>
-              </div>
+    <div className="animate-fade-in pt-0">      
+      <CompanyDetails />
+      
+      {/* Investor Research Modal */}
+      <Dialog open={isInvestorResearchModalOpen} onOpenChange={setIsInvestorResearchModalOpen}>
+        <DialogContent className="max-w-4xl w-[95vw]">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center gap-2">
+              <span className="h-5 w-5 text-[#1EAEDB]"></span>
+              Investor Research
+            </DialogTitle>
+            <DialogDescription>
+              Comprehensive investor-focused research and analysis for this company
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="mt-4">
+            {company && userId && (
+              <InvestorResearch 
+                companyId={company.id.toString()}
+                assessmentPoints={company.assessment_points || []}
+                userId={userId}
+              />
             )}
-          </CardContent>
-        </Card>
-
-        {/* AI Analysis from Evaluation */}
-        {company.evaluation?.ai_analysis_summary && (
-          <Card className="mb-8 shadow-card border-0">
-            <CardHeader className="bg-secondary/50 border-b pb-4">
-              <CardTitle className="text-xl font-semibold">AI Analysis Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-5">
-              <p className="text-sm text-muted-foreground whitespace-pre-line">
-                {company.evaluation.ai_analysis_summary}
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* AI Recommendations */}
-        {company.evaluation?.ai_recommendations && (
-          <Card className="mb-8 shadow-card border-0">
-            <CardHeader className="bg-secondary/50 border-b pb-4">
-              <CardTitle className="text-xl font-semibold">AI Recommendations</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-5">
-              <p className="text-sm text-muted-foreground whitespace-pre-line">
-                {company.evaluation.ai_recommendations}
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Section Metrics */}
-        {sectionVerdicts && Object.keys(sectionVerdicts).length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
-              <BarChart2 className="h-6 w-6 text-primary" />
-              Section Metrics
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {Object.entries(sectionVerdicts).map(([sectionName, data]) => {
-                const percentage = getScorePercentage(data.score, data.maxScore);
-                return (
-                  <Card
-                    key={sectionName}
-                    className="border-0 shadow-card cursor-pointer hover:shadow-lg transition-shadow"
-                    onClick={() => setSelectedSection({ name: sectionName, data })}
-                  >
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between mb-3">
-                        <CardTitle className="text-lg font-semibold">
-                          {sectionName}
-                        </CardTitle>
-                        <Badge className={getBadgeColor(data.score, data.maxScore)}>
-                          {data.score}/{data.maxScore}
-                        </Badge>
-                      </div>
-                      <div className="relative">
-                        <Progress 
-                          value={percentage} 
-                          className="h-2"
-                        />
-                        <div 
-                          className={`absolute top-0 left-0 h-2 rounded-full ${getProgressColor(data.score, data.maxScore)}`}
-                          style={{ width: `${percentage}%` }}
-                        />
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        {percentage}% Score
-                      </p>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground line-clamp-4">
-                        {data.verdict}
-                      </p>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
           </div>
-        )}
-
-        {/* Section Detail Dialog */}
-        <Dialog open={!!selectedSection} onOpenChange={(open) => !open && setSelectedSection(null)}>
-          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center justify-between">
-                <span>{selectedSection?.name}</span>
-                {selectedSection && (
-                  <Badge className={getBadgeColor(selectedSection.data.score, selectedSection.data.maxScore)}>
-                    {selectedSection.data.score}/{selectedSection.data.maxScore}
-                  </Badge>
-                )}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="mt-4">
-              {selectedSection && (
-                <>
-                  <div className="mb-6 p-4 bg-muted rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-muted-foreground">Overall Score</span>
-                      <span className={`text-2xl font-bold ${getScoreColor(selectedSection.data.score, selectedSection.data.maxScore)}`}>
-                        {getScorePercentage(selectedSection.data.score, selectedSection.data.maxScore)}%
-                      </span>
-                    </div>
-                    <div className="relative">
-                      <Progress 
-                        value={getScorePercentage(selectedSection.data.score, selectedSection.data.maxScore)} 
-                        className="h-3"
-                      />
-                      <div 
-                        className={`absolute top-0 left-0 h-3 rounded-full ${getProgressColor(selectedSection.data.score, selectedSection.data.maxScore)}`}
-                        style={{ width: `${getScorePercentage(selectedSection.data.score, selectedSection.data.maxScore)}%` }}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="mb-6">
-                    <h4 className="font-semibold mb-3 flex items-center gap-2">
-                      <Lightbulb className="h-5 w-5" />
-                      AI Verdict
-                    </h4>
-                    <p className="text-sm text-muted-foreground whitespace-pre-line">
-                      {selectedSection.data.verdict}
-                    </p>
-                  </div>
-
-                  {selectedSection.data.detailedScores && Object.keys(selectedSection.data.detailedScores).length > 0 && (
-                    <div>
-                      <h4 className="font-semibold mb-3 flex items-center gap-2">
-                        <BarChart2 className="h-5 w-5" />
-                        Detailed Score Breakdown
-                      </h4>
-                      <div className="space-y-3">
-                        {Object.entries(selectedSection.data.detailedScores).map(([metric, score]) => {
-                          const percentage = getScorePercentage(score as number, 20);
-                          return (
-                            <div key={metric} className="space-y-1">
-                              <div className="flex justify-between text-sm">
-                                <span className="font-medium">{metric}</span>
-                                <span className={`font-semibold ${getScoreColor(score as number, 20)}`}>
-                                  {score}/20 ({percentage}%)
-                                </span>
-                              </div>
-                              <div className="relative">
-                                <Progress 
-                                  value={percentage} 
-                                  className="h-2"
-                                />
-                                <div 
-                                  className={`absolute top-0 left-0 h-2 rounded-full ${getProgressColor(score as number, 20)}`}
-                                  style={{ width: `${percentage}%` }}
-                                />
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

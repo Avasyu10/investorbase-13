@@ -6,7 +6,7 @@ import { CompanyInfoCard } from "./CompanyInfoCard";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
-import { FileText, BarChart2, ChevronLeft, Briefcase, BotMessageSquare, Send, X, ExternalLink, BookOpen, Globe, Newspaper, TrendingUp } from "lucide-react";
+import { FileText, BarChart2, ChevronLeft, Briefcase, BotMessageSquare, Send, X, ExternalLink, BookOpen } from "lucide-react";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useCompanyDetails } from "@/hooks/companyHooks/useCompanyDetails";
 import { toast } from "@/hooks/use-toast";
@@ -19,7 +19,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { InvestmentMemo } from "./InvestmentMemo";
 import { VCMatchmakingDialog } from "./VCMatchmakingDialog";
-import { MarketResearchDisplay } from "./MarketResearchDisplay";
 
 const CompanyDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -50,6 +49,33 @@ const CompanyDetails = () => {
       sections: company.sections || []
     };
   }, [company]);
+
+  // Check if current user is IIT Bombay user
+  useEffect(() => {
+    const checkUserType = async () => {
+      if (!user) return;
+      
+      try {
+        const { data: userProfile } = await supabase
+          .from('profiles')
+          .select('is_iitbombay')
+          .eq('id', user.id)
+          .single();
+        
+        const isIITBombay = userProfile?.is_iitbombay || false;
+        
+        // Redirect non-IIT Bombay users to the dedicated company details page
+        if (!isIITBombay && id) {
+          navigate(`/company-details/${id}`, { replace: true });
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking user type:', error);
+      }
+    };
+
+    checkUserType();
+  }, [user, id, navigate]);
 
   // Memoize sorted sections for better performance, filtering out slide notes for IIT Bombay users
   const sortedSections = useMemo(() => {
@@ -88,10 +114,10 @@ const CompanyDetails = () => {
     return company.sections.find(section => section.type === 'SLIDE_NOTES');
   }, [company?.sections, isIITBombayUser]);
 
-  // Check if this company is from a BARC form submission and enrich if needed
+  // Check if this company is from a BARC form submission
   useEffect(() => {
     const checkBarcFormOrigin = async () => {
-      if (!id || !company) return;
+      if (!id) return;
       
       try {
         const { data: barcSubmission, error } = await supabase
@@ -103,31 +129,13 @@ const CompanyDetails = () => {
         if (!error && barcSubmission) {
           setIsFromBarcForm(true);
         }
-
-        // Enrich company data if response_received is null or empty
-        if (!company.response_received || company.response_received === 'null') {
-          console.log('Enriching company data...');
-          
-          const { data: enrichData, error: enrichError } = await supabase.functions.invoke(
-            'enrich-company-data',
-            { body: { companyId: id } }
-          );
-
-          if (enrichError) {
-            console.error('Error enriching company:', enrichError);
-          } else {
-            console.log('Company enriched successfully');
-            // Refresh the company data
-            queryClient.invalidateQueries({ queryKey: ['company', id] });
-          }
-        }
       } catch (error) {
         console.error('Error checking BARC form origin:', error);
       }
     };
 
     checkBarcFormOrigin();
-  }, [id, company, queryClient]);
+  }, [id]);
 
   // Use company data directly from useCompanyDetails if available
   useEffect(() => {
@@ -427,273 +435,6 @@ const CompanyDetails = () => {
                   </Card>
                 )}
               </>
-            )}
-            
-            {/* Submission Details Section - Show for all users */}
-            {company.response_received && company.response_received !== 'null' && (() => {
-              try {
-                const responseData = JSON.parse(company.response_received);
-                const submission = responseData?.submission;
-                const evaluation = responseData?.evaluation;
-                
-                if (!submission) return null;
-                
-                return (
-                  <div className="mt-8">
-                    <h2 className="text-xl sm:text-2xl font-semibold mb-6 flex items-center gap-2">
-                      <Briefcase className="h-5 w-5 text-primary" />
-                      Startup Details
-                    </h2>
-                    
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                      {/* Problem Statement */}
-                      {submission.problem_statement && (
-                        <Card className="border-0 shadow-subtle">
-                          <CardHeader>
-                            <CardTitle className="text-lg">Problem Statement</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <p className="text-muted-foreground">{submission.problem_statement}</p>
-                          </CardContent>
-                        </Card>
-                      )}
-                      
-                      {/* Solution */}
-                      {submission.solution && (
-                        <Card className="border-0 shadow-subtle">
-                          <CardHeader>
-                            <CardTitle className="text-lg">Solution</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <p className="text-muted-foreground">{submission.solution}</p>
-                          </CardContent>
-                        </Card>
-                      )}
-                      
-                      {/* Market Understanding */}
-                      {submission.market_understanding && (
-                        <Card className="border-0 shadow-subtle">
-                          <CardHeader>
-                            <CardTitle className="text-lg">Market Understanding</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <p className="text-muted-foreground">{submission.market_understanding}</p>
-                          </CardContent>
-                        </Card>
-                      )}
-                      
-                      {/* Customer Understanding */}
-                      {submission.customer_understanding && (
-                        <Card className="border-0 shadow-subtle">
-                          <CardHeader>
-                            <CardTitle className="text-lg">Customer Understanding</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <p className="text-muted-foreground">{submission.customer_understanding}</p>
-                          </CardContent>
-                        </Card>
-                      )}
-                      
-                      {/* Competitive Understanding */}
-                      {submission.competitive_understanding && (
-                        <Card className="border-0 shadow-subtle">
-                          <CardHeader>
-                            <CardTitle className="text-lg">Competitive Landscape</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <p className="text-muted-foreground">{submission.competitive_understanding}</p>
-                          </CardContent>
-                        </Card>
-                      )}
-                      
-                      {/* USP */}
-                      {submission.unique_selling_proposition && (
-                        <Card className="border-0 shadow-subtle">
-                          <CardHeader>
-                            <CardTitle className="text-lg">Unique Selling Proposition</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <p className="text-muted-foreground">{submission.unique_selling_proposition}</p>
-                          </CardContent>
-                        </Card>
-                      )}
-                      
-                      {/* Technical Understanding */}
-                      {submission.technical_understanding && (
-                        <Card className="border-0 shadow-subtle">
-                          <CardHeader>
-                            <CardTitle className="text-lg">Technical Approach</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <p className="text-muted-foreground">{submission.technical_understanding}</p>
-                          </CardContent>
-                        </Card>
-                      )}
-                      
-                      {/* Vision */}
-                      {submission.vision && (
-                        <Card className="border-0 shadow-subtle">
-                          <CardHeader>
-                            <CardTitle className="text-lg">Vision</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <p className="text-muted-foreground">{submission.vision}</p>
-                          </CardContent>
-                        </Card>
-                      )}
-                    </div>
-                    
-                    {/* AI Evaluation Section */}
-                    {evaluation && (
-                      <div className="mt-8">
-                        <h2 className="text-xl sm:text-2xl font-semibold mb-6 flex items-center gap-2">
-                          <BotMessageSquare className="h-5 w-5 text-primary" />
-                          AI Evaluation
-                        </h2>
-                        
-                        {/* AI Analysis Summary */}
-                        {evaluation.ai_analysis_summary && (
-                          <Card className="border-0 shadow-subtle mb-6">
-                            <CardHeader>
-                              <CardTitle>Analysis Summary</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <p className="text-muted-foreground leading-relaxed">{evaluation.ai_analysis_summary}</p>
-                            </CardContent>
-                          </Card>
-                        )}
-                        
-                        {/* AI Recommendations */}
-                        {evaluation.ai_recommendations && (
-                          <Card className="border-0 shadow-subtle mb-6">
-                            <CardHeader>
-                              <CardTitle>Recommendations</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="text-muted-foreground leading-relaxed whitespace-pre-line">{evaluation.ai_recommendations}</div>
-                            </CardContent>
-                          </Card>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              } catch (error) {
-                console.error('Error parsing response_received:', error);
-                return null;
-              }
-            })()}
-            
-            {/* Real-Time Market Research Section - Hidden */}
-            {false && (
-              <div className="mt-8">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl sm:text-2xl font-semibold flex items-center gap-2">
-                    <BarChart2 className="h-5 w-5 text-[#f59e0b]" />
-                    Real-Time Market Research
-                  </h2>
-                  <Button
-                    variant="outline"
-                    className="flex items-center gap-2"
-                    onClick={async () => {
-                      if (!id) return;
-                      toast({
-                        title: "Updating Research",
-                        description: "Fetching latest market insights...",
-                      });
-                      
-                      try {
-                        const assessmentText = company?.assessment_points?.join(', ') || company?.name || '';
-                        const { error } = await supabase.functions.invoke('research-with-perplexity', {
-                          body: { 
-                            companyId: id,
-                            assessmentText: assessmentText
-                          }
-                        });
-                        
-                        if (error) throw error;
-                        
-                        queryClient.invalidateQueries({ queryKey: ['company', id] });
-                        toast({
-                          title: "Research Updated",
-                          description: "Latest market insights have been fetched successfully",
-                        });
-                      } catch (error) {
-                        console.error('Error updating research:', error);
-                        toast({
-                          title: "Error",
-                          description: "Failed to update research",
-                          variant: "destructive",
-                        });
-                      }
-                    }}
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    Update Research
-                  </Button>
-                </div>
-                
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* Research Categories - Left Column */}
-                  <div className="lg:col-span-1">
-                    <h3 className="text-lg font-semibold text-[#f59e0b] mb-4">Research Categories</h3>
-                    
-                    <div className="space-y-4">
-                      {/* Market Research */}
-                      <Card className="border-0 shadow-subtle bg-[#1a1d2e] hover:bg-[#20243a] transition-colors cursor-pointer">
-                        <CardContent className="p-4">
-                          <div className="flex items-start gap-3">
-                            <Globe className="h-5 w-5 text-[#3b82f6] flex-shrink-0 mt-1" />
-                            <div>
-                              <h4 className="font-semibold text-white mb-1">Market Research</h4>
-                              <p className="text-sm text-gray-400">
-                                Comprehensive market analysis with up-to-date insights from reputable sources.
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                      
-                      {/* Latest News */}
-                      <Card className="border-0 shadow-subtle bg-[#1a1d2e] hover:bg-[#20243a] transition-colors cursor-pointer">
-                        <CardContent className="p-4">
-                          <div className="flex items-start gap-3">
-                            <Newspaper className="h-5 w-5 text-[#10b981] flex-shrink-0 mt-1" />
-                            <div>
-                              <h4 className="font-semibold text-white mb-1">Latest News</h4>
-                              <p className="text-sm text-gray-400">
-                                Recent industry news and events with relevant implications for this company.
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                      
-                      {/* Market Trends */}
-                      <Card className="border-2 border-[#f59e0b] shadow-subtle bg-[#1a1d2e] hover:bg-[#20243a] transition-colors cursor-pointer">
-                        <CardContent className="p-4">
-                          <div className="flex items-start gap-3">
-                            <TrendingUp className="h-5 w-5 text-[#f59e0b] flex-shrink-0 mt-1" />
-                            <div>
-                              <h4 className="font-semibold text-white mb-1">Market Trends</h4>
-                              <p className="text-sm text-gray-400">
-                                Current trends, market size data, and competitive landscape analysis.
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </div>
-                  
-                  {/* Market Insights - Right Column */}
-                  <div className="lg:col-span-2">
-                    <h3 className="text-lg font-semibold text-[#f59e0b] mb-4">Market Insights</h3>
-                    
-                    <MarketResearchDisplay companyId={id || ''} />
-                  </div>
-                </div>
-              </div>
             )}
           </div>
         </div>

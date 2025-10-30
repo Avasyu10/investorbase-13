@@ -20,55 +20,6 @@ serve(async (req: Request) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Validate API key
-    const apiKey = req.headers.get('x-api-key');
-    if (!apiKey) {
-      console.error('Missing API key');
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'API key is required. Please include x-api-key header.',
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 401,
-        }
-      );
-    }
-
-    // Verify API key exists and is active
-    const { data: keyData, error: keyError } = await supabaseAdmin
-      .from('api_keys')
-      .select('id, user_id, usage_count')
-      .eq('api_key', apiKey)
-      .eq('is_active', true)
-      .single();
-
-    if (keyError || !keyData) {
-      console.error('Invalid API key:', keyError);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'Invalid or inactive API key.',
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 401,
-        }
-      );
-    }
-
-    // Update API key usage
-    await supabaseAdmin
-      .from('api_keys')
-      .update({
-        usage_count: (keyData.usage_count || 0) + 1,
-        last_used_at: new Date().toISOString(),
-      })
-      .eq('id', keyData.id);
-
-    console.log('API key validated successfully');
-
     const formData = await req.formData();
     console.log('Form data received');
 
