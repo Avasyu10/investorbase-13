@@ -6,27 +6,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Input validation schema
+// Input validation schema matching the startup submission form exactly
 interface StartupSubmissionInput {
   startup_name: string;
-  founder_name?: string;
-  founder_email?: string;
-  problem_statement?: string;
-  solution?: string;
-  target_audience?: string;
-  market_size?: string;
-  competitors?: string;
-  unique_value_proposition?: string;
-  revenue_model?: string;
-  team_members?: string;
-  team_experience?: string;
-  traction?: string;
-  customer_validation?: string;
-  growth_metrics?: string;
-  funding_amount?: string;
-  website?: string;
-  stage?: string;
-  industry?: string;
+  founder_email: string;
+  linkedin_profile_url?: string;
+  problem_statement: string;
+  solution: string;
+  market_understanding: string;
+  customer_understanding: string;
+  competitive_understanding: string;
+  unique_selling_proposition: string;
+  technical_understanding: string;
+  vision: string;
+  campus_affiliation?: boolean;
 }
 
 function validateSubmission(data: any): { valid: boolean; errors: string[] } {
@@ -36,29 +29,25 @@ function validateSubmission(data: any): { valid: boolean; errors: string[] } {
   if (!data.startup_name || typeof data.startup_name !== 'string' || data.startup_name.trim().length === 0) {
     errors.push('startup_name is required and must be a non-empty string');
   }
-  if (data.startup_name && data.startup_name.length > 200) {
-    errors.push('startup_name must be less than 200 characters');
+  
+  if (!data.founder_email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.founder_email)) {
+    errors.push('founder_email is required and must be a valid email address');
   }
   
-  // Optional field validations
-  if (data.founder_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.founder_email)) {
-    errors.push('founder_email must be a valid email address');
-  }
-  
-  // String length validations
-  const stringFields = [
-    'founder_name', 'problem_statement', 'solution', 'target_audience',
-    'market_size', 'competitors', 'unique_value_proposition', 'revenue_model',
-    'team_members', 'team_experience', 'traction', 'customer_validation',
-    'growth_metrics', 'website', 'stage', 'industry'
+  const requiredFields = [
+    'problem_statement',
+    'solution',
+    'market_understanding',
+    'customer_understanding',
+    'competitive_understanding',
+    'unique_selling_proposition',
+    'technical_understanding',
+    'vision'
   ];
   
-  stringFields.forEach(field => {
-    if (data[field] && typeof data[field] !== 'string') {
-      errors.push(`${field} must be a string`);
-    }
-    if (data[field] && data[field].length > 5000) {
-      errors.push(`${field} must be less than 5000 characters`);
+  requiredFields.forEach(field => {
+    if (!data[field] || typeof data[field] !== 'string' || data[field].trim().length === 0) {
+      errors.push(`${field} is required and must be a non-empty string`);
     }
   });
   
@@ -99,21 +88,22 @@ serve(async (req) => {
       );
     }
 
-    // Insert submission into database - map to existing table structure
+    // Insert submission into database with exact form field names
     const { data: submission, error: insertError } = await supabase
       .from('startup_submissions')
       .insert({
         startup_name: submissionData.startup_name.trim(),
-        founder_email: submissionData.founder_email?.trim() || '',
-        problem_statement: submissionData.problem_statement?.trim() || '',
-        solution: submissionData.solution?.trim() || '',
-        market_understanding: submissionData.market_size?.trim() || '',
-        customer_understanding: submissionData.target_audience?.trim() || '',
-        competitive_understanding: submissionData.competitors?.trim() || '',
-        unique_selling_proposition: submissionData.unique_value_proposition?.trim() || '',
-        technical_understanding: submissionData.solution?.trim() || '',
-        vision: submissionData.problem_statement?.trim() || '',
-        campus_affiliation: false,
+        founder_email: submissionData.founder_email.trim(),
+        linkedin_profile_url: submissionData.linkedin_profile_url?.trim() || null,
+        problem_statement: submissionData.problem_statement.trim(),
+        solution: submissionData.solution.trim(),
+        market_understanding: submissionData.market_understanding.trim(),
+        customer_understanding: submissionData.customer_understanding.trim(),
+        competitive_understanding: submissionData.competitive_understanding.trim(),
+        unique_selling_proposition: submissionData.unique_selling_proposition.trim(),
+        technical_understanding: submissionData.technical_understanding.trim(),
+        vision: submissionData.vision.trim(),
+        campus_affiliation: submissionData.campus_affiliation || false,
       })
       .select()
       .single();
@@ -134,7 +124,7 @@ serve(async (req) => {
 
     console.log('Submission created with ID:', submission.id);
 
-    // Trigger evaluation
+    // Trigger evaluation using the same edge function as the form
     console.log('Triggering evaluation for submission:', submission.id);
     
     try {
@@ -143,18 +133,18 @@ serve(async (req) => {
         {
           body: {
             submissionId: submission.id,
-            startupName: submission.startup_name,
+            submission: submission
           }
         }
       );
 
       if (evalError) {
         console.error('Error triggering evaluation:', evalError);
-        // Don't fail the request, just log the error
         return new Response(
           JSON.stringify({
             success: true,
             submission_id: submission.id,
+            startup_name: submission.startup_name,
             message: 'Submission created successfully, but evaluation failed to start',
             evaluation_error: evalError.message
           }),
@@ -188,8 +178,8 @@ serve(async (req) => {
         JSON.stringify({
           success: true,
           submission_id: submission.id,
-          message: 'Submission created successfully',
-          note: 'Evaluation will be processed automatically'
+          startup_name: submission.startup_name,
+          message: 'Submission created successfully, evaluation will be processed automatically'
         }),
         { 
           status: 201, 
