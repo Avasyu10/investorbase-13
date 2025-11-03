@@ -8,6 +8,7 @@ import { OverallAssessment } from "@/components/companies/OverallAssessment";
 import { CompanyScrapingDialog } from "@/components/companies/CompanyScrapingDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { MarketResearch } from "@/components/companies/MarketResearch";
 import { useState } from "react";
 
 const StartupCompanyPage = () => {
@@ -118,6 +119,14 @@ const StartupCompanyPage = () => {
             companyId={company.id} 
             companyName={company.name} 
           />
+
+          {/* Real-Time Market Research */}
+          {company.id && (
+            <MarketResearch 
+              companyId={company.id} 
+              assessmentPoints={company.assessment_points || []} 
+            />
+          )}
 
           {/* Evaluation Details Section */}
           {company._rawEvaluation && (
