@@ -8,7 +8,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from "recharts";
 import { useState } from "react";
-import { FundThesisAlignment } from "./FundThesisAlignment";
 import { useProfile } from "@/hooks/useProfile";
 
 interface OverallAssessmentProps {
@@ -99,9 +98,6 @@ export function OverallAssessment({
             <CardTitle className="text-xl font-semibold">Overall Assessment</CardTitle>
           </div>
           <div className="flex items-center gap-4">
-            {companyId && !isVCAndBits && !isEximius && (
-              <FundThesisAlignment companyId={companyId} companyName={companyName} />
-            )}
             <div className="flex items-center gap-1">
               <span className={`text-xl font-bold ${getScoreColor(displayScore)}`}>
                 {formattedScore}
