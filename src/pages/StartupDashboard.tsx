@@ -322,7 +322,7 @@ const StartupDashboard = () => {
                               <button
                                 className="text-blue-400 hover:text-blue-300 underline cursor-pointer transition"
                                 onClick={() => {
-                                  navigate(`/submission/${submission.id}`);
+                                  navigate(`/startup-company/${submission.id}`);
                                 }}
                               >
                                 EU{submission.id.slice(-7).toUpperCase()}

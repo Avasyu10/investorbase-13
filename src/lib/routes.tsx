@@ -33,6 +33,7 @@ import ViewOnlyDashboard from "@/pages/ViewOnlyDashboard";
 import StartupSubmit from "@/pages/StartupSubmit";
 import StartupDashboard from "@/pages/StartupDashboard";
 import SubmissionDetail from "@/pages/SubmissionDetail";
+import StartupCompanyPage from "@/pages/StartupCompanyPage";
 
 export const routes = [
   { path: "/", element: <Index /> },
@@ -78,6 +79,14 @@ export const routes = [
     element: (
       <ProtectedRoute>
         <SubmissionDetail />
+      </ProtectedRoute>
+    )
+  },
+  {
+    path: "/startup-company/:id",
+    element: (
+      <ProtectedRoute>
+        <StartupCompanyPage />
       </ProtectedRoute>
     )
   },
