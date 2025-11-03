@@ -8,7 +8,6 @@ import { toast } from 'sonner';
 
 interface StartupSectionMetricsProps {
   submissionId: string;
-  evaluation: any;
 }
 
 interface SectionData {
@@ -18,44 +17,243 @@ interface SectionData {
   feedback: string;
 }
 
-export function StartupSectionMetrics({ submissionId, evaluation }: StartupSectionMetricsProps) {
+export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsProps) {
   const [loadingSections, setLoadingSections] = useState<Set<string>>(new Set());
   const [sectionSummaries, setSectionSummaries] = useState<Record<string, string>>({});
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [evaluation, setEvaluation] = useState<any>(null);
+  const [sections, setSections] = useState<SectionData[]>([]);
 
-  // Define sections based on all evaluation metrics
-  const sections: SectionData[] = [
-    {
-      name: 'Problem Clarity',
-      score: evaluation?.problem_clarity_score || 0,
-      maxScore: 20,
-      feedback: evaluation?.problem_clarity_feedback || ''
-    },
-    {
-      name: 'Market Understanding',
-      score: evaluation?.market_understanding_score || 0,
-      maxScore: 20,
-      feedback: evaluation?.market_understanding_feedback || ''
-    },
-    {
-      name: 'Solution Quality',
-      score: evaluation?.solution_quality_score || 0,
-      maxScore: 20,
-      feedback: evaluation?.solution_quality_feedback || ''
-    },
-    {
-      name: 'Team Capability',
-      score: evaluation?.team_capability_score || 0,
-      maxScore: 20,
-      feedback: evaluation?.team_capability_feedback || ''
-    },
-    {
-      name: 'Traction',
-      score: evaluation?.traction_score || 0,
-      maxScore: 20,
-      feedback: evaluation?.traction_feedback || ''
-    }
-  ];
+  // Fetch evaluation data from submission_evaluations table
+  useEffect(() => {
+    const fetchEvaluation = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('submission_evaluations')
+          .select('*')
+          .eq('startup_submission_id', submissionId)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error fetching evaluation:', error);
+          return;
+        }
+
+        if (data) {
+          setEvaluation(data);
+          
+          // Build sections dynamically from ALL evaluation data
+          const evaluationSections: SectionData[] = [
+            // Problem Validation (max 5 each = 20)
+            {
+              name: 'Problem Existence',
+              score: data.existence_score || 0,
+              maxScore: 5,
+              feedback: 'Does the problem really exist?'
+            },
+            {
+              name: 'Problem Severity',
+              score: data.severity_score || 0,
+              maxScore: 5,
+              feedback: 'How severe is the problem?'
+            },
+            {
+              name: 'Problem Frequency',
+              score: data.frequency_score || 0,
+              maxScore: 5,
+              feedback: 'How often does this problem occur?'
+            },
+            {
+              name: 'Unmet Need',
+              score: data.unmet_need_score || 0,
+              maxScore: 5,
+              feedback: 'Is there an unmet need in the market?'
+            },
+            // Solution Fit (max 5 each = 20)
+            {
+              name: 'Direct Solution Fit',
+              score: data.direct_fit_score || 0,
+              maxScore: 5,
+              feedback: 'How well does the solution fit the problem?'
+            },
+            {
+              name: 'Solution Differentiation',
+              score: data.differentiation_score || 0,
+              maxScore: 5,
+              feedback: 'What makes this solution different?'
+            },
+            {
+              name: 'Solution Feasibility',
+              score: data.feasibility_score || 0,
+              maxScore: 5,
+              feedback: 'Is the solution feasible to build?'
+            },
+            {
+              name: 'Solution Effectiveness',
+              score: data.effectiveness_score || 0,
+              maxScore: 5,
+              feedback: 'How effective is the solution?'
+            },
+            // Market Opportunity (max 5 each = 20)
+            {
+              name: 'Market Size',
+              score: data.market_size_score || 0,
+              maxScore: 5,
+              feedback: 'How large is the market opportunity?'
+            },
+            {
+              name: 'Market Growth',
+              score: data.growth_trajectory_score || 0,
+              maxScore: 5,
+              feedback: 'What is the market growth trajectory?'
+            },
+            {
+              name: 'Market Timing',
+              score: data.timing_readiness_score || 0,
+              maxScore: 5,
+              feedback: 'Is the timing right for this solution?'
+            },
+            {
+              name: 'External Catalysts',
+              score: data.external_catalysts_score || 0,
+              maxScore: 5,
+              feedback: 'Are there favorable external factors?'
+            },
+            // Customer Acquisition (max 5 each = 15)
+            {
+              name: 'First Customers',
+              score: data.first_customers_score || 0,
+              maxScore: 5,
+              feedback: 'Who are the first customers?'
+            },
+            {
+              name: 'Customer Accessibility',
+              score: data.accessibility_score || 0,
+              maxScore: 5,
+              feedback: 'How accessible are the customers?'
+            },
+            {
+              name: 'Acquisition Approach',
+              score: data.acquisition_approach_score || 0,
+              maxScore: 5,
+              feedback: 'What is the customer acquisition strategy?'
+            },
+            {
+              name: 'Pain Recognition',
+              score: data.pain_recognition_score || 0,
+              maxScore: 5,
+              feedback: 'Do customers recognize their pain?'
+            },
+            // Competitive Landscape (max 5 each = 20)
+            {
+              name: 'Direct Competitors',
+              score: data.direct_competitors_score || 0,
+              maxScore: 5,
+              feedback: 'Who are the direct competitors?'
+            },
+            {
+              name: 'Substitutes',
+              score: data.substitutes_score || 0,
+              maxScore: 5,
+              feedback: 'What substitute solutions exist?'
+            },
+            {
+              name: 'Competitive Differentiation',
+              score: data.differentiation_vs_players_score || 0,
+              maxScore: 5,
+              feedback: 'How do you differentiate from competitors?'
+            },
+            {
+              name: 'Market Dynamics',
+              score: data.dynamics_score || 0,
+              maxScore: 5,
+              feedback: 'Understanding of market dynamics'
+            },
+            // Unique Value Proposition (max 5 each = 20)
+            {
+              name: 'USP Clarity',
+              score: data.usp_clarity_score || 0,
+              maxScore: 5,
+              feedback: 'How clear is your unique value proposition?'
+            },
+            {
+              name: 'USP Strength',
+              score: data.usp_differentiation_strength_score || 0,
+              maxScore: 5,
+              feedback: 'How strong is your differentiation?'
+            },
+            {
+              name: 'USP Defensibility',
+              score: data.usp_defensibility_score || 0,
+              maxScore: 5,
+              feedback: 'Can your USP be defended?'
+            },
+            {
+              name: 'USP Alignment',
+              score: data.usp_alignment_score || 0,
+              maxScore: 5,
+              feedback: 'Does USP align with market needs?'
+            },
+            // Technology & Execution (max 5 each = 35)
+            {
+              name: 'Tech Vision',
+              score: data.tech_vision_ambition_score || 0,
+              maxScore: 5,
+              feedback: 'Vision and ambition of technology'
+            },
+            {
+              name: 'Tech Coherence',
+              score: data.tech_coherence_score || 0,
+              maxScore: 5,
+              feedback: 'Coherence of technical approach'
+            },
+            {
+              name: 'Tech Alignment',
+              score: data.tech_alignment_score || 0,
+              maxScore: 5,
+              feedback: 'Alignment of tech with business goals'
+            },
+            {
+              name: 'Tech Realism',
+              score: data.tech_realism_score || 0,
+              maxScore: 5,
+              feedback: 'Realism of technical claims'
+            },
+            {
+              name: 'Tech Feasibility',
+              score: data.tech_feasibility_score || 0,
+              maxScore: 5,
+              feedback: 'Technical feasibility assessment'
+            },
+            {
+              name: 'Tech Components',
+              score: data.tech_components_score || 0,
+              maxScore: 5,
+              feedback: 'Understanding of tech components'
+            },
+            {
+              name: 'Tech Complexity',
+              score: data.tech_complexity_awareness_score || 0,
+              maxScore: 5,
+              feedback: 'Awareness of technical complexity'
+            },
+            {
+              name: 'Tech Roadmap',
+              score: data.tech_roadmap_score || 0,
+              maxScore: 5,
+              feedback: 'Quality of technical roadmap'
+            }
+          ].filter(section => section.score > 0); // Only show sections with scores
+          
+          setSections(evaluationSections);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    };
+
+    fetchEvaluation();
+  }, [submissionId]);
 
   // Load existing summaries from database on component mount
   useEffect(() => {

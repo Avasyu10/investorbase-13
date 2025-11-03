@@ -130,12 +130,9 @@ const StartupCompanyPage = () => {
           )}
 
           {/* Section Metrics */}
-          {company._rawEvaluation && (
-            <StartupSectionMetrics 
-              submissionId={company.id}
-              evaluation={company._rawEvaluation}
-            />
-          )}
+          <StartupSectionMetrics 
+            submissionId={company.id}
+          />
 
           {/* Evaluation Details Section */}
           {company._rawEvaluation && (
