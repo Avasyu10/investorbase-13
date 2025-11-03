@@ -66,89 +66,89 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
             {
               title: 'Problem Statement',
               type: 'PROBLEM',
-              score: Math.min(100, ((data.existence_score + data.severity_score + data.frequency_score + data.unmet_need_score) / 4) * 20 || 0),
+              score: Math.min(100, (((Math.min(5, data.existence_score || 0) + Math.min(5, data.severity_score || 0) + Math.min(5, data.frequency_score || 0) + Math.min(5, data.unmet_need_score || 0)) / 4) * 20)),
               description: 'Problem validation and market need assessment',
               items: [
-                `Problem Existence: ${data.existence_score}/5`,
-                `Severity: ${data.severity_score}/5`,
-                `Frequency: ${data.frequency_score}/5`,
-                `Unmet Need: ${data.unmet_need_score}/5`
+                `Problem Existence: ${Math.min(5, data.existence_score || 0)}/5`,
+                `Severity: ${Math.min(5, data.severity_score || 0)}/5`,
+                `Frequency: ${Math.min(5, data.frequency_score || 0)}/5`,
+                `Unmet Need: ${Math.min(5, data.unmet_need_score || 0)}/5`
               ].filter(item => !item.includes('0/5'))
             },
             {
               title: 'Solution',
               type: 'SOLUTION',
-              score: Math.min(100, ((data.direct_fit_score + data.differentiation_score + data.feasibility_score + data.effectiveness_score) / 4) * 20 || 0),
+              score: Math.min(100, (((Math.min(5, data.direct_fit_score || 0) + Math.min(5, data.differentiation_score || 0) + Math.min(5, data.feasibility_score || 0) + Math.min(5, data.effectiveness_score || 0)) / 4) * 20)),
               description: 'Solution fit and effectiveness evaluation',
               items: [
-                `Direct Fit: ${data.direct_fit_score}/5`,
-                `Differentiation: ${data.differentiation_score}/5`,
-                `Feasibility: ${data.feasibility_score}/5`,
-                `Effectiveness: ${data.effectiveness_score}/5`
+                `Direct Fit: ${Math.min(5, data.direct_fit_score || 0)}/5`,
+                `Differentiation: ${Math.min(5, data.differentiation_score || 0)}/5`,
+                `Feasibility: ${Math.min(5, data.feasibility_score || 0)}/5`,
+                `Effectiveness: ${Math.min(5, data.effectiveness_score || 0)}/5`
               ].filter(item => !item.includes('0/5'))
             },
             {
               title: 'Market Size',
               type: 'MARKET',
-              score: Math.min(100, ((data.market_size_score + data.growth_trajectory_score + data.timing_readiness_score + data.external_catalysts_score) / 4) * 20 || 0),
+              score: Math.min(100, (((Math.min(5, data.market_size_score || 0) + Math.min(5, data.growth_trajectory_score || 0) + Math.min(5, data.timing_readiness_score || 0) + Math.min(5, data.external_catalysts_score || 0)) / 4) * 20)),
               description: 'Market opportunity and growth potential',
               items: [
-                `Market Size: ${data.market_size_score}/5`,
-                `Growth Trajectory: ${data.growth_trajectory_score}/5`,
-                `Market Timing: ${data.timing_readiness_score}/5`,
-                `External Catalysts: ${data.external_catalysts_score}/5`
+                `Market Size: ${Math.min(5, data.market_size_score || 0)}/5`,
+                `Growth Trajectory: ${Math.min(5, data.growth_trajectory_score || 0)}/5`,
+                `Market Timing: ${Math.min(5, data.timing_readiness_score || 0)}/5`,
+                `External Catalysts: ${Math.min(5, data.external_catalysts_score || 0)}/5`
               ].filter(item => !item.includes('0/5'))
             },
             {
               title: 'Traction',
               type: 'TRACTION',
-              score: Math.min(100, ((data.first_customers_score + data.accessibility_score + data.acquisition_approach_score + data.pain_recognition_score) / 4) * 20 || 0),
+              score: Math.min(100, (((Math.min(5, data.first_customers_score || 0) + Math.min(5, data.accessibility_score || 0) + Math.min(5, data.acquisition_approach_score || 0) + Math.min(5, data.pain_recognition_score || 0)) / 4) * 20)),
               description: 'Customer acquisition and market access',
               items: [
-                `First Customers: ${data.first_customers_score}/5`,
-                `Accessibility: ${data.accessibility_score}/5`,
-                `Acquisition Approach: ${data.acquisition_approach_score}/5`,
-                `Pain Recognition: ${data.pain_recognition_score}/5`
+                `First Customers: ${Math.min(5, data.first_customers_score || 0)}/5`,
+                `Accessibility: ${Math.min(5, data.accessibility_score || 0)}/5`,
+                `Acquisition Approach: ${Math.min(5, data.acquisition_approach_score || 0)}/5`,
+                `Pain Recognition: ${Math.min(5, data.pain_recognition_score || 0)}/5`
               ].filter(item => !item.includes('0/5'))
             },
             {
               title: 'Competitor',
               type: 'COMPETITIVE_LANDSCAPE',
-              score: Math.min(100, ((data.direct_competitors_score + data.substitutes_score + data.differentiation_vs_players_score + data.dynamics_score) / 4) * 20 || 0),
+              score: Math.min(100, (((Math.min(5, data.direct_competitors_score || 0) + Math.min(5, data.substitutes_score || 0) + Math.min(5, data.differentiation_vs_players_score || 0) + Math.min(5, data.dynamics_score || 0)) / 4) * 20)),
               description: 'Competitive landscape and differentiation',
               items: [
-                `Direct Competitors: ${data.direct_competitors_score}/5`,
-                `Substitutes: ${data.substitutes_score}/5`,
-                `Differentiation: ${data.differentiation_vs_players_score}/5`,
-                `Market Dynamics: ${data.dynamics_score}/5`
+                `Direct Competitors: ${Math.min(5, data.direct_competitors_score || 0)}/5`,
+                `Substitutes: ${Math.min(5, data.substitutes_score || 0)}/5`,
+                `Differentiation: ${Math.min(5, data.differentiation_vs_players_score || 0)}/5`,
+                `Market Dynamics: ${Math.min(5, data.dynamics_score || 0)}/5`
               ].filter(item => !item.includes('0/5'))
             },
             {
               title: 'Business Model',
               type: 'BUSINESS_MODEL',
-              score: Math.min(100, ((data.usp_clarity_score + data.usp_differentiation_strength_score + data.usp_defensibility_score + data.usp_alignment_score) / 4) * 20 || 0),
+              score: Math.min(100, (((Math.min(5, data.usp_clarity_score || 0) + Math.min(5, data.usp_differentiation_strength_score || 0) + Math.min(5, data.usp_defensibility_score || 0) + Math.min(5, data.usp_alignment_score || 0)) / 4) * 20)),
               description: 'Unique value proposition and competitive advantage',
               items: [
-                `USP Clarity: ${data.usp_clarity_score}/5`,
-                `USP Strength: ${data.usp_differentiation_strength_score}/5`,
-                `Defensibility: ${data.usp_defensibility_score}/5`,
-                `Market Alignment: ${data.usp_alignment_score}/5`
+                `USP Clarity: ${Math.min(5, data.usp_clarity_score || 0)}/5`,
+                `USP Strength: ${Math.min(5, data.usp_differentiation_strength_score || 0)}/5`,
+                `Defensibility: ${Math.min(5, data.usp_defensibility_score || 0)}/5`,
+                `Market Alignment: ${Math.min(5, data.usp_alignment_score || 0)}/5`
               ].filter(item => !item.includes('0/5'))
             },
             {
               title: 'Team',
               type: 'TEAM',
-              score: Math.min(100, ((data.tech_vision_ambition_score + data.tech_coherence_score + data.tech_alignment_score + data.tech_realism_score + data.tech_feasibility_score + data.tech_components_score + data.tech_complexity_awareness_score + data.tech_roadmap_score) / 8) * 20 || 0),
+              score: Math.min(100, (((Math.min(5, data.tech_vision_ambition_score || 0) + Math.min(5, data.tech_coherence_score || 0) + Math.min(5, data.tech_alignment_score || 0) + Math.min(5, data.tech_realism_score || 0) + Math.min(5, data.tech_feasibility_score || 0) + Math.min(5, data.tech_components_score || 0) + Math.min(5, data.tech_complexity_awareness_score || 0) + Math.min(5, data.tech_roadmap_score || 0)) / 8) * 20)),
               description: 'Technical execution and team capability',
               items: [
-                `Tech Vision: ${data.tech_vision_ambition_score}/5`,
-                `Tech Coherence: ${data.tech_coherence_score}/5`,
-                `Tech Alignment: ${data.tech_alignment_score}/5`,
-                `Tech Realism: ${data.tech_realism_score}/5`,
-                `Tech Feasibility: ${data.tech_feasibility_score}/5`,
-                `Tech Components: ${data.tech_components_score}/5`,
-                `Complexity Awareness: ${data.tech_complexity_awareness_score}/5`,
-                `Tech Roadmap: ${data.tech_roadmap_score}/5`
+                `Tech Vision: ${Math.min(5, data.tech_vision_ambition_score || 0)}/5`,
+                `Tech Coherence: ${Math.min(5, data.tech_coherence_score || 0)}/5`,
+                `Tech Alignment: ${Math.min(5, data.tech_alignment_score || 0)}/5`,
+                `Tech Realism: ${Math.min(5, data.tech_realism_score || 0)}/5`,
+                `Tech Feasibility: ${Math.min(5, data.tech_feasibility_score || 0)}/5`,
+                `Tech Components: ${Math.min(5, data.tech_components_score || 0)}/5`,
+                `Complexity Awareness: ${Math.min(5, data.tech_complexity_awareness_score || 0)}/5`,
+                `Tech Roadmap: ${Math.min(5, data.tech_roadmap_score || 0)}/5`
               ].filter(item => !item.includes('0/5'))
             }
           ].filter(group => group.score > 0);
