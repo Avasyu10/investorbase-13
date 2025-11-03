@@ -99,29 +99,21 @@ serve(async (req) => {
       );
     }
 
-    // Insert submission into database
+    // Insert submission into database - map to existing table structure
     const { data: submission, error: insertError } = await supabase
       .from('startup_submissions')
       .insert({
         startup_name: submissionData.startup_name.trim(),
-        founder_name: submissionData.founder_name?.trim(),
-        founder_email: submissionData.founder_email?.trim(),
-        problem_statement: submissionData.problem_statement?.trim(),
-        solution: submissionData.solution?.trim(),
-        target_audience: submissionData.target_audience?.trim(),
-        market_size: submissionData.market_size?.trim(),
-        competitors: submissionData.competitors?.trim(),
-        unique_value_proposition: submissionData.unique_value_proposition?.trim(),
-        revenue_model: submissionData.revenue_model?.trim(),
-        team_members: submissionData.team_members?.trim(),
-        team_experience: submissionData.team_experience?.trim(),
-        traction: submissionData.traction?.trim(),
-        customer_validation: submissionData.customer_validation?.trim(),
-        growth_metrics: submissionData.growth_metrics?.trim(),
-        funding_amount: submissionData.funding_amount?.trim(),
-        website: submissionData.website?.trim(),
-        stage: submissionData.stage?.trim() || 'Early Stage',
-        industry: submissionData.industry?.trim(),
+        founder_email: submissionData.founder_email?.trim() || '',
+        problem_statement: submissionData.problem_statement?.trim() || '',
+        solution: submissionData.solution?.trim() || '',
+        market_understanding: submissionData.market_size?.trim() || '',
+        customer_understanding: submissionData.target_audience?.trim() || '',
+        competitive_understanding: submissionData.competitors?.trim() || '',
+        unique_selling_proposition: submissionData.unique_value_proposition?.trim() || '',
+        technical_understanding: submissionData.solution?.trim() || '',
+        vision: submissionData.problem_statement?.trim() || '',
+        campus_affiliation: false,
       })
       .select()
       .single();
