@@ -82,7 +82,7 @@ const StartupCompanyPage = () => {
             {/* Custom header for Company Overview with More Information button */}
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold">
-                {company.name} - {company.id}
+                {company.name}
               </h3>
               {company && (
                 <Button 
