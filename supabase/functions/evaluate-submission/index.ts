@@ -19,13 +19,14 @@ export async function evaluateSubmissionHandler(payload: any, authHeader?: strin
 
         const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
 
-        // Try to get user from auth header if present, otherwise allow service role calls
-        let user = null;
+        // Try to get user from auth header if present, otherwise use default evaluator
+        let evaluatorUserId = '33be6564-449b-4999-bed6-b6364658c4f1'; // Default evaluator for API calls
+        
         if (authHeader) {
             const token = authHeader.replace('Bearer ', '');
             const { data: { user: authUser }, error: userError } = await supabase.auth.getUser(token);
             if (!userError && authUser) {
-                user = authUser;
+                evaluatorUserId = authUser.id;
             }
         }
 
@@ -137,7 +138,7 @@ For each sub-criterion, follow the provided 1-20 rubrics (be conservative and ju
         const record = {
             startup_name: submission.startup_name,
             problem_statement: submission.problem_statement,
-            evaluator_user_id: user?.id || null,
+            evaluator_user_id: evaluatorUserId,
             existence_score: clamp(args.existence),
             severity_score: clamp(args.severity),
             frequency_score: clamp(args.frequency),
