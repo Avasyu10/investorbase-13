@@ -79,8 +79,23 @@ const StartupCompanyPage = () => {
         {/* Company Overview - Full width */}
         <div className="w-full mb-8">
           <div className="container mx-auto">
+            {/* Custom header for Company Overview with More Information button */}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold">Company Overview</h3>
+              {company && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => setDialogOpen(true)}
+                  className="h-10 px-6 bg-slate-900 hover:bg-slate-800 text-white border-slate-700"
+                >
+                  <Info className="mr-2 h-4 w-4" />
+                  More Information
+                </Button>
+              )}
+            </div>
+            
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            <div className="lg:col-span-4">
+              <div className="lg:col-span-4">
                 <CompanyInfoCard 
                   website={websiteToShow} 
                   stage={stageToShow} 
@@ -101,18 +116,6 @@ const StartupCompanyPage = () => {
             companyId={company.id} 
             companyName={company.name} 
           />
-          
-          {/* More Information Button - Positioned below Overall Assessment */}
-          <div className="flex justify-center mb-8">
-            <Button 
-              variant="outline" 
-              onClick={() => setDialogOpen(true)}
-              className="h-10 px-6 bg-slate-900 hover:bg-slate-800 text-white border-slate-700"
-            >
-              <Info className="mr-2 h-4 w-4" />
-              More Information
-            </Button>
-          </div>
 
           {/* Evaluation Details Section */}
           {company._rawEvaluation && (
