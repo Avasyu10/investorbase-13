@@ -151,62 +151,6 @@ Innovation: ${(submission as any).innovation || 'Not provided'}`;
         }
         break;
         
-      case 'Market Size':
-        context = `Market Size: ${(submission as any).market_size || 'Not provided'}
-Target Market: ${(submission as any).target_market || 'Not provided'}
-Growth Potential: ${(submission as any).growth_potential || 'Not provided'}`;
-        if (evaluation) {
-          const ms = evaluation.market_size_score || 0;
-          const gt = evaluation.growth_trajectory_score || 0;
-          const tr = evaluation.timing_readiness_score || 0;
-          const ec = evaluation.external_catalysts_score || 0;
-          score = ((ms + gt + tr + ec) / 4) * 20;
-          feedback = `Market Size: ${ms}/5, Growth Trajectory: ${gt}/5, Timing: ${tr}/5, Catalysts: ${ec}/5`;
-        }
-        break;
-        
-      case 'Traction':
-        context = `Current Traction: ${(submission as any).traction || 'Not provided'}
-Customer Validation: ${(submission as any).customer_validation || 'Not provided'}
-Metrics: ${(submission as any).metrics || 'Not provided'}`;
-        if (evaluation) {
-          const fc = evaluation.first_customers_score || 0;
-          const acc = evaluation.accessibility_score || 0;
-          const acq = evaluation.acquisition_approach_score || 0;
-          const pr = evaluation.pain_recognition_score || 0;
-          score = ((fc + acc + acq + pr) / 4) * 20;
-          feedback = `First Customers: ${fc}/5, Accessibility: ${acc}/5, Acquisition: ${acq}/5, Pain Recognition: ${pr}/5`;
-        }
-        break;
-        
-      case 'Competitor':
-        context = `Competitors: ${(submission as any).competitors || 'Not provided'}
-Competitive Advantage: ${(submission as any).competitive_advantage || 'Not provided'}
-Market Position: ${(submission as any).market_position || 'Not provided'}`;
-        if (evaluation) {
-          const dc = evaluation.direct_competitors_score || 0;
-          const sub = evaluation.substitutes_score || 0;
-          const dvp = evaluation.differentiation_vs_players_score || 0;
-          const dyn = evaluation.dynamics_score || 0;
-          score = ((dc + sub + dvp + dyn) / 4) * 20;
-          feedback = `Direct Competitors: ${dc}/5, Substitutes: ${sub}/5, Differentiation: ${dvp}/5, Dynamics: ${dyn}/5`;
-        }
-        break;
-        
-      case 'Business Model':
-        context = `Business Model: ${(submission as any).business_model || 'Not provided'}
-Revenue Model: ${(submission as any).revenue_model || 'Not provided'}
-Unique Value Proposition: ${(submission as any).unique_value_proposition || 'Not provided'}`;
-        if (evaluation) {
-          const uc = evaluation.usp_clarity_score || 0;
-          const uds = evaluation.usp_differentiation_strength_score || 0;
-          const ud = evaluation.usp_defensibility_score || 0;
-          const ua = evaluation.usp_alignment_score || 0;
-          score = ((uc + uds + ud + ua) / 4) * 20;
-          feedback = `USP Clarity: ${uc}/5, Strength: ${uds}/5, Defensibility: ${ud}/5, Alignment: ${ua}/5`;
-        }
-        break;
-        
       case 'Prototype':
         context = `Team: ${(submission as any).team || (submission as any).team_members || 'Not provided'}
 Team Experience: ${(submission as any).team_experience || 'Not provided'}
@@ -226,7 +170,7 @@ Founder Background: ${(submission as any).founder_background || 'Not provided'}`
         break;
         
       default:
-        console.error('Unknown section name:', sectionName, 'Available cases: Problem Statement, Solution, Market Size, Traction, Competitor, Business Model, Team');
+        console.error('Unknown section name:', sectionName, 'Available cases: Problem & Solution, Target Customers, Competitors, Revenue Model, USP, Prototype');
         throw new Error(`Unknown section: ${sectionName}`);
     }
 
