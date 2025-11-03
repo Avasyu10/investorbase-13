@@ -1,15 +1,18 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Loader2 } from "lucide-react";
+import { ChevronLeft, Loader2, Info } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useStartupCompanyDetails } from "@/hooks/useStartupCompanyDetails";
 import { CompanyInfoCard } from "@/components/companies/CompanyInfoCard";
 import { OverallAssessment } from "@/components/companies/OverallAssessment";
+import { CompanyScrapingDialog } from "@/components/companies/CompanyScrapingDialog";
+import { useState } from "react";
 
 const StartupCompanyPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: company, isLoading } = useStartupCompanyDetails(id || "");
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -62,13 +65,13 @@ const StartupCompanyPage = () => {
         <div className="w-full mb-8">
           <div className="container mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              <div className="lg:col-span-4">
+            <div className="lg:col-span-4">
                 <CompanyInfoCard 
                   website={websiteToShow} 
                   stage={stageToShow} 
                   industry={industryToShow} 
                   introduction={introductionToShow} 
-                  companyName={company.name} 
+                  companyName={company.name}
                 />
               </div>
             </div>
@@ -83,6 +86,18 @@ const StartupCompanyPage = () => {
             companyId={company.id} 
             companyName={company.name} 
           />
+          
+          {/* More Information Button - Positioned below Overall Assessment */}
+          <div className="flex justify-center mb-8">
+            <Button 
+              variant="outline" 
+              onClick={() => setDialogOpen(true)}
+              className="h-10 px-6 bg-slate-900 hover:bg-slate-800 text-white border-slate-700"
+            >
+              <Info className="mr-2 h-4 w-4" />
+              More Information
+            </Button>
+          </div>
 
           {/* Evaluation Details Section */}
           {company._rawEvaluation && (
@@ -230,6 +245,16 @@ const StartupCompanyPage = () => {
             </Card>
           )}
         </div>
+        
+        {/* Company Scraping Dialog for More Information */}
+        {company && (
+          <CompanyScrapingDialog 
+            companyId={company.id} 
+            companyName={company.name} 
+            open={dialogOpen} 
+            onOpenChange={setDialogOpen} 
+          />
+        )}
       </div>
     </div>
   );
