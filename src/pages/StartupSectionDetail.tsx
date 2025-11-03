@@ -25,13 +25,12 @@ export default function StartupSectionDetail() {
   const [sectionInfo, setSectionInfo] = useState<{ title: string; description: string } | null>(null);
 
   const sectionTypeMap: Record<string, { title: string; description: string }> = {
-    'PROBLEM': { title: 'Problem Statement', description: 'Problem validation and market need assessment' },
-    'SOLUTION': { title: 'Solution', description: 'Solution fit and effectiveness evaluation' },
-    'MARKET': { title: 'Market Size', description: 'Market opportunity and growth potential' },
-    'TRACTION': { title: 'Traction', description: 'Customer acquisition and market access' },
-    'COMPETITIVE_LANDSCAPE': { title: 'Competitor', description: 'Competitive landscape and differentiation' },
-    'BUSINESS_MODEL': { title: 'Business Model', description: 'Unique value proposition and competitive advantage' },
-    'TEAM': { title: 'Team', description: 'Technical execution and team capability' },
+    'PROBLEM': { title: 'Problem & Solution', description: 'Problem validation and solution fit' },
+    'TRACTION': { title: 'Target Customers', description: 'Customer validation and market access' },
+    'COMPETITIVE_LANDSCAPE': { title: 'Competitors', description: 'Competitive landscape and differentiation' },
+    'BUSINESS_MODEL': { title: 'Revenue Model', description: 'Business model and revenue strategy' },
+    'USP': { title: 'USP', description: 'Unique selling proposition and differentiation' },
+    'TEAM': { title: 'Prototype', description: 'Technical execution and prototype development' },
   };
 
   const generateSummary = async (forceRefresh = false) => {

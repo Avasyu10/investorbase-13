@@ -81,7 +81,7 @@ serve(async (req) => {
     console.log('Evaluation exists:', !!evaluation);
 
     switch (sectionName) {
-      case 'Problem Statement':
+      case 'Problem & Solution':
         context = `Problem: ${(submission as any).problem || (submission as any).problem_statement || 'Not provided'}
 Solution: ${(submission as any).solution || 'Not provided'}
 Target Market: ${(submission as any).target_market || (submission as any).target_audience || 'Not provided'}`;
@@ -90,12 +90,54 @@ Target Market: ${(submission as any).target_market || (submission as any).target
           const sev = evaluation.severity_score || 0;
           const freq = evaluation.frequency_score || 0;
           const unmet = evaluation.unmet_need_score || 0;
-          score = ((ex + sev + freq + unmet) / 4) * 20;
+          score = Math.min(100, Math.round(Math.pow((ex + sev + freq + unmet) / 20, 1.5) * 100));
           feedback = `Existence: ${ex}/5, Severity: ${sev}/5, Frequency: ${freq}/5, Unmet Need: ${unmet}/5`;
         }
         break;
         
-      case 'Solution':
+      case 'Target Customers':
+        context = `Current Traction: ${(submission as any).traction || 'Not provided'}
+Customer Validation: ${(submission as any).customer_validation || 'Not provided'}
+Metrics: ${(submission as any).metrics || 'Not provided'}`;
+        if (evaluation) {
+          const fc = evaluation.first_customers_score || 0;
+          const acc = evaluation.accessibility_score || 0;
+          const acq = evaluation.acquisition_approach_score || 0;
+          const pr = evaluation.pain_recognition_score || 0;
+          score = Math.min(100, Math.round(Math.pow((fc + acc + acq + pr) / 20, 1.5) * 100));
+          feedback = `First Customers: ${fc}/5, Accessibility: ${acc}/5, Acquisition: ${acq}/5, Pain Recognition: ${pr}/5`;
+        }
+        break;
+        
+      case 'Competitors':
+        context = `Competitors: ${(submission as any).competitors || 'Not provided'}
+Competitive Advantage: ${(submission as any).competitive_advantage || 'Not provided'}
+Market Position: ${(submission as any).market_position || 'Not provided'}`;
+        if (evaluation) {
+          const dc = evaluation.direct_competitors_score || 0;
+          const sub = evaluation.substitutes_score || 0;
+          const dvp = evaluation.differentiation_vs_players_score || 0;
+          const dyn = evaluation.dynamics_score || 0;
+          score = Math.min(100, Math.round(Math.pow((dc + sub + dvp + dyn) / 20, 1.5) * 100));
+          feedback = `Direct Competitors: ${dc}/5, Substitutes: ${sub}/5, Differentiation: ${dvp}/5, Dynamics: ${dyn}/5`;
+        }
+        break;
+        
+      case 'Revenue Model':
+        context = `Business Model: ${(submission as any).business_model || 'Not provided'}
+Revenue Model: ${(submission as any).revenue_model || 'Not provided'}
+Unique Value Proposition: ${(submission as any).unique_value_proposition || 'Not provided'}`;
+        if (evaluation) {
+          const uc = evaluation.usp_clarity_score || 0;
+          const uds = evaluation.usp_differentiation_strength_score || 0;
+          const ud = evaluation.usp_defensibility_score || 0;
+          const ua = evaluation.usp_alignment_score || 0;
+          score = Math.min(100, Math.round(Math.pow((uc + uds + ud + ua) / 20, 1.5) * 100));
+          feedback = `USP Clarity: ${uc}/5, Strength: ${uds}/5, Defensibility: ${ud}/5, Alignment: ${ua}/5`;
+        }
+        break;
+        
+      case 'USP':
         context = `Solution: ${(submission as any).solution || 'Not provided'}
 Technology: ${(submission as any).technology || 'Not provided'}
 Innovation: ${(submission as any).innovation || 'Not provided'}`;
@@ -104,7 +146,7 @@ Innovation: ${(submission as any).innovation || 'Not provided'}`;
           const diff = evaluation.differentiation_score || 0;
           const feas = evaluation.feasibility_score || 0;
           const eff = evaluation.effectiveness_score || 0;
-          score = ((dfit + diff + feas + eff) / 4) * 20;
+          score = Math.min(100, Math.round(Math.pow((dfit + diff + feas + eff) / 20, 1.5) * 100));
           feedback = `Direct Fit: ${dfit}/5, Differentiation: ${diff}/5, Feasibility: ${feas}/5, Effectiveness: ${eff}/5`;
         }
         break;
@@ -165,7 +207,7 @@ Unique Value Proposition: ${(submission as any).unique_value_proposition || 'Not
         }
         break;
         
-      case 'Team':
+      case 'Prototype':
         context = `Team: ${(submission as any).team || (submission as any).team_members || 'Not provided'}
 Team Experience: ${(submission as any).team_experience || 'Not provided'}
 Founder Background: ${(submission as any).founder_background || 'Not provided'}`;
@@ -178,7 +220,7 @@ Founder Background: ${(submission as any).founder_background || 'Not provided'}`
           const tcomp = evaluation.tech_components_score || 0;
           const tca = evaluation.tech_complexity_awareness_score || 0;
           const tr = evaluation.tech_roadmap_score || 0;
-          score = ((tva + tc + ta + treal + tfeas + tcomp + tca + tr) / 8) * 20;
+          score = Math.min(100, Math.round(Math.pow((tva + tc + ta + treal + tfeas + tcomp + tca + tr) / 40, 1.5) * 100));
           feedback = `Vision: ${tva}/5, Coherence: ${tc}/5, Alignment: ${ta}/5, Realism: ${treal}/5, Feasibility: ${tfeas}/5, Components: ${tcomp}/5, Complexity: ${tca}/5, Roadmap: ${tr}/5`;
         }
         break;

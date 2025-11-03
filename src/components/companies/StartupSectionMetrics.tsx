@@ -61,13 +61,22 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
         const data = evaluations && evaluations.length > 0 ? evaluations[0] : null;
 
         if (data) {
+          // Helper function for stricter scoring (exponential scaling makes it harder to get high scores)
+          const calculateStrictScore = (scores: number[], maxIndividual: number = 5): number => {
+            const validScores = scores.map(s => Math.min(maxIndividual, s || 0));
+            const avg = validScores.reduce((a, b) => a + b, 0) / validScores.length;
+            // Exponential scaling: score^1.5 to make higher scores harder to achieve
+            const strictScore = Math.pow(avg / maxIndividual, 1.5) * 100;
+            return Math.min(100, Math.round(strictScore));
+          };
+
           // Group scores into logical sections like in companies page
           const groups: SectionGroup[] = [
             {
-              title: 'Problem Statement',
+              title: 'Problem & Solution',
               type: 'PROBLEM',
-              score: Math.min(100, (((Math.min(5, data.existence_score || 0) + Math.min(5, data.severity_score || 0) + Math.min(5, data.frequency_score || 0) + Math.min(5, data.unmet_need_score || 0)) / 4) * 20)),
-              description: 'Problem validation and market need assessment',
+              score: calculateStrictScore([data.existence_score, data.severity_score, data.frequency_score, data.unmet_need_score]),
+              description: 'Problem validation and solution fit',
               items: [
                 `Problem Existence: ${Math.min(5, data.existence_score || 0)}/5`,
                 `Severity: ${Math.min(5, data.severity_score || 0)}/5`,
@@ -76,34 +85,10 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
               ].filter(item => !item.includes('0/5'))
             },
             {
-              title: 'Solution',
-              type: 'SOLUTION',
-              score: Math.min(100, (((Math.min(5, data.direct_fit_score || 0) + Math.min(5, data.differentiation_score || 0) + Math.min(5, data.feasibility_score || 0) + Math.min(5, data.effectiveness_score || 0)) / 4) * 20)),
-              description: 'Solution fit and effectiveness evaluation',
-              items: [
-                `Direct Fit: ${Math.min(5, data.direct_fit_score || 0)}/5`,
-                `Differentiation: ${Math.min(5, data.differentiation_score || 0)}/5`,
-                `Feasibility: ${Math.min(5, data.feasibility_score || 0)}/5`,
-                `Effectiveness: ${Math.min(5, data.effectiveness_score || 0)}/5`
-              ].filter(item => !item.includes('0/5'))
-            },
-            {
-              title: 'Market Size',
-              type: 'MARKET',
-              score: Math.min(100, (((Math.min(5, data.market_size_score || 0) + Math.min(5, data.growth_trajectory_score || 0) + Math.min(5, data.timing_readiness_score || 0) + Math.min(5, data.external_catalysts_score || 0)) / 4) * 20)),
-              description: 'Market opportunity and growth potential',
-              items: [
-                `Market Size: ${Math.min(5, data.market_size_score || 0)}/5`,
-                `Growth Trajectory: ${Math.min(5, data.growth_trajectory_score || 0)}/5`,
-                `Market Timing: ${Math.min(5, data.timing_readiness_score || 0)}/5`,
-                `External Catalysts: ${Math.min(5, data.external_catalysts_score || 0)}/5`
-              ].filter(item => !item.includes('0/5'))
-            },
-            {
-              title: 'Traction',
+              title: 'Target Customers',
               type: 'TRACTION',
-              score: Math.min(100, (((Math.min(5, data.first_customers_score || 0) + Math.min(5, data.accessibility_score || 0) + Math.min(5, data.acquisition_approach_score || 0) + Math.min(5, data.pain_recognition_score || 0)) / 4) * 20)),
-              description: 'Customer acquisition and market access',
+              score: calculateStrictScore([data.first_customers_score, data.accessibility_score, data.acquisition_approach_score, data.pain_recognition_score]),
+              description: 'Customer validation and market access',
               items: [
                 `First Customers: ${Math.min(5, data.first_customers_score || 0)}/5`,
                 `Accessibility: ${Math.min(5, data.accessibility_score || 0)}/5`,
@@ -112,9 +97,9 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
               ].filter(item => !item.includes('0/5'))
             },
             {
-              title: 'Competitor',
+              title: 'Competitors',
               type: 'COMPETITIVE_LANDSCAPE',
-              score: Math.min(100, (((Math.min(5, data.direct_competitors_score || 0) + Math.min(5, data.substitutes_score || 0) + Math.min(5, data.differentiation_vs_players_score || 0) + Math.min(5, data.dynamics_score || 0)) / 4) * 20)),
+              score: calculateStrictScore([data.direct_competitors_score, data.substitutes_score, data.differentiation_vs_players_score, data.dynamics_score]),
               description: 'Competitive landscape and differentiation',
               items: [
                 `Direct Competitors: ${Math.min(5, data.direct_competitors_score || 0)}/5`,
@@ -124,10 +109,10 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
               ].filter(item => !item.includes('0/5'))
             },
             {
-              title: 'Business Model',
+              title: 'Revenue Model',
               type: 'BUSINESS_MODEL',
-              score: Math.min(100, (((Math.min(5, data.usp_clarity_score || 0) + Math.min(5, data.usp_differentiation_strength_score || 0) + Math.min(5, data.usp_defensibility_score || 0) + Math.min(5, data.usp_alignment_score || 0)) / 4) * 20)),
-              description: 'Unique value proposition and competitive advantage',
+              score: calculateStrictScore([data.usp_clarity_score, data.usp_differentiation_strength_score, data.usp_defensibility_score, data.usp_alignment_score]),
+              description: 'Business model and revenue strategy',
               items: [
                 `USP Clarity: ${Math.min(5, data.usp_clarity_score || 0)}/5`,
                 `USP Strength: ${Math.min(5, data.usp_differentiation_strength_score || 0)}/5`,
@@ -136,10 +121,31 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
               ].filter(item => !item.includes('0/5'))
             },
             {
-              title: 'Team',
+              title: 'USP',
+              type: 'USP',
+              score: calculateStrictScore([data.direct_fit_score, data.differentiation_score, data.feasibility_score, data.effectiveness_score]),
+              description: 'Unique selling proposition and differentiation',
+              items: [
+                `Direct Fit: ${Math.min(5, data.direct_fit_score || 0)}/5`,
+                `Differentiation: ${Math.min(5, data.differentiation_score || 0)}/5`,
+                `Feasibility: ${Math.min(5, data.feasibility_score || 0)}/5`,
+                `Effectiveness: ${Math.min(5, data.effectiveness_score || 0)}/5`
+              ].filter(item => !item.includes('0/5'))
+            },
+            {
+              title: 'Prototype',
               type: 'TEAM',
-              score: Math.min(100, (((Math.min(5, data.tech_vision_ambition_score || 0) + Math.min(5, data.tech_coherence_score || 0) + Math.min(5, data.tech_alignment_score || 0) + Math.min(5, data.tech_realism_score || 0) + Math.min(5, data.tech_feasibility_score || 0) + Math.min(5, data.tech_components_score || 0) + Math.min(5, data.tech_complexity_awareness_score || 0) + Math.min(5, data.tech_roadmap_score || 0)) / 8) * 20)),
-              description: 'Technical execution and team capability',
+              score: calculateStrictScore([
+                data.tech_vision_ambition_score, 
+                data.tech_coherence_score, 
+                data.tech_alignment_score, 
+                data.tech_realism_score, 
+                data.tech_feasibility_score, 
+                data.tech_components_score, 
+                data.tech_complexity_awareness_score, 
+                data.tech_roadmap_score
+              ]),
+              description: 'Technical execution and prototype development',
               items: [
                 `Tech Vision: ${Math.min(5, data.tech_vision_ambition_score || 0)}/5`,
                 `Tech Coherence: ${Math.min(5, data.tech_coherence_score || 0)}/5`,
@@ -245,14 +251,14 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
     
     // Split by bullet points or numbered lists and take first 2-3 points
     const lines = text.split('\n').filter(line => line.trim());
-    const summaryLines = lines.slice(0, 3);
+    const summaryLines = lines.slice(0, 2); // Show only 2 bullet points
     
     return summaryLines.map((line, index) => {
       const trimmedLine = line.trim();
       // Remove bullet or number prefix
       const cleanLine = trimmedLine.replace(/^[-•*]\s|^\d+\.\s/, '');
       return (
-        <li key={index} className="text-sm text-muted-foreground leading-relaxed">
+        <li key={index} className="text-foreground leading-relaxed">
           {cleanLine}
         </li>
       );
@@ -301,7 +307,7 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
         Section Metrics
       </h2>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {sectionGroups.map((section) => {
           const scoreRounded = Math.round(section.score);
           
@@ -309,62 +315,39 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
             <Card
               key={section.type}
               onClick={() => navigate(`/startup-section/${submissionId}/${section.type}`)}
-              className="cursor-pointer hover:shadow-lg transition-all duration-200 border-0 shadow-subtle hover:scale-105 h-full flex flex-col"
+              className="cursor-pointer hover:shadow-lg transition-all duration-200 border-0 shadow-md hover:shadow-xl h-full flex flex-col bg-card"
             >
-              <CardHeader className="pb-3 flex-shrink-0">
-                <CardTitle className="flex items-center justify-between text-base">
-                  <span className="truncate">{section.title}</span>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <Badge variant={getScoreBadgeVariant(section.score)} className="text-xs">
-                      {scoreRounded}/100
-                    </Badge>
-                  </div>
-                </CardTitle>
-                <div className="relative">
-                  <Progress value={section.score} className="h-2" />
+              <CardHeader className="pb-2 flex-shrink-0">
+                <div className="flex items-start justify-between mb-2">
+                  <CardTitle className="text-base font-semibold">{section.title}</CardTitle>
+                  <Badge 
+                    variant={getScoreBadgeVariant(section.score)} 
+                    className="text-xs font-bold px-2.5 py-0.5 rounded-full"
+                  >
+                    {scoreRounded}/100
+                  </Badge>
+                </div>
+                <div className="relative h-1.5 bg-muted rounded-full overflow-hidden">
                   <div 
-                    className={`absolute top-0 left-0 h-2 rounded-full transition-all ${getProgressColor(section.score)}`}
+                    className={`absolute top-0 left-0 h-full rounded-full transition-all ${getProgressColor(section.score)}`}
                     style={{ width: `${section.score}%` }}
                   />
                 </div>
               </CardHeader>
-              <CardContent className="pt-0 flex-1 flex flex-col overflow-hidden">
-                <p className="text-sm text-muted-foreground mb-3 font-semibold">
-                  {section.description}
-                </p>
-                
-                {/* AI Summary Section */}
-                <div className="mb-3 p-3 bg-muted/30 rounded-lg border border-border/50">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Sparkles className="h-3 w-3 text-primary" />
-                    <span className="text-xs font-semibold text-foreground">AI Analysis</span>
+              <CardContent className="pt-3 flex-1 flex flex-col overflow-hidden">
+                {/* AI Summary Section - More prominent */}
+                {section.isLoadingSummary ? (
+                  <div className="flex items-center gap-2 py-4">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Generating insights...</span>
                   </div>
-                  
-                  {section.isLoadingSummary ? (
-                    <div className="flex items-center gap-2 py-2">
-                      <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">Generating insights...</span>
-                    </div>
-                  ) : section.summary ? (
-                    <ul className="space-y-1.5 list-disc pl-4">
-                      {formatSummary(section.summary)}
-                    </ul>
-                  ) : (
-                    <p className="text-xs text-muted-foreground italic">No analysis available</p>
-                  )}
-                </div>
-
-                {/* Component Scores */}
-                <div className="text-xs text-muted-foreground">
-                  <p className="font-semibold mb-1">Component Scores:</p>
-                  <ul className="space-y-0.5 list-disc pl-4">
-                    {section.items.slice(0, 3).map((item, index) => (
-                      <li key={index} className="leading-relaxed">
-                        {item}
-                      </li>
-                    ))}
+                ) : section.summary ? (
+                  <ul className="space-y-2 text-sm leading-relaxed">
+                    {formatSummary(section.summary)}
                   </ul>
-                </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic py-2">No analysis available</p>
+                )}
               </CardContent>
             </Card>
           );
