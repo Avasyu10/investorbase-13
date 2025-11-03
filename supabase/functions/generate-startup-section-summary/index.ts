@@ -41,7 +41,7 @@ serve(async (req) => {
           JSON.stringify({ 
             success: true, 
             summary: existingSummary.summary,
-            score: existingSummary.score,
+            score: Math.round(existingSummary.score || 0),
             fromCache: true
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -78,31 +78,76 @@ serve(async (req) => {
     let feedback = '';
 
     switch (sectionName) {
-      case 'Problem Clarity':
-        context = `Problem Statement: ${submission.problem_statement || 'Not provided'}\nSolution: ${submission.solution || 'Not provided'}`;
-        score = evaluation?.problem_clarity_score || 0;
-        feedback = evaluation?.problem_clarity_feedback || '';
+      case 'Problem Statement':
+        context = `Problem: ${(submission as any).problem || (submission as any).problem_statement || 'Not provided'}
+Solution: ${(submission as any).solution || 'Not provided'}
+Target Market: ${(submission as any).target_market || (submission as any).target_audience || 'Not provided'}`;
+        if (evaluation) {
+          score = ((evaluation.existence_score + evaluation.severity_score + evaluation.frequency_score + evaluation.unmet_need_score) / 4) * 20 || 0;
+          feedback = `Existence: ${evaluation.existence_score}/5, Severity: ${evaluation.severity_score}/5, Frequency: ${evaluation.frequency_score}/5, Unmet Need: ${evaluation.unmet_need_score}/5`;
+        }
         break;
-      case 'Market Understanding':
-        context = `Target Audience: ${(submission as any).target_audience || 'Not provided'}\nMarket Size: ${(submission as any).market_size || 'Not provided'}\nCompetitors: ${(submission as any).competitors || 'Not provided'}`;
-        score = evaluation?.market_understanding_score || 0;
-        feedback = evaluation?.market_understanding_feedback || '';
+        
+      case 'Solution':
+        context = `Solution: ${(submission as any).solution || 'Not provided'}
+Technology: ${(submission as any).technology || 'Not provided'}
+Innovation: ${(submission as any).innovation || 'Not provided'}`;
+        if (evaluation) {
+          score = ((evaluation.direct_fit_score + evaluation.differentiation_score + evaluation.feasibility_score + evaluation.effectiveness_score) / 4) * 20 || 0;
+          feedback = `Direct Fit: ${evaluation.direct_fit_score}/5, Differentiation: ${evaluation.differentiation_score}/5, Feasibility: ${evaluation.feasibility_score}/5, Effectiveness: ${evaluation.effectiveness_score}/5`;
+        }
         break;
-      case 'Solution Quality':
-        context = `Solution: ${submission.solution || 'Not provided'}\nUnique Value Proposition: ${(submission as any).unique_value_proposition || 'Not provided'}\nRevenue Model: ${(submission as any).revenue_model || 'Not provided'}`;
-        score = evaluation?.solution_quality_score || 0;
-        feedback = evaluation?.solution_quality_feedback || '';
+        
+      case 'Market Size':
+        context = `Market Size: ${(submission as any).market_size || 'Not provided'}
+Target Market: ${(submission as any).target_market || 'Not provided'}
+Growth Potential: ${(submission as any).growth_potential || 'Not provided'}`;
+        if (evaluation) {
+          score = ((evaluation.market_size_score + evaluation.growth_trajectory_score + evaluation.timing_readiness_score + evaluation.external_catalysts_score) / 4) * 20 || 0;
+          feedback = `Market Size: ${evaluation.market_size_score}/5, Growth Trajectory: ${evaluation.growth_trajectory_score}/5, Timing: ${evaluation.timing_readiness_score}/5, Catalysts: ${evaluation.external_catalysts_score}/5`;
+        }
         break;
-      case 'Team Capability':
-        context = `Team Members: ${(submission as any).team_members || 'Not provided'}\nTeam Experience: ${(submission as any).team_experience || 'Not provided'}\nFounder Background: ${(submission as any).founder_background || 'Not provided'}`;
-        score = evaluation?.team_capability_score || 0;
-        feedback = evaluation?.team_capability_feedback || '';
-        break;
+        
       case 'Traction':
-        context = `Current Traction: ${(submission as any).traction || 'Not provided'}\nCustomer Validation: ${(submission as any).customer_validation || 'Not provided'}\nGrowth Metrics: ${(submission as any).growth_metrics || 'Not provided'}`;
-        score = evaluation?.traction_score || 0;
-        feedback = evaluation?.traction_feedback || '';
+        context = `Current Traction: ${(submission as any).traction || 'Not provided'}
+Customer Validation: ${(submission as any).customer_validation || 'Not provided'}
+Metrics: ${(submission as any).metrics || 'Not provided'}`;
+        if (evaluation) {
+          score = ((evaluation.first_customers_score + evaluation.accessibility_score + evaluation.acquisition_approach_score + evaluation.pain_recognition_score) / 4) * 20 || 0;
+          feedback = `First Customers: ${evaluation.first_customers_score}/5, Accessibility: ${evaluation.accessibility_score}/5, Acquisition: ${evaluation.acquisition_approach_score}/5, Pain Recognition: ${evaluation.pain_recognition_score}/5`;
+        }
         break;
+        
+      case 'Competitor':
+        context = `Competitors: ${(submission as any).competitors || 'Not provided'}
+Competitive Advantage: ${(submission as any).competitive_advantage || 'Not provided'}
+Market Position: ${(submission as any).market_position || 'Not provided'}`;
+        if (evaluation) {
+          score = ((evaluation.direct_competitors_score + evaluation.substitutes_score + evaluation.differentiation_vs_players_score + evaluation.dynamics_score) / 4) * 20 || 0;
+          feedback = `Direct Competitors: ${evaluation.direct_competitors_score}/5, Substitutes: ${evaluation.substitutes_score}/5, Differentiation: ${evaluation.differentiation_vs_players_score}/5, Dynamics: ${evaluation.dynamics_score}/5`;
+        }
+        break;
+        
+      case 'Business Model':
+        context = `Business Model: ${(submission as any).business_model || 'Not provided'}
+Revenue Model: ${(submission as any).revenue_model || 'Not provided'}
+Unique Value Proposition: ${(submission as any).unique_value_proposition || 'Not provided'}`;
+        if (evaluation) {
+          score = ((evaluation.usp_clarity_score + evaluation.usp_differentiation_strength_score + evaluation.usp_defensibility_score + evaluation.usp_alignment_score) / 4) * 20 || 0;
+          feedback = `USP Clarity: ${evaluation.usp_clarity_score}/5, Strength: ${evaluation.usp_differentiation_strength_score}/5, Defensibility: ${evaluation.usp_defensibility_score}/5, Alignment: ${evaluation.usp_alignment_score}/5`;
+        }
+        break;
+        
+      case 'Team':
+        context = `Team: ${(submission as any).team || (submission as any).team_members || 'Not provided'}
+Team Experience: ${(submission as any).team_experience || 'Not provided'}
+Founder Background: ${(submission as any).founder_background || 'Not provided'}`;
+        if (evaluation) {
+          score = ((evaluation.tech_vision_ambition_score + evaluation.tech_coherence_score + evaluation.tech_alignment_score + evaluation.tech_realism_score + evaluation.tech_feasibility_score + evaluation.tech_components_score + evaluation.tech_complexity_awareness_score + evaluation.tech_roadmap_score) / 8) * 20 || 0;
+          feedback = `Vision: ${evaluation.tech_vision_ambition_score}/5, Coherence: ${evaluation.tech_coherence_score}/5, Alignment: ${evaluation.tech_alignment_score}/5, Realism: ${evaluation.tech_realism_score}/5, Feasibility: ${evaluation.tech_feasibility_score}/5, Components: ${evaluation.tech_components_score}/5, Complexity: ${evaluation.tech_complexity_awareness_score}/5, Roadmap: ${evaluation.tech_roadmap_score}/5`;
+        }
+        break;
+        
       default:
         throw new Error(`Unknown section: ${sectionName}`);
     }
@@ -115,18 +160,19 @@ serve(async (req) => {
 
     const prompt = `You are analyzing a startup submission for the section "${sectionName}".
 
-Score: ${score}/20
-Feedback: ${feedback}
+Score: ${Math.round(score)}/100
+Component Scores: ${feedback}
 
 Context:
 ${context}
 
-Generate a concise, bulleted analysis (2-3 bullet points) explaining:
-1. Why this score was given based on the submission data
-2. Key strengths or weaknesses identified
-3. Relevant industry context or benchmarks
+Generate a concise, bulleted analysis (3-4 bullet points) explaining:
+1. Why this score was given based on the submission data and component scores
+2. Key strengths identified in this area
+3. Key weaknesses or areas for improvement
+4. Relevant industry context, benchmarks, or actionable recommendations
 
-Keep each bullet point under 2 sentences. Focus on being specific and actionable.`;
+Keep each bullet point under 2 sentences. Focus on being specific and actionable. Format as bullet points starting with "- ".`;
 
     console.log('Calling Lovable AI Gateway...');
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -183,8 +229,8 @@ Keep each bullet point under 2 sentences. Focus on being specific and actionable
       .upsert({
         submission_id: submissionId,
         section_name: sectionName,
-        score,
-        max_score: 20,
+        score: Math.round(score),
+        max_score: 100,
         summary,
         feedback,
         context_data: { context }
@@ -203,7 +249,7 @@ Keep each bullet point under 2 sentences. Focus on being specific and actionable
       JSON.stringify({ 
         success: true, 
         summary,
-        score,
+        score: Math.round(score),
         fromCache: false
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

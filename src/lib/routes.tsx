@@ -34,6 +34,7 @@ import StartupSubmit from "@/pages/StartupSubmit";
 import StartupDashboard from "@/pages/StartupDashboard";
 import SubmissionDetail from "@/pages/SubmissionDetail";
 import StartupCompanyPage from "@/pages/StartupCompanyPage";
+import StartupSectionDetail from "@/pages/StartupSectionDetail";
 
 export const routes = [
   { path: "/", element: <Index /> },
@@ -87,6 +88,14 @@ export const routes = [
     element: (
       <ProtectedRoute>
         <StartupCompanyPage />
+      </ProtectedRoute>
+    )
+  },
+  {
+    path: "/startup-section/:submissionId/:sectionType",
+    element: (
+      <ProtectedRoute>
+        <StartupSectionDetail />
       </ProtectedRoute>
     )
   },

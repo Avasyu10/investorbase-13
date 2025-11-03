@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, BarChart2 } from "lucide-react";
@@ -18,6 +19,7 @@ interface SectionGroup {
 }
 
 export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsProps) {
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [sectionGroups, setSectionGroups] = useState<SectionGroup[]>([]);
 
@@ -231,6 +233,7 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
           return (
             <Card
               key={section.type}
+              onClick={() => navigate(`/startup-section/${submissionId}/${section.type}`)}
               className="cursor-pointer hover:shadow-lg transition-all duration-200 border-0 shadow-subtle hover:scale-105 h-full flex flex-col"
             >
               <CardHeader className="pb-3 flex-shrink-0">
