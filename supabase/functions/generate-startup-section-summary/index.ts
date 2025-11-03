@@ -78,33 +78,28 @@ serve(async (req) => {
     let feedback = '';
 
     switch (sectionName) {
-      case 'Problem & Solution':
+      case 'Problem Clarity':
         context = `Problem Statement: ${submission.problem_statement || 'Not provided'}\nSolution: ${submission.solution || 'Not provided'}`;
         score = evaluation?.problem_clarity_score || 0;
         feedback = evaluation?.problem_clarity_feedback || '';
         break;
-      case 'Target Customers':
-        context = `Customer Understanding: ${(submission as any).customer_understanding || 'Not provided'}\nMarket Understanding: ${(submission as any).market_understanding || 'Not provided'}`;
+      case 'Market Understanding':
+        context = `Target Audience: ${(submission as any).target_audience || 'Not provided'}\nMarket Size: ${(submission as any).market_size || 'Not provided'}\nCompetitors: ${(submission as any).competitors || 'Not provided'}`;
         score = evaluation?.market_understanding_score || 0;
         feedback = evaluation?.market_understanding_feedback || '';
         break;
-      case 'Competitors':
-        context = `Competition: ${(submission as any).competition || 'Not provided'}\nMarket Understanding: ${(submission as any).market_understanding || 'Not provided'}`;
-        score = Math.floor((evaluation?.market_understanding_score || 0) * 0.5);
-        feedback = evaluation?.market_understanding_feedback || '';
-        break;
-      case 'Revenue Model':
-        context = `Solution: ${submission.solution || 'Not provided'}\nRevenue Model Information: ${(submission as any).revenue_model || 'Not provided'}`;
-        score = Math.floor((evaluation?.solution_quality_score || 0) * 0.5);
+      case 'Solution Quality':
+        context = `Solution: ${submission.solution || 'Not provided'}\nUnique Value Proposition: ${(submission as any).unique_value_proposition || 'Not provided'}\nRevenue Model: ${(submission as any).revenue_model || 'Not provided'}`;
+        score = evaluation?.solution_quality_score || 0;
         feedback = evaluation?.solution_quality_feedback || '';
         break;
-      case 'USP':
-        context = `Solution: ${submission.solution || 'Not provided'}\nUnique Value Proposition: ${(submission as any).usp || 'Not provided'}`;
-        score = Math.floor((evaluation?.solution_quality_score || 0) * 0.5);
-        feedback = evaluation?.solution_quality_feedback || '';
+      case 'Team Capability':
+        context = `Team Members: ${(submission as any).team_members || 'Not provided'}\nTeam Experience: ${(submission as any).team_experience || 'Not provided'}\nFounder Background: ${(submission as any).founder_background || 'Not provided'}`;
+        score = evaluation?.team_capability_score || 0;
+        feedback = evaluation?.team_capability_feedback || '';
         break;
-      case 'Prototype':
-        context = `Traction: ${(submission as any).traction || 'Not provided'}\nPrototype Status: ${(submission as any).prototype_status || 'Not provided'}`;
+      case 'Traction':
+        context = `Current Traction: ${(submission as any).traction || 'Not provided'}\nCustomer Validation: ${(submission as any).customer_validation || 'Not provided'}\nGrowth Metrics: ${(submission as any).growth_metrics || 'Not provided'}`;
         score = evaluation?.traction_score || 0;
         feedback = evaluation?.traction_feedback || '';
         break;
@@ -189,7 +184,7 @@ Keep each bullet point under 2 sentences. Focus on being specific and actionable
         submission_id: submissionId,
         section_name: sectionName,
         score,
-        max_score: sectionName === 'Problem & Solution' || sectionName === 'Target Customers' || sectionName === 'Prototype' ? 20 : 10,
+        max_score: 20,
         summary,
         feedback,
         context_data: { context }

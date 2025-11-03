@@ -23,40 +23,34 @@ export function StartupSectionMetrics({ submissionId, evaluation }: StartupSecti
   const [sectionSummaries, setSectionSummaries] = useState<Record<string, string>>({});
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
-  // Define sections based on evaluation data
+  // Define sections based on all evaluation metrics
   const sections: SectionData[] = [
     {
-      name: 'Problem & Solution',
+      name: 'Problem Clarity',
       score: evaluation?.problem_clarity_score || 0,
       maxScore: 20,
       feedback: evaluation?.problem_clarity_feedback || ''
     },
     {
-      name: 'Target Customers',
+      name: 'Market Understanding',
       score: evaluation?.market_understanding_score || 0,
       maxScore: 20,
       feedback: evaluation?.market_understanding_feedback || ''
     },
     {
-      name: 'Competitors',
-      score: Math.floor((evaluation?.market_understanding_score || 0) * 0.5),
-      maxScore: 10,
-      feedback: evaluation?.market_understanding_feedback || ''
-    },
-    {
-      name: 'Revenue Model',
-      score: Math.floor((evaluation?.solution_quality_score || 0) * 0.5),
-      maxScore: 10,
+      name: 'Solution Quality',
+      score: evaluation?.solution_quality_score || 0,
+      maxScore: 20,
       feedback: evaluation?.solution_quality_feedback || ''
     },
     {
-      name: 'USP',
-      score: Math.floor((evaluation?.solution_quality_score || 0) * 0.5),
-      maxScore: 10,
-      feedback: evaluation?.solution_quality_feedback || ''
+      name: 'Team Capability',
+      score: evaluation?.team_capability_score || 0,
+      maxScore: 20,
+      feedback: evaluation?.team_capability_feedback || ''
     },
     {
-      name: 'Prototype',
+      name: 'Traction',
       score: evaluation?.traction_score || 0,
       maxScore: 20,
       feedback: evaluation?.traction_feedback || ''
