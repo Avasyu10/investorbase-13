@@ -25,17 +25,34 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
   useEffect(() => {
     const fetchEvaluation = async () => {
       try {
-        const { data, error } = await supabase
+        // First get the startup submission to get the startup name
+        const { data: submission, error: submissionError } = await supabase
+          .from('startup_submissions')
+          .select('startup_name')
+          .eq('id', submissionId)
+          .single();
+
+        if (submissionError) {
+          console.error('Error fetching submission:', submissionError);
+          setIsLoading(false);
+          return;
+        }
+
+        // Try to find evaluation by submission_id OR startup_name
+        const { data: evaluations, error } = await supabase
           .from('submission_evaluations')
           .select('*')
-          .eq('startup_submission_id', submissionId)
-          .maybeSingle();
+          .or(`startup_submission_id.eq.${submissionId},startup_name.eq.${submission.startup_name}`)
+          .order('created_at', { ascending: false });
 
         if (error) {
           console.error('Error fetching evaluation:', error);
           setIsLoading(false);
           return;
         }
+
+        // Use the first (most recent) evaluation found
+        const data = evaluations && evaluations.length > 0 ? evaluations[0] : null;
 
         if (data) {
           // Group scores into logical sections like in companies page
