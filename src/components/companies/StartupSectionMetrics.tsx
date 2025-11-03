@@ -66,13 +66,13 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
             if (scores.length === 0) return 0;
             return scores.reduce((a, b) => a + b, 0) / scores.length;
           };
-          // Helper function for stricter scoring (exponential scaling makes it harder to get high scores)
-          const calculateStrictScore = (scores: number[], maxIndividual: number = 20): number => {
-            const validScores = scores.map(s => Math.min(maxIndividual, s || 0));
+          // Helper function to calculate percentage score (same as dashboard)
+          const calculatePercentageScore = (scores: number[]): number => {
+            const validScores = scores.filter(s => s > 0);
+            if (validScores.length === 0) return 0;
             const avg = validScores.reduce((a, b) => a + b, 0) / validScores.length;
-            // Exponential scaling: score^1.5 to make higher scores harder to achieve
-            const strictScore = Math.pow(avg / maxIndividual, 1.5) * 100;
-            return Math.min(100, Math.round(strictScore));
+            // Convert from 0-20 scale to 0-100 percentage (same as dashboard)
+            return Math.round((avg / 20) * 100);
           };
 
           // Group scores into logical sections using averaged scores
@@ -80,7 +80,7 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
             {
               title: 'Problem & Solution',
               type: 'PROBLEM',
-              score: calculateStrictScore([
+              score: calculatePercentageScore([
                 avgScore('existence_score'), 
                 avgScore('severity_score'), 
                 avgScore('frequency_score'), 
@@ -97,7 +97,7 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
             {
               title: 'Target Customers',
               type: 'TRACTION',
-              score: calculateStrictScore([
+              score: calculatePercentageScore([
                 avgScore('first_customers_score'), 
                 avgScore('accessibility_score'), 
                 avgScore('acquisition_approach_score'), 
@@ -114,7 +114,7 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
             {
               title: 'Competitors',
               type: 'COMPETITIVE_LANDSCAPE',
-              score: calculateStrictScore([
+              score: calculatePercentageScore([
                 avgScore('direct_competitors_score'), 
                 avgScore('substitutes_score'), 
                 avgScore('differentiation_vs_players_score'), 
@@ -131,7 +131,7 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
             {
               title: 'Revenue Model',
               type: 'BUSINESS_MODEL',
-              score: calculateStrictScore([
+              score: calculatePercentageScore([
                 avgScore('usp_clarity_score'), 
                 avgScore('usp_differentiation_strength_score'), 
                 avgScore('usp_defensibility_score'), 
@@ -148,7 +148,7 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
             {
               title: 'USP',
               type: 'USP',
-              score: calculateStrictScore([
+              score: calculatePercentageScore([
                 avgScore('direct_fit_score'), 
                 avgScore('differentiation_score'), 
                 avgScore('feasibility_score'), 
@@ -165,7 +165,7 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
             {
               title: 'Prototype',
               type: 'TEAM',
-              score: calculateStrictScore([
+              score: calculatePercentageScore([
                 avgScore('tech_vision_ambition_score'), 
                 avgScore('tech_coherence_score'), 
                 avgScore('tech_alignment_score'), 
