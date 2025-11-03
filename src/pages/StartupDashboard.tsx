@@ -69,10 +69,11 @@ const StartupDashboard = () => {
         return;
       }
 
+      // Fetch both user's own submissions AND submissions with null user_id (API submissions)
       const { data, error } = await supabase
         .from("startup_submissions")
         .select("*")
-        .eq("user_id", user.id)
+        .or(`user_id.eq.${user.id},user_id.is.null`)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
