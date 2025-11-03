@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, BarChart2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, BarChart2, RefreshCw } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -20,6 +21,7 @@ interface SectionData {
 export function StartupSectionMetrics({ submissionId, evaluation }: StartupSectionMetricsProps) {
   const [loadingSections, setLoadingSections] = useState<Set<string>>(new Set());
   const [sectionSummaries, setSectionSummaries] = useState<Record<string, string>>({});
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   // Define sections based on evaluation data
   const sections: SectionData[] = [
@@ -61,8 +63,45 @@ export function StartupSectionMetrics({ submissionId, evaluation }: StartupSecti
     }
   ];
 
-  const generateSummary = async (sectionName: string) => {
-    if (loadingSections.has(sectionName) || sectionSummaries[sectionName]) {
+  // Load existing summaries from database on component mount
+  useEffect(() => {
+    const loadExistingSummaries = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('startup_section_summaries')
+          .select('section_name, summary')
+          .eq('submission_id', submissionId);
+
+        if (error) {
+          console.error('Error loading summaries:', error);
+          return;
+        }
+
+        if (data && data.length > 0) {
+          const summariesMap: Record<string, string> = {};
+          data.forEach(item => {
+            summariesMap[item.section_name] = item.summary;
+          });
+          setSectionSummaries(summariesMap);
+          console.log(`Loaded ${data.length} existing summaries from database`);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+      } finally {
+        setIsInitialLoading(false);
+      }
+    };
+
+    loadExistingSummaries();
+  }, [submissionId]);
+
+  const generateSummary = async (sectionName: string, forceRefresh = false) => {
+    if (loadingSections.has(sectionName)) {
+      return;
+    }
+
+    // If not forcing refresh and summary exists, don't regenerate
+    if (!forceRefresh && sectionSummaries[sectionName]) {
       return;
     }
 
@@ -72,7 +111,8 @@ export function StartupSectionMetrics({ submissionId, evaluation }: StartupSecti
       const { data, error } = await supabase.functions.invoke('generate-startup-section-summary', {
         body: {
           submissionId,
-          sectionName
+          sectionName,
+          forceRefresh
         }
       });
 
@@ -89,6 +129,10 @@ export function StartupSectionMetrics({ submissionId, evaluation }: StartupSecti
           ...prev,
           [sectionName]: data.summary
         }));
+        
+        if (forceRefresh) {
+          toast.success('Summary refreshed successfully');
+        }
       }
     } catch (error) {
       console.error('Error:', error);
@@ -143,6 +187,20 @@ export function StartupSectionMetrics({ submissionId, evaluation }: StartupSecti
     );
   }
 
+  if (isInitialLoading) {
+    return (
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+          <BarChart2 className="h-5 w-5 text-primary" />
+          Section Metrics
+        </h2>
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mb-8">
       <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
@@ -159,20 +217,36 @@ export function StartupSectionMetrics({ submissionId, evaluation }: StartupSecti
           return (
             <Card
               key={section.name}
-              className="border-0 shadow-card hover:shadow-lg transition-shadow cursor-pointer bg-slate-900"
-              onClick={() => !isLoading && !summary && generateSummary(section.name)}
+              className="border-0 shadow-card hover:shadow-lg transition-shadow bg-slate-900"
             >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <CardTitle className="text-lg font-semibold text-white">
                     {section.name}
                   </CardTitle>
-                  <Badge 
-                    variant={getBadgeVariant(section.score, section.maxScore)}
-                    className="ml-2 shrink-0"
-                  >
-                    {section.score}/{section.maxScore}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    {summary && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          generateSummary(section.name, true);
+                        }}
+                        disabled={isLoading}
+                        className="h-7 w-7 p-0 hover:bg-slate-700"
+                        title="Refresh summary"
+                      >
+                        <RefreshCw className={`h-3.5 w-3.5 text-slate-400 ${isLoading ? 'animate-spin' : ''}`} />
+                      </Button>
+                    )}
+                    <Badge 
+                      variant={getBadgeVariant(section.score, section.maxScore)}
+                      className="ml-2 shrink-0"
+                    >
+                      {section.score}/{section.maxScore}
+                    </Badge>
+                  </div>
                 </div>
                 <div className="w-full h-2 bg-slate-700 rounded-full mt-3">
                   <div
@@ -198,9 +272,19 @@ export function StartupSectionMetrics({ submissionId, evaluation }: StartupSecti
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-slate-400 italic">
-                    Click to generate AI-powered insights for this section
-                  </p>
+                  <div className="text-center">
+                    <p className="text-slate-400 italic mb-3">
+                      No AI insights generated yet
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => generateSummary(section.name)}
+                      className="bg-amber-500 hover:bg-amber-400 text-slate-950 border-0"
+                    >
+                      Generate Insights
+                    </Button>
+                  </div>
                 )}
               </CardContent>
             </Card>

@@ -13,18 +13,41 @@ serve(async (req) => {
   }
 
   try {
-    const { submissionId, sectionName } = await req.json();
+    const { submissionId, sectionName, forceRefresh } = await req.json();
     
     if (!submissionId || !sectionName) {
       throw new Error('Missing required parameters');
     }
 
-    console.log(`Generating summary for submission ${submissionId}, section: ${sectionName}`);
+    console.log(`Processing summary request for submission ${submissionId}, section: ${sectionName}, forceRefresh: ${forceRefresh}`);
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Check if summary already exists in database (unless force refresh)
+    if (!forceRefresh) {
+      const { data: existingSummary, error: fetchError } = await supabase
+        .from('startup_section_summaries')
+        .select('*')
+        .eq('submission_id', submissionId)
+        .eq('section_name', sectionName)
+        .maybeSingle();
+
+      if (!fetchError && existingSummary) {
+        console.log('Found existing summary in database');
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            summary: existingSummary.summary,
+            score: existingSummary.score,
+            fromCache: true
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
 
     // Fetch submission data
     const { data: submission, error: submissionError } = await supabase
@@ -159,11 +182,34 @@ Keep each bullet point under 2 sentences. Focus on being specific and actionable
 
     console.log('Successfully generated summary');
 
+    // Save summary to database
+    const { error: insertError } = await supabase
+      .from('startup_section_summaries')
+      .upsert({
+        submission_id: submissionId,
+        section_name: sectionName,
+        score,
+        max_score: sectionName === 'Problem & Solution' || sectionName === 'Target Customers' || sectionName === 'Prototype' ? 20 : 10,
+        summary,
+        feedback,
+        context_data: { context }
+      }, {
+        onConflict: 'submission_id,section_name'
+      });
+
+    if (insertError) {
+      console.error('Error saving summary to database:', insertError);
+      // Don't fail the request, just log the error
+    } else {
+      console.log('Summary saved to database successfully');
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
         summary,
-        score 
+        score,
+        fromCache: false
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

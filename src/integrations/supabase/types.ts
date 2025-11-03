@@ -38,6 +38,39 @@ export type Database = {
         }
         Relationships: []
       }
+      api_keys: {
+        Row: {
+          api_key: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          key_name: string
+          last_used_at: string | null
+          usage_count: number | null
+          user_id: string | null
+        }
+        Insert: {
+          api_key: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          key_name: string
+          last_used_at?: string | null
+          usage_count?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          api_key?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          key_name?: string
+          last_used_at?: string | null
+          usage_count?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       barc_form_submissions: {
         Row: {
           analysis_error: string | null
@@ -303,6 +336,56 @@ export type Database = {
             foreignKeyName: "company_details_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_enrichment: {
+        Row: {
+          company_id: string
+          competitive_landscape: string | null
+          created_at: string | null
+          enrichment_data: Json | null
+          growth_potential: string | null
+          id: string
+          investment_thesis: string | null
+          market_analysis: string | null
+          risk_factors: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          competitive_landscape?: string | null
+          created_at?: string | null
+          enrichment_data?: Json | null
+          growth_potential?: string | null
+          id?: string
+          investment_thesis?: string | null
+          market_analysis?: string | null
+          risk_factors?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          competitive_landscape?: string | null
+          created_at?: string | null
+          enrichment_data?: Json | null
+          growth_potential?: string | null
+          id?: string
+          investment_thesis?: string | null
+          market_analysis?: string | null
+          risk_factors?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_enrichment_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
@@ -1213,6 +1296,95 @@ export type Database = {
           },
         ]
       }
+      section_verdicts: {
+        Row: {
+          company_id: string
+          competitor_understanding_score: number | null
+          competitor_understanding_verdict: string | null
+          created_at: string | null
+          customer_understanding_score: number | null
+          customer_understanding_verdict: string | null
+          detailed_scores: Json | null
+          id: string
+          market_understanding_score: number | null
+          market_understanding_verdict: string | null
+          overall_assessment: string | null
+          overall_score: number | null
+          problem_statement_score: number | null
+          problem_statement_verdict: string | null
+          solution_score: number | null
+          solution_verdict: string | null
+          technology_understanding_score: number | null
+          technology_understanding_verdict: string | null
+          updated_at: string | null
+          user_id: string
+          usp_score: number | null
+          usp_verdict: string | null
+          vision_score: number | null
+          vision_verdict: string | null
+        }
+        Insert: {
+          company_id: string
+          competitor_understanding_score?: number | null
+          competitor_understanding_verdict?: string | null
+          created_at?: string | null
+          customer_understanding_score?: number | null
+          customer_understanding_verdict?: string | null
+          detailed_scores?: Json | null
+          id?: string
+          market_understanding_score?: number | null
+          market_understanding_verdict?: string | null
+          overall_assessment?: string | null
+          overall_score?: number | null
+          problem_statement_score?: number | null
+          problem_statement_verdict?: string | null
+          solution_score?: number | null
+          solution_verdict?: string | null
+          technology_understanding_score?: number | null
+          technology_understanding_verdict?: string | null
+          updated_at?: string | null
+          user_id: string
+          usp_score?: number | null
+          usp_verdict?: string | null
+          vision_score?: number | null
+          vision_verdict?: string | null
+        }
+        Update: {
+          company_id?: string
+          competitor_understanding_score?: number | null
+          competitor_understanding_verdict?: string | null
+          created_at?: string | null
+          customer_understanding_score?: number | null
+          customer_understanding_verdict?: string | null
+          detailed_scores?: Json | null
+          id?: string
+          market_understanding_score?: number | null
+          market_understanding_verdict?: string | null
+          overall_assessment?: string | null
+          overall_score?: number | null
+          problem_statement_score?: number | null
+          problem_statement_verdict?: string | null
+          solution_score?: number | null
+          solution_verdict?: string | null
+          technology_understanding_score?: number | null
+          technology_understanding_verdict?: string | null
+          updated_at?: string | null
+          user_id?: string
+          usp_score?: number | null
+          usp_verdict?: string | null
+          vision_score?: number | null
+          vision_verdict?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "section_verdicts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sections: {
         Row: {
           company_id: string
@@ -1253,6 +1425,53 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      startup_section_summaries: {
+        Row: {
+          context_data: Json | null
+          created_at: string
+          feedback: string | null
+          id: string
+          max_score: number
+          score: number
+          section_name: string
+          submission_id: string
+          summary: string
+          updated_at: string
+        }
+        Insert: {
+          context_data?: Json | null
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          max_score: number
+          score: number
+          section_name: string
+          submission_id: string
+          summary: string
+          updated_at?: string
+        }
+        Update: {
+          context_data?: Json | null
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          max_score?: number
+          score?: number
+          section_name?: string
+          submission_id?: string
+          summary?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "startup_section_summaries_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "startup_submissions"
             referencedColumns: ["id"]
           },
         ]
@@ -1818,10 +2037,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      bytea_to_text: {
-        Args: { data: string }
-        Returns: string
-      }
+      bytea_to_text: { Args: { data: string }; Returns: string }
       can_access_company: {
         Args: { company_report_id: string; company_user_id: string }
         Returns: boolean
@@ -1834,12 +2050,9 @@ export type Database = {
         }
         Returns: boolean
       }
-      cleanup_test_companies: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      cleanup_test_companies: { Args: never; Returns: string }
       create_find_company_by_numeric_id_bigint_function: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: boolean
       }
       find_company_by_numeric_id: {
@@ -1878,6 +2091,12 @@ export type Database = {
           updated_at: string
           user_id: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "companies"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_section_stats: {
         Args: { section_id: string }
@@ -1889,27 +2108,77 @@ export type Database = {
       http: {
         Args: { request: Database["public"]["CompositeTypes"]["http_request"] }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
+        SetofOptions: {
+          from: "http_request"
+          to: "http_response"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
-      http_delete: {
-        Args:
-          | { content: string; content_type: string; uri: string }
-          | { uri: string }
-        Returns: Database["public"]["CompositeTypes"]["http_response"]
-      }
-      http_get: {
-        Args: { data: Json; uri: string } | { uri: string }
-        Returns: Database["public"]["CompositeTypes"]["http_response"]
-      }
+      http_delete:
+        | {
+            Args: { uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: { content: string; content_type: string; uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+      http_get:
+        | {
+            Args: { uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: { data: Json; uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
       http_head: {
         Args: { uri: string }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
+        SetofOptions: {
+          from: "*"
+          to: "http_response"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       http_header: {
         Args: { field: string; value: string }
         Returns: Database["public"]["CompositeTypes"]["http_header"]
+        SetofOptions: {
+          from: "*"
+          to: "http_header"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       http_list_curlopt: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           curlopt: string
           value: string
@@ -1918,41 +2187,69 @@ export type Database = {
       http_patch: {
         Args: { content: string; content_type: string; uri: string }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
+        SetofOptions: {
+          from: "*"
+          to: "http_response"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
-      http_post: {
-        Args:
-          | { content: string; content_type: string; uri: string }
-          | { data: Json; uri: string }
-        Returns: Database["public"]["CompositeTypes"]["http_response"]
-      }
+      http_post:
+        | {
+            Args: { content: string; content_type: string; uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: { data: Json; uri: string }
+            Returns: Database["public"]["CompositeTypes"]["http_response"]
+            SetofOptions: {
+              from: "*"
+              to: "http_response"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
       http_put: {
         Args: { content: string; content_type: string; uri: string }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
+        SetofOptions: {
+          from: "*"
+          to: "http_response"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
-      http_reset_curlopt: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      http_reset_curlopt: { Args: never; Returns: boolean }
       http_set_curlopt: {
         Args: { curlopt: string; value: string }
         Returns: boolean
       }
-      is_admin: {
-        Args: { user_id: string }
-        Returns: boolean
-      }
-      text_to_bytea: {
-        Args: { data: string }
-        Returns: string
-      }
+      is_admin: { Args: { user_id: string }; Returns: boolean }
+      text_to_bytea: { Args: { data: string }; Returns: string }
       update_investor_pitch_email_setting: {
         Args: { auto_analyze_value: boolean; record_id: string }
         Returns: boolean
       }
-      urlencode: {
-        Args: { data: Json } | { string: string } | { string: string }
-        Returns: string
-      }
+      urlencode:
+        | { Args: { data: Json }; Returns: string }
+        | {
+            Args: { string: string }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.urlencode(string => bytea), public.urlencode(string => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
+        | {
+            Args: { string: string }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.urlencode(string => bytea), public.urlencode(string => varchar). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
     }
     Enums: {
       pipeline_stage_enum:
@@ -1973,7 +2270,7 @@ export type Database = {
         value: string | null
       }
       http_request: {
-        method: unknown | null
+        method: unknown
         uri: string | null
         headers: Database["public"]["CompositeTypes"]["http_header"][] | null
         content_type: string | null
