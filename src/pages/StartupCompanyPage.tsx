@@ -9,6 +9,7 @@ import { CompanyScrapingDialog } from "@/components/companies/CompanyScrapingDia
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MarketResearch } from "@/components/companies/MarketResearch";
+import { StartupSectionMetrics } from "@/components/companies/StartupSectionMetrics";
 import { useState } from "react";
 
 const StartupCompanyPage = () => {
@@ -125,6 +126,14 @@ const StartupCompanyPage = () => {
             <MarketResearch 
               companyId={company.id} 
               assessmentPoints={company.assessment_points || []} 
+            />
+          )}
+
+          {/* Section Metrics */}
+          {company._rawEvaluation && (
+            <StartupSectionMetrics 
+              submissionId={company.id}
+              evaluation={company._rawEvaluation}
             />
           )}
 
