@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.generate-startup-section-summary]
 verify_jwt = true
+
+[functions.submit-and-evaluate-startup]
+verify_jwt = false
