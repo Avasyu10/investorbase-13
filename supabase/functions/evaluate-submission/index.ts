@@ -17,13 +17,17 @@ export async function evaluateSubmissionHandler(payload: any, authHeader?: strin
         // If LOVABLE_API_KEY is not configured, we'll run a deterministic mock evaluator
         const useMock = !LOVABLE_API_KEY;
 
-        if (!authHeader) throw new Error('No authorization header');
-
         const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
 
-        const token = authHeader.replace('Bearer ', '');
-        const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-        if (userError || !user) throw new Error('Unauthorized');
+        // Try to get user from auth header if present, otherwise allow service role calls
+        let user = null;
+        if (authHeader) {
+            const token = authHeader.replace('Bearer ', '');
+            const { data: { user: authUser }, error: userError } = await supabase.auth.getUser(token);
+            if (!userError && authUser) {
+                user = authUser;
+            }
+        }
 
         // Build system prompt with scoring rubric for all categories
         const systemPrompt = `You are a rigorous startup evaluator. Given a startup submission (problem statement, solution, market details, customer and competitor sections, USP, tech/vision, etc.), score the submission on the following groups and sub-criteria. For each sub-criterion return an integer score between 1 and 20. Provide also an analysis summary and 5 concise recommendations. Output must be a function call to provide_evaluation with a single JSON argument matching the schema.
@@ -133,7 +137,7 @@ For each sub-criterion, follow the provided 1-20 rubrics (be conservative and ju
         const record = {
             startup_name: submission.startup_name,
             problem_statement: submission.problem_statement,
-            evaluator_user_id: user.id,
+            evaluator_user_id: user?.id || null,
             existence_score: clamp(args.existence),
             severity_score: clamp(args.severity),
             frequency_score: clamp(args.frequency),

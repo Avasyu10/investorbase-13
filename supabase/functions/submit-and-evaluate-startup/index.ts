@@ -92,17 +92,17 @@ serve(async (req) => {
     const { data: submission, error: insertError } = await supabase
       .from('startup_submissions')
       .insert({
-        startup_name: submissionData.startup_name.trim(),
-        founder_email: submissionData.founder_email.trim(),
+        startup_name: submissionData.startup_name?.trim() || '',
+        founder_email: submissionData.founder_email?.trim() || '',
         linkedin_profile_url: submissionData.linkedin_profile_url?.trim() || null,
-        problem_statement: submissionData.problem_statement.trim(),
-        solution: submissionData.solution.trim(),
-        market_understanding: submissionData.market_understanding.trim(),
-        customer_understanding: submissionData.customer_understanding.trim(),
-        competitive_understanding: submissionData.competitive_understanding.trim(),
-        unique_selling_proposition: submissionData.unique_selling_proposition.trim(),
-        technical_understanding: submissionData.technical_understanding.trim(),
-        vision: submissionData.vision.trim(),
+        problem_statement: submissionData.problem_statement?.trim() || '',
+        solution: submissionData.solution?.trim() || '',
+        market_understanding: submissionData.market_understanding?.trim() || '',
+        customer_understanding: submissionData.customer_understanding?.trim() || '',
+        competitive_understanding: submissionData.competitive_understanding?.trim() || '',
+        unique_selling_proposition: submissionData.unique_selling_proposition?.trim() || '',
+        technical_understanding: submissionData.technical_understanding?.trim() || '',
+        vision: submissionData.vision?.trim() || '',
         campus_affiliation: submissionData.campus_affiliation || false,
       })
       .select()
