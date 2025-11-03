@@ -66,7 +66,7 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
             {
               title: 'Problem Statement',
               type: 'PROBLEM',
-              score: ((data.existence_score + data.severity_score + data.frequency_score + data.unmet_need_score) / 4) * 20 || 0,
+              score: Math.min(100, ((data.existence_score + data.severity_score + data.frequency_score + data.unmet_need_score) / 4) * 20 || 0),
               description: 'Problem validation and market need assessment',
               items: [
                 `Problem Existence: ${data.existence_score}/5`,
@@ -78,7 +78,7 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
             {
               title: 'Solution',
               type: 'SOLUTION',
-              score: ((data.direct_fit_score + data.differentiation_score + data.feasibility_score + data.effectiveness_score) / 4) * 20 || 0,
+              score: Math.min(100, ((data.direct_fit_score + data.differentiation_score + data.feasibility_score + data.effectiveness_score) / 4) * 20 || 0),
               description: 'Solution fit and effectiveness evaluation',
               items: [
                 `Direct Fit: ${data.direct_fit_score}/5`,
@@ -90,7 +90,7 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
             {
               title: 'Market Size',
               type: 'MARKET',
-              score: ((data.market_size_score + data.growth_trajectory_score + data.timing_readiness_score + data.external_catalysts_score) / 4) * 20 || 0,
+              score: Math.min(100, ((data.market_size_score + data.growth_trajectory_score + data.timing_readiness_score + data.external_catalysts_score) / 4) * 20 || 0),
               description: 'Market opportunity and growth potential',
               items: [
                 `Market Size: ${data.market_size_score}/5`,
@@ -102,7 +102,7 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
             {
               title: 'Traction',
               type: 'TRACTION',
-              score: ((data.first_customers_score + data.accessibility_score + data.acquisition_approach_score + data.pain_recognition_score) / 4) * 20 || 0,
+              score: Math.min(100, ((data.first_customers_score + data.accessibility_score + data.acquisition_approach_score + data.pain_recognition_score) / 4) * 20 || 0),
               description: 'Customer acquisition and market access',
               items: [
                 `First Customers: ${data.first_customers_score}/5`,
@@ -114,7 +114,7 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
             {
               title: 'Competitor',
               type: 'COMPETITIVE_LANDSCAPE',
-              score: ((data.direct_competitors_score + data.substitutes_score + data.differentiation_vs_players_score + data.dynamics_score) / 4) * 20 || 0,
+              score: Math.min(100, ((data.direct_competitors_score + data.substitutes_score + data.differentiation_vs_players_score + data.dynamics_score) / 4) * 20 || 0),
               description: 'Competitive landscape and differentiation',
               items: [
                 `Direct Competitors: ${data.direct_competitors_score}/5`,
@@ -126,7 +126,7 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
             {
               title: 'Business Model',
               type: 'BUSINESS_MODEL',
-              score: ((data.usp_clarity_score + data.usp_differentiation_strength_score + data.usp_defensibility_score + data.usp_alignment_score) / 4) * 20 || 0,
+              score: Math.min(100, ((data.usp_clarity_score + data.usp_differentiation_strength_score + data.usp_defensibility_score + data.usp_alignment_score) / 4) * 20 || 0),
               description: 'Unique value proposition and competitive advantage',
               items: [
                 `USP Clarity: ${data.usp_clarity_score}/5`,
@@ -138,7 +138,7 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
             {
               title: 'Team',
               type: 'TEAM',
-              score: ((data.tech_vision_ambition_score + data.tech_coherence_score + data.tech_alignment_score + data.tech_realism_score + data.tech_feasibility_score + data.tech_components_score + data.tech_complexity_awareness_score + data.tech_roadmap_score) / 8) * 20 || 0,
+              score: Math.min(100, ((data.tech_vision_ambition_score + data.tech_coherence_score + data.tech_alignment_score + data.tech_realism_score + data.tech_feasibility_score + data.tech_components_score + data.tech_complexity_awareness_score + data.tech_roadmap_score) / 8) * 20 || 0),
               description: 'Technical execution and team capability',
               items: [
                 `Tech Vision: ${data.tech_vision_ambition_score}/5`,
