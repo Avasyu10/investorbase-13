@@ -81,7 +81,9 @@ const StartupCompanyPage = () => {
           <div className="container mx-auto">
             {/* Custom header for Company Overview with More Information button */}
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold">Company Overview</h3>
+              <h3 className="text-xl font-semibold">
+                {company.name} - {company.id}
+              </h3>
               {company && (
                 <Button 
                   variant="outline" 
