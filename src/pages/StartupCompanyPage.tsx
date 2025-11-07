@@ -48,8 +48,8 @@ const StartupCompanyPage = () => {
   const industryToShow = company.industry || "Not specified";
   const introductionToShow = company.introduction || `${company.name} is an innovative startup. View their detailed evaluation below.`;
   
-  // Convert score to 100-point scale for display
-  const displayScore = company.overall_score > 5 ? company.overall_score : company.overall_score * 20;
+  // Use raw score (0-20 scale) to match StartupDashboard display
+  const displayScore = company.overall_score;
 
   return (
     <div className="min-h-screen">

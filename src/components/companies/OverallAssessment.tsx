@@ -20,7 +20,7 @@ interface OverallAssessmentProps {
 
 export function OverallAssessment({ 
   score, 
-  maxScore = 100,
+  maxScore = 20,
   assessmentPoints = [],
   companyId,
   companyName
@@ -28,13 +28,13 @@ export function OverallAssessment({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { isVCAndBits, isEximius } = useProfile();
   
-  // Always use 100-point scale
-  const displayScore = score > 5 ? score : score * 20; // Convert 5-point to 100-point if needed
-  const displayMaxScore = 100;
-  const progressPercentage = displayScore;
+  // Use raw score (0-20 scale) to match StartupDashboard
+  const displayScore = score;
+  const displayMaxScore = 20;
+  const progressPercentage = (displayScore / 20) * 100; // Convert to percentage for progress bar
   
-  // Format score to integer
-  const formattedScore = Math.round(displayScore);
+  // Format score to 1 decimal place
+  const formattedScore = displayScore.toFixed(1);
 
   // Default assessment points if none provided (6-7 points)
   const defaultAssessmentPoints = [
@@ -181,11 +181,11 @@ export function OverallAssessment({
                               height={80}
                               fontSize={12}
                             />
-                            <YAxis domain={[0, 100]} />
-                            <ChartTooltip 
-                              content={<ChartTooltipContent />}
-                              formatter={(value) => [`${value}/100`, "Score"]}
-                            />
+                            <YAxis domain={[0, 20]} />
+              <ChartTooltip 
+                content={<ChartTooltipContent />}
+                formatter={(value) => [`${value}/20`, "Score"]}
+              />
                             <Bar 
                               dataKey="score" 
                               fill="hsl(var(--primary))"
@@ -231,14 +231,14 @@ export function OverallAssessment({
                           <div className="flex justify-between items-center mb-2">
                             <span className="text-sm font-medium">{section.name}</span>
                             <span className="text-sm text-muted-foreground">
-                              {section.score}/100
+                              {section.score}/20
                             </span>
                           </div>
-                          <Progress value={section.score} className="h-2" />
+                          <Progress value={(section.score / 20) * 100} className="h-2" />
                           <div className="mt-2 text-xs text-muted-foreground">
-                            {section.score >= 80 ? "Excellent" : 
-                             section.score >= 60 ? "Good" : 
-                             section.score >= 40 ? "Average" : "Needs Improvement"}
+                            {section.score >= 16 ? "Excellent" : 
+                             section.score >= 12 ? "Good" : 
+                             section.score >= 8 ? "Average" : "Needs Improvement"}
                           </div>
                         </div>
                       ))}
