@@ -72,6 +72,15 @@ serve(async (req) => {
       console.log('No evaluation found, using submission data only');
     }
 
+    // Helper function to calculate percentage score (same as frontend)
+    const calculatePercentageScore = (scores: number[]): number => {
+      const validScores = scores.filter(s => s > 0);
+      if (validScores.length === 0) return 0;
+      const avg = validScores.reduce((a, b) => a + b, 0) / validScores.length;
+      // Convert from 0-20 scale to 0-100 percentage (same as dashboard)
+      return Math.round((avg / 20) * 100);
+    };
+
     // Build context based on section
     let context = '';
     let score = 0;
@@ -90,7 +99,7 @@ Target Market: ${(submission as any).target_market || (submission as any).target
           const sev = evaluation.severity_score || 0;
           const freq = evaluation.frequency_score || 0;
           const unmet = evaluation.unmet_need_score || 0;
-          score = Math.min(100, Math.round(Math.pow((ex + sev + freq + unmet) / 80, 1.5) * 100));
+          score = calculatePercentageScore([ex, sev, freq, unmet]);
           feedback = `Existence: ${ex}/20, Severity: ${sev}/20, Frequency: ${freq}/20, Unmet Need: ${unmet}/20`;
         }
         break;
@@ -104,7 +113,7 @@ Metrics: ${(submission as any).metrics || 'Not provided'}`;
           const acc = evaluation.accessibility_score || 0;
           const acq = evaluation.acquisition_approach_score || 0;
           const pr = evaluation.pain_recognition_score || 0;
-          score = Math.min(100, Math.round(Math.pow((fc + acc + acq + pr) / 80, 1.5) * 100));
+          score = calculatePercentageScore([fc, acc, acq, pr]);
           feedback = `First Customers: ${fc}/20, Accessibility: ${acc}/20, Acquisition: ${acq}/20, Pain Recognition: ${pr}/20`;
         }
         break;
@@ -118,7 +127,7 @@ Market Position: ${(submission as any).market_position || 'Not provided'}`;
           const sub = evaluation.substitutes_score || 0;
           const dvp = evaluation.differentiation_vs_players_score || 0;
           const dyn = evaluation.dynamics_score || 0;
-          score = Math.min(100, Math.round(Math.pow((dc + sub + dvp + dyn) / 80, 1.5) * 100));
+          score = calculatePercentageScore([dc, sub, dvp, dyn]);
           feedback = `Direct Competitors: ${dc}/20, Substitutes: ${sub}/20, Differentiation: ${dvp}/20, Dynamics: ${dyn}/20`;
         }
         break;
@@ -132,7 +141,7 @@ Unique Value Proposition: ${(submission as any).unique_value_proposition || 'Not
           const uds = evaluation.usp_differentiation_strength_score || 0;
           const ud = evaluation.usp_defensibility_score || 0;
           const ua = evaluation.usp_alignment_score || 0;
-          score = Math.min(100, Math.round(Math.pow((uc + uds + ud + ua) / 80, 1.5) * 100));
+          score = calculatePercentageScore([uc, uds, ud, ua]);
           feedback = `USP Clarity: ${uc}/20, Strength: ${uds}/20, Defensibility: ${ud}/20, Alignment: ${ua}/20`;
         }
         break;
@@ -146,7 +155,7 @@ Innovation: ${(submission as any).innovation || 'Not provided'}`;
           const diff = evaluation.differentiation_score || 0;
           const feas = evaluation.feasibility_score || 0;
           const eff = evaluation.effectiveness_score || 0;
-          score = Math.min(100, Math.round(Math.pow((dfit + diff + feas + eff) / 80, 1.5) * 100));
+          score = calculatePercentageScore([dfit, diff, feas, eff]);
           feedback = `Direct Fit: ${dfit}/20, Differentiation: ${diff}/20, Feasibility: ${feas}/20, Effectiveness: ${eff}/20`;
         }
         break;
@@ -164,7 +173,7 @@ Founder Background: ${(submission as any).founder_background || 'Not provided'}`
           const tcomp = evaluation.tech_components_score || 0;
           const tca = evaluation.tech_complexity_awareness_score || 0;
           const tr = evaluation.tech_roadmap_score || 0;
-          score = Math.min(100, Math.round(Math.pow((tva + tc + ta + treal + tfeas + tcomp + tca + tr) / 160, 1.5) * 100));
+          score = calculatePercentageScore([tva, tc, ta, treal, tfeas, tcomp, tca, tr]);
           feedback = `Vision: ${tva}/20, Coherence: ${tc}/20, Alignment: ${ta}/20, Realism: ${treal}/20, Feasibility: ${tfeas}/20, Components: ${tcomp}/20, Complexity: ${tca}/20, Roadmap: ${tr}/20`;
         }
         break;
