@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Loader2, BarChart2, Sparkles, RefreshCw } from "lucide-react";
+import { Loader2, BarChart2, Sparkles } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
@@ -26,13 +25,16 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
-  const [isRegenerating, setIsRegenerating] = useState(false);
   const [sectionGroups, setSectionGroups] = useState<SectionGroup[]>([]);
 
   // Fetch evaluation data and group into sections
   useEffect(() => {
     const fetchEvaluation = async () => {
       try {
+        // Clear cache first
+        await supabase.functions.invoke('clear-section-summaries', {
+          body: { submissionId }
+        });
         // First get the startup submission to get the startup name
         const { data: submission, error: submissionError } = await supabase
           .from('startup_submissions')
@@ -193,9 +195,9 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
 
           setSectionGroups(groups);
           
-          // Fetch summaries for all sections
+          // Fetch summaries for all sections with force refresh
           groups.forEach(group => {
-            fetchSummaryForSection(group.type, group.title);
+            fetchSummaryForSection(group.type, group.title, true);
           });
         }
       } catch (error) {
@@ -278,44 +280,6 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
     return "bg-red-500";
   };
 
-  const handleRegenerateAll = async () => {
-    setIsRegenerating(true);
-    try {
-      // First clear the cache
-      const { error: clearError } = await supabase.functions.invoke('clear-section-summaries', {
-        body: { submissionId }
-      });
-
-      if (clearError) {
-        throw clearError;
-      }
-
-      toast({
-        title: "Cache Cleared",
-        description: "Regenerating all sections with fresh analysis..."
-      });
-
-      // Regenerate all sections
-      for (const group of sectionGroups) {
-        await fetchSummaryForSection(group.type, group.title, true);
-      }
-
-      toast({
-        title: "Regeneration Complete",
-        description: "All sections have been regenerated successfully."
-      });
-    } catch (error) {
-      console.error('Error regenerating sections:', error);
-      toast({
-        title: "Regeneration Failed",
-        description: "Failed to regenerate sections. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsRegenerating(false);
-    }
-  };
-
   const formatSummary = (text: string) => {
     if (!text) return null;
     
@@ -372,25 +336,10 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
 
   return (
     <div className="mb-8">
-      <div className="flex items-center justify-between mb-6 mt-12">
-        <h2 className="text-2xl font-bold flex items-center gap-2">
-          <BarChart2 className="h-5 w-5 text-primary" />
-          Section Metrics
-        </h2>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleRegenerateAll}
-          disabled={isRegenerating}
-        >
-          {isRegenerating ? (
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          ) : (
-            <RefreshCw className="h-4 w-4 mr-2" />
-          )}
-          Regenerate All Sections
-        </Button>
-      </div>
+      <h2 className="text-2xl font-bold mt-12 mb-6 flex items-center gap-2">
+        <BarChart2 className="h-5 w-5 text-primary" />
+        Section Metrics
+      </h2>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {sectionGroups.map((section) => {
