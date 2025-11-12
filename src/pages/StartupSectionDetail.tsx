@@ -115,28 +115,25 @@ export default function StartupSectionDetail() {
   }, [submissionId, sectionType]);
 
   const getScoreColor = (score: number) => {
-    const percentage = (score / 100) * 100;
-    if (percentage >= 80) return "text-emerald-600";
-    if (percentage >= 60) return "text-blue-600";
-    if (percentage >= 40) return "text-amber-600";
-    if (percentage >= 20) return "text-orange-600";
+    if (score >= 80) return "text-emerald-600";
+    if (score >= 60) return "text-blue-600";
+    if (score >= 40) return "text-amber-600";
+    if (score >= 20) return "text-orange-600";
     return "text-red-600";
   };
 
   const getScoreBadgeVariant = (score: number): "default" | "secondary" | "outline" | "destructive" => {
-    const percentage = (score / 100) * 100;
-    if (percentage >= 80) return "default";
-    if (percentage >= 60) return "secondary";
-    if (percentage >= 40) return "outline";
+    if (score >= 80) return "default";
+    if (score >= 60) return "secondary";
+    if (score >= 40) return "outline";
     return "destructive";
   };
 
   const getProgressColor = (score: number) => {
-    const percentage = (score / 100) * 100;
-    if (percentage >= 80) return "bg-emerald-500";
-    if (percentage >= 60) return "bg-blue-500";
-    if (percentage >= 40) return "bg-amber-500";
-    if (percentage >= 20) return "bg-orange-500";
+    if (score >= 80) return "bg-emerald-500";
+    if (score >= 60) return "bg-blue-500";
+    if (score >= 40) return "bg-amber-500";
+    if (score >= 20) return "bg-orange-500";
     return "bg-red-500";
   };
 
