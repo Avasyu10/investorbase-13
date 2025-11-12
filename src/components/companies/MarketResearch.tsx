@@ -55,10 +55,12 @@ export function MarketResearch({ companyId, submissionId, assessmentPoints, isSt
           } else if (data) {
             setResearchData(data);
             console.log('Found existing startup research data:', data);
-          } else {
+          } else if (assessmentPoints && assessmentPoints.length > 0) {
             // No existing research found, start analysis automatically
             console.log('No existing startup research found, starting analysis automatically');
+            setIsCheckingExisting(false); // Stop loading state before starting research
             await handleRequestResearch();
+            return; // Early return to avoid setting isCheckingExisting again
           }
         } else if (companyId) {
           // Handle company research
@@ -85,21 +87,26 @@ export function MarketResearch({ companyId, submissionId, assessmentPoints, isSt
           } else if (data) {
             setResearchData(data);
             console.log('Found existing research data:', data);
-          } else {
+          } else if (assessmentPoints && assessmentPoints.length > 0) {
             // No existing research found, start analysis automatically
             console.log('No existing research found, starting analysis automatically');
+            setIsCheckingExisting(false); // Stop loading state before starting research
             await handleRequestResearch();
+            return; // Early return to avoid setting isCheckingExisting again
           }
         }
       } catch (error) {
         console.error('Error in checkExistingResearch:', error);
+        toast.error("Failed to check existing research", {
+          description: error.message
+        });
       } finally {
         setIsCheckingExisting(false);
       }
     };
     
     checkExistingResearch();
-  }, [companyId, submissionId, isStartup]);
+  }, [companyId, submissionId, isStartup, assessmentPoints]);
 
   const handleRequestResearch = async () => {
     if ((!companyId && !submissionId) || !assessmentPoints || assessmentPoints.length === 0) {
