@@ -6,6 +6,7 @@ import { Loader2, BarChart2, Sparkles } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import ReactMarkdown from 'react-markdown';
 
 interface StartupSectionMetricsProps {
   submissionId: string;
@@ -279,20 +280,29 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
   const formatSummary = (text: string) => {
     if (!text) return null;
     
-    // Split by bullet points or numbered lists and take first 2-3 points
+    // Split by lines and take first 2-3 points
     const lines = text.split('\n').filter(line => line.trim());
-    const summaryLines = lines.slice(0, 2); // Show only 2 bullet points
+    const summaryLines = lines.slice(0, 2);
+    const summaryText = summaryLines.join('\n');
     
-    return summaryLines.map((line, index) => {
-      const trimmedLine = line.trim();
-      // Remove bullet or number prefix
-      const cleanLine = trimmedLine.replace(/^[-•*]\s|^\d+\.\s/, '');
-      return (
-        <li key={index} className="text-foreground leading-relaxed">
-          {cleanLine}
-        </li>
-      );
-    });
+    return (
+      <ReactMarkdown
+        className="text-sm"
+        components={{
+          p: ({ children }) => <p className="text-foreground leading-relaxed mb-2">{children}</p>,
+          strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+          ul: ({ children }) => <ul className="space-y-2">{children}</ul>,
+          li: ({ children }) => (
+            <li className="text-foreground leading-relaxed flex items-start gap-2">
+              <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-primary mt-1.5" />
+              <span>{children}</span>
+            </li>
+          ),
+        }}
+      >
+        {summaryText}
+      </ReactMarkdown>
+    );
   };
 
   if (isLoading) {
@@ -372,9 +382,9 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
                     <span className="text-sm text-muted-foreground">Generating insights...</span>
                   </div>
                 ) : section.summary ? (
-                  <ul className="space-y-2 text-sm leading-relaxed">
+                  <div className="space-y-2">
                     {formatSummary(section.summary)}
-                  </ul>
+                  </div>
                 ) : (
                   <p className="text-sm text-muted-foreground italic py-2">No analysis available</p>
                 )}

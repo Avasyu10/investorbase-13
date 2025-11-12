@@ -3,10 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft, RefreshCw, TrendingUp, TrendingDown } from "lucide-react";
+import { Loader2, ArrowLeft, RefreshCw } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import ReactMarkdown from 'react-markdown';
 
 interface SectionSummary {
   summary: string;
@@ -253,9 +254,7 @@ export default function StartupSectionDetail() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="prose prose-sm max-w-none">
-                {formatSummary(sectionData.summary)}
-              </div>
+              {formatSummary(sectionData.summary)}
               
               {sectionData.fromCache && (
                 <div className="mt-4 pt-4 border-t">
