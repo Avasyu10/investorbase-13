@@ -31,10 +31,6 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
   useEffect(() => {
     const fetchEvaluation = async () => {
       try {
-        // Clear cache first
-        await supabase.functions.invoke('clear-section-summaries', {
-          body: { submissionId }
-        });
         // First get the startup submission to get the startup name
         const { data: submission, error: submissionError } = await supabase
           .from('startup_submissions')
@@ -195,9 +191,9 @@ export function StartupSectionMetrics({ submissionId }: StartupSectionMetricsPro
 
           setSectionGroups(groups);
           
-          // Fetch summaries for all sections with force refresh
+          // Fetch summaries for all sections (will use cache if available)
           groups.forEach(group => {
-            fetchSummaryForSection(group.type, group.title, true);
+            fetchSummaryForSection(group.type, group.title, false);
           });
         }
       } catch (error) {
