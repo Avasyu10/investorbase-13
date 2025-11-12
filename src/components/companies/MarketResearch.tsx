@@ -9,11 +9,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface MarketResearchProps {
-  companyId: string;
+  companyId?: string;
+  submissionId?: string;
   assessmentPoints: string[];
+  isStartup?: boolean;
 }
 
-export function MarketResearch({ companyId, assessmentPoints }: MarketResearchProps) {
+export function MarketResearch({ companyId, submissionId, assessmentPoints, isStartup = false }: MarketResearchProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [researchData, setResearchData] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<string>("summary");
@@ -22,39 +24,72 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
   const [showDetailView, setShowDetailView] = useState(false);
 
   useEffect(() => {
-    if (!companyId) return;
+    if (!companyId && !submissionId) return;
     
     const checkExistingResearch = async () => {
       try {
         setIsCheckingExisting(true);
         
-        const { data: companyData, error: companyError } = await supabase
-          .from('companies')
-          .select('name')
-          .eq('id', companyId)
-          .single();
+        if (isStartup && submissionId) {
+          // Handle startup submission research
+          const { data: submissionData, error: submissionError } = await supabase
+            .from('startup_submissions')
+            .select('startup_name')
+            .eq('id', submissionId)
+            .single();
+            
+          if (!submissionError && submissionData) {
+            setCompanyName(submissionData.startup_name);
+          }
           
-        if (!companyError && companyData) {
-          setCompanyName(companyData.name);
-        }
-        
-        const { data, error } = await supabase
-          .from('market_research')
-          .select('*')
-          .eq('company_id', companyId)
-          .order('requested_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          const { data, error } = await supabase
+            .from('startup_market_research')
+            .select('*')
+            .eq('startup_submission_id', submissionId)
+            .order('requested_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+            
+          if (error) {
+            console.error('Error checking existing startup research:', error);
+          } else if (data) {
+            setResearchData(data);
+            console.log('Found existing startup research data:', data);
+          } else {
+            // No existing research found, start analysis automatically
+            console.log('No existing startup research found, starting analysis automatically');
+            await handleRequestResearch();
+          }
+        } else if (companyId) {
+          // Handle company research
+          const { data: companyData, error: companyError } = await supabase
+            .from('companies')
+            .select('name')
+            .eq('id', companyId)
+            .single();
+            
+          if (!companyError && companyData) {
+            setCompanyName(companyData.name);
+          }
           
-        if (error) {
-          console.error('Error checking existing research:', error);
-        } else if (data) {
-          setResearchData(data);
-          console.log('Found existing research data:', data);
-        } else {
-          // No existing research found, start analysis automatically
-          console.log('No existing research found, starting analysis automatically');
-          await handleRequestResearch();
+          const { data, error } = await supabase
+            .from('market_research')
+            .select('*')
+            .eq('company_id', companyId)
+            .order('requested_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+            
+          if (error) {
+            console.error('Error checking existing research:', error);
+          } else if (data) {
+            setResearchData(data);
+            console.log('Found existing research data:', data);
+          } else {
+            // No existing research found, start analysis automatically
+            console.log('No existing research found, starting analysis automatically');
+            await handleRequestResearch();
+          }
         }
       } catch (error) {
         console.error('Error in checkExistingResearch:', error);
@@ -64,43 +99,53 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
     };
     
     checkExistingResearch();
-  }, [companyId]);
+  }, [companyId, submissionId, isStartup]);
 
   const handleRequestResearch = async () => {
-    if (!companyId || !assessmentPoints || assessmentPoints.length === 0) {
-      toast.error("Missing company information", {
-        description: "Cannot request market research without company data"
+    if ((!companyId && !submissionId) || !assessmentPoints || assessmentPoints.length === 0) {
+      toast.error("Missing information", {
+        description: "Cannot request market research without data"
       });
       return;
     }
 
     try {
       setIsLoading(true);
-      console.log('Starting market research for company:', companyId);
       
-      const { data, error } = await supabase.functions.invoke('real-time-perplexity-research', {
-        body: { 
-          companyId,
-          assessmentPoints 
-        }
-      });
-      
-      if (error) {
-        console.error('Error invoking research function:', error);
-        toast.error("Research failed", {
-          description: "There was a problem with the market research. Please try again."
+      if (isStartup && submissionId) {
+        console.log('Starting market research for startup submission:', submissionId);
+        
+        const { data, error } = await supabase.functions.invoke('startup-market-research', {
+          body: { 
+            submissionId,
+            assessmentText: assessmentPoints.join('\n')
+          }
         });
-        return;
-      }
-      
-      console.log('Research function response:', data);
-      
-      if (data.success) {
+        
+        if (error) {
+          console.error('Error invoking startup research function:', error);
+          toast.error("Research failed", {
+            description: "There was a problem with the market research. Please try again."
+          });
+          return;
+        }
+        
+        console.log('Startup research function response:', data);
+        
+        if (data.error) {
+          toast.error("Research failed", {
+            description: data.error
+          });
+          return;
+        }
+        
         // Refresh the data from the database
         const { data: refreshedData, error: refreshError } = await supabase
-          .from('market_research')
+          .from('startup_market_research')
           .select('*')
-          .eq('id', data.researchId)
+          .eq('startup_submission_id', submissionId)
+          .order('requested_at', { ascending: false })
+          .limit(1)
           .single();
           
         if (!refreshError && refreshedData) {
@@ -110,15 +155,56 @@ export function MarketResearch({ companyId, assessmentPoints }: MarketResearchPr
             description: "Market research has been completed successfully"
           });
         } else {
-          console.error('Error refreshing research data:', refreshError);
+          console.error('Error refreshing startup research data:', refreshError);
           toast.error("Research completed but failed to load", {
             description: "Please refresh the page to see the results"
           });
         }
-      } else {
-        toast.error("Research failed", {
-          description: data.error || "Unknown error occurred"
+      } else if (companyId) {
+        console.log('Starting market research for company:', companyId);
+        
+        const { data, error } = await supabase.functions.invoke('real-time-perplexity-research', {
+          body: { 
+            companyId,
+            assessmentPoints 
+          }
         });
+        
+        if (error) {
+          console.error('Error invoking research function:', error);
+          toast.error("Research failed", {
+            description: "There was a problem with the market research. Please try again."
+          });
+          return;
+        }
+        
+        console.log('Research function response:', data);
+        
+        if (data.success) {
+          // Refresh the data from the database
+          const { data: refreshedData, error: refreshError } = await supabase
+            .from('market_research')
+            .select('*')
+            .eq('id', data.researchId)
+            .single();
+            
+          if (!refreshError && refreshedData) {
+            setResearchData(refreshedData);
+            setShowDetailView(true);
+            toast.success("Research complete", {
+              description: "Market research has been completed successfully"
+            });
+          } else {
+            console.error('Error refreshing research data:', refreshError);
+            toast.error("Research completed but failed to load", {
+              description: "Please refresh the page to see the results"
+            });
+          }
+        } else {
+          toast.error("Research failed", {
+            description: data.error || "Unknown error occurred"
+          });
+        }
       }
     } catch (error) {
       console.error('Error in handleRequestResearch:', error);

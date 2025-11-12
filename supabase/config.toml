@@ -14,3 +14,9 @@ verify_jwt = true
 
 [functions.submit-and-evaluate-startup]
 verify_jwt = false
+
+[functions.startup-market-research]
+verify_jwt = true
+
+[functions.backfill-startup-research]
+verify_jwt = true

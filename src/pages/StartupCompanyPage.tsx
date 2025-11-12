@@ -124,8 +124,9 @@ const StartupCompanyPage = () => {
           {/* Real-Time Market Research */}
           {company.id && (
             <MarketResearch 
-              companyId={company.id} 
-              assessmentPoints={company.assessment_points || []} 
+              submissionId={company.id}
+              assessmentPoints={company.assessment_points || []}
+              isStartup={true}
             />
           )}
 

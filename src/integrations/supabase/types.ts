@@ -1429,6 +1429,65 @@ export type Database = {
           },
         ]
       }
+      startup_market_research: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          market_insights: Json | null
+          news_highlights: Json | null
+          prompt: string | null
+          requested_at: string
+          research_summary: string | null
+          research_text: string | null
+          sources: Json | null
+          startup_submission_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          market_insights?: Json | null
+          news_highlights?: Json | null
+          prompt?: string | null
+          requested_at?: string
+          research_summary?: string | null
+          research_text?: string | null
+          sources?: Json | null
+          startup_submission_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          market_insights?: Json | null
+          news_highlights?: Json | null
+          prompt?: string | null
+          requested_at?: string
+          research_summary?: string | null
+          research_text?: string | null
+          sources?: Json | null
+          startup_submission_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "startup_market_research_startup_submission_id_fkey"
+            columns: ["startup_submission_id"]
+            isOneToOne: false
+            referencedRelation: "startup_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       startup_section_summaries: {
         Row: {
           context_data: Json | null
