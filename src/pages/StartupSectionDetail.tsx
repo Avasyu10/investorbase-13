@@ -139,22 +139,26 @@ export default function StartupSectionDetail() {
   };
 
   const formatSummary = (text: string) => {
-    // Split by bullet points or numbered lists
-    const lines = text.split('\n').filter(line => line.trim());
-    
-    return lines.map((line, index) => {
-      const trimmedLine = line.trim();
-      // Check if line starts with bullet or number
-      if (trimmedLine.match(/^[-•*]\s/) || trimmedLine.match(/^\d+\.\s/)) {
-        return (
-          <div key={index} className="flex items-start gap-3 mb-3">
-            <div className="flex-shrink-0 w-2 h-2 rounded-full bg-primary mt-2" />
-            <p className="text-base leading-relaxed">{trimmedLine.replace(/^[-•*]\s|^\d+\.\s/, '')}</p>
-          </div>
-        );
-      }
-      return <p key={index} className="text-base leading-relaxed mb-3">{trimmedLine}</p>;
-    });
+    // Use ReactMarkdown to properly render markdown content
+    return (
+      <ReactMarkdown
+        className="prose prose-sm max-w-none dark:prose-invert"
+        components={{
+          p: ({ children }) => <p className="text-base leading-relaxed mb-3">{children}</p>,
+          strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
+          ul: ({ children }) => <ul className="space-y-2 ml-4">{children}</ul>,
+          ol: ({ children }) => <ol className="space-y-2 ml-4">{children}</ol>,
+          li: ({ children }) => (
+            <li className="text-base leading-relaxed flex items-start gap-2">
+              <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-primary mt-2" />
+              <span>{children}</span>
+            </li>
+          ),
+        }}
+      >
+        {text}
+      </ReactMarkdown>
+    );
   };
 
   if (isLoading) {
