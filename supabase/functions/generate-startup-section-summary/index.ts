@@ -191,21 +191,21 @@ Founder Background: ${(submission as any).founder_background || 'Not provided'}`
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    const prompt = `You are analyzing a startup submission for the section "${sectionName}".
+    const prompt = `Analyze this startup's "${sectionName}" performance.
 
 Score: ${Math.round(score)}/100
 Component Scores: ${feedback}
 
-Context:
+Submission Data:
 ${context}
 
-Generate a concise, bulleted analysis (3-4 bullet points) explaining:
-1. Why this score was given based on the submission data and component scores
-2. Key strengths identified in this area
-3. Key weaknesses or areas for improvement
-4. Relevant industry context, benchmarks, or actionable recommendations
+Provide 3-4 concise bullet points covering:
+1. Key strengths and what they're doing well
+2. Critical weaknesses and gaps to address
+3. Specific, actionable recommendations with industry benchmarks
+4. Market context and competitive positioning insights
 
-Keep each bullet point under 2 sentences. Focus on being specific and actionable. Format as bullet points starting with "- ".`;
+Each point should be 1-2 sentences maximum. Be direct, specific, and actionable. Format as clean bullet points with "- ".`;
 
     console.log('Calling Lovable AI Gateway...');
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -219,7 +219,7 @@ Keep each bullet point under 2 sentences. Focus on being specific and actionable
         messages: [
           {
             role: 'system',
-            content: 'You are an expert startup evaluator. Provide concise, insightful analysis in bullet point format.'
+            content: 'You are a venture capital analyst providing startup evaluations. Output ONLY the bullet points - no introductory phrases, no section headers, no explanations about the analysis. Start directly with the first bullet point.'
           },
           {
             role: 'user',
