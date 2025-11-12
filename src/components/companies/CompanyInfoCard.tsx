@@ -24,6 +24,7 @@ type CompanyInfoProps = {
   reportId?: string; // Added for backward compatibility
   companyName?: string; // Added to display company name in description
   companyLinkedInUrl?: string; // Added for LinkedIn scraping
+  isStartup?: boolean; // Added to skip company table queries for startups
 };
 interface Company {
   id: string;
@@ -67,7 +68,8 @@ export function CompanyInfoCard({
   reportId,
   // For backward compatibility
   companyName = "this company",
-  companyLinkedInUrl
+  companyLinkedInUrl,
+  isStartup = false
 }: CompanyInfoProps) {
   const {
     id
@@ -88,6 +90,7 @@ export function CompanyInfoCard({
   } = useProfile();
 
   // First, get the company data from the companies table to ensure we have the correct company ID
+  // Skip this query if it's a startup submission
   const {
     data: companyData
   } = useQuery({
@@ -106,7 +109,7 @@ export function CompanyInfoCard({
       console.log("Company data fetched:", data);
       return data as Company;
     },
-    enabled: !!id
+    enabled: !!id && !isStartup
   });
 
   // Fetch Eureka form submission for IIT Bombay users

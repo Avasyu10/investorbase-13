@@ -106,6 +106,7 @@ const StartupCompanyPage = () => {
                   industry={industryToShow} 
                   introduction={introductionToShow} 
                   companyName={company.name}
+                  isStartup={true}
                 />
               </div>
             </div>
