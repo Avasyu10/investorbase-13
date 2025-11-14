@@ -30,19 +30,60 @@ export async function evaluateSubmissionHandler(payload: any, authHeader?: strin
             }
         }
 
-        // Build system prompt with scoring rubric for all categories
-        const systemPrompt = `You are a rigorous startup evaluator. Given a startup submission (problem statement, solution, market details, customer and competitor sections, USP, tech/vision, etc.), score the submission on the following groups and sub-criteria. For each sub-criterion return an integer score between 1 and 20. Provide also an analysis summary and 5 concise recommendations. Output must be a function call to provide_evaluation with a single JSON argument matching the schema.
+        // Build system prompt with scoring rubric for all categories - STRICT SCORING
+        const systemPrompt = `You are an extremely rigorous and critical startup evaluator with exceptionally high standards. Given a startup submission (problem statement, solution, market details, customer and competitor sections, USP, tech/vision, etc.), score the submission on the following groups and sub-criteria. 
+
+CRITICAL SCORING GUIDELINES:
+- Use the FULL range 1-20, but be HIGHLY CONSERVATIVE with scores
+- Most startups should score between 5-12 on average. Scores above 15 should be EXTREMELY rare and reserved for truly exceptional cases
+- A score of 10 represents "adequate but unremarkable" - most criteria should be below this
+- Only give high scores (15+) when there is EXCEPTIONAL, CONCRETE evidence of excellence
+- Be skeptical of vague claims, unvalidated assumptions, or generic statements
+- Penalize heavily for: lack of specificity, missing data, unproven claims, weak differentiation, unclear go-to-market
+- A "good idea" is NOT enough - execution plan, market validation, and realistic feasibility are critical
 
 Scoring groups and sub-criteria:
 1) Problem Statement: existence, severity, frequency, unmet_need
+   - Demand CONCRETE evidence of the problem's existence and severity
+   - Anecdotal evidence scores low (1-6). Survey data scores medium (7-10). Hard metrics score higher (11-15)
+   
 2) Solution: direct_fit, differentiation, feasibility, effectiveness
+   - Generic or obvious solutions score low (1-8)
+   - True innovation with clear feasibility scores medium (9-13)
+   - Proven concept with strong execution plan scores higher (14-17)
+   
 3) Market Understanding: market_size, growth_trajectory, timing_readiness, external_catalysts
+   - Vague market estimates score very low (1-5)
+   - Basic understanding with some data scores medium (6-11)
+   - Deep analysis with multiple data sources scores higher (12-16)
+   
 4) Customers: first_customers, accessibility, acquisition_approach, pain_recognition
+   - No clear customer identification scores very low (1-4)
+   - Generic target market scores low (5-9)
+   - Specific, validated customer segments with proof of access scores medium-high (10-15)
+   
 5) Competition: direct_competitors, substitutes, differentiation_vs_players, dynamics
+   - "No competition" or weak analysis scores very low (1-5)
+   - Basic competitive understanding scores medium (6-11)
+   - Deep competitive analysis with clear, defensible differentiation scores higher (12-16)
+   
 6) USP: clarity, differentiation_strength, defensibility, alignment_with_market
+   - Vague or generic USP scores very low (1-6)
+   - Clear but easily replicable USP scores medium (7-11)
+   - Strong, defensible competitive advantage scores higher (12-16)
+   
 7) Tech: vision_ambition, coherence_clarity, strategic_alignment, realism, technical_feasibility, components_understanding, complexity_awareness, roadmap_execution
+   - Unrealistic or vague tech plans score very low (1-6)
+   - Realistic but basic tech approach scores medium (7-11)
+   - Well-planned, feasible tech with clear roadmap scores higher (12-16)
 
-For each sub-criterion, follow the provided 1-20 rubrics (be conservative and justify scores in the analysis_summary). The analysis_summary should briefly explain the main drivers for the scores and call out key risks and strengths. recommendations should be 3-5 actionable bullets. Do NOT include any extra fields.
+SCORING DISTRIBUTION TARGET:
+- 90% of criteria should score between 4-13
+- Only 10% should score 14+ (and must have exceptional justification)
+- Scores of 18+ should be almost never given
+- Average overall score should typically be 7-11 for most startups
+
+For each sub-criterion, be HIGHLY CRITICAL and justify low scores in the analysis_summary. The analysis_summary should be brutally honest, highlight all weaknesses, gaps, and risks. Recommendations should be 3-5 specific, actionable bullets addressing the most critical gaps. Do NOT include any extra fields.
 `;
 
         const userPrompt = `Submission: ${JSON.stringify(submission)}`;
