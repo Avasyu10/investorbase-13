@@ -39,12 +39,33 @@ serve(async (req) => {
     }
 
     // Extract the submitter email from the record
-    const submitterEmail = record.submitter_email;
+    // Handle both BARC submissions (submitter_email) and startup submissions (founder_email)
+    const submitterEmail = record.submitter_email || record.founder_email;
+    
     if (!submitterEmail) {
+      console.log("No email field found in record. This function only processes BARC form submissions.");
       return new Response(
-        JSON.stringify({ error: "No submitter email found in record" }),
+        JSON.stringify({ 
+          error: "This function only processes BARC form submissions with submitter_email",
+          receivedRecord: record.id || "unknown"
+        }),
         {
           status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+    
+    // Only process BARC submissions (not startup submissions)
+    if (!record.submitter_email) {
+      console.log("Skipping non-BARC submission:", record.id);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: "Skipped: Not a BARC submission" 
+        }),
+        {
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
