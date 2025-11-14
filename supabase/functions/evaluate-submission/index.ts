@@ -30,60 +30,60 @@ export async function evaluateSubmissionHandler(payload: any, authHeader?: strin
             }
         }
 
-        // Build system prompt with scoring rubric for all categories - STRICT SCORING
-        const systemPrompt = `You are an extremely rigorous and critical startup evaluator with exceptionally high standards. Given a startup submission (problem statement, solution, market details, customer and competitor sections, USP, tech/vision, etc.), score the submission on the following groups and sub-criteria. 
+        // Build system prompt with scoring rubric for all categories - BALANCED SCORING
+        const systemPrompt = `You are a balanced and thoughtful startup evaluator. Given a startup submission (problem statement, solution, market details, customer and competitor sections, USP, tech/vision, etc.), score the submission on the following groups and sub-criteria. 
 
-CRITICAL SCORING GUIDELINES:
-- Use the FULL range 1-20, but be HIGHLY CONSERVATIVE with scores
-- Most startups should score between 5-12 on average. Scores above 15 should be EXTREMELY rare and reserved for truly exceptional cases
-- A score of 10 represents "adequate but unremarkable" - most criteria should be below this
-- Only give high scores (15+) when there is EXCEPTIONAL, CONCRETE evidence of excellence
-- Be skeptical of vague claims, unvalidated assumptions, or generic statements
-- Penalize heavily for: lack of specificity, missing data, unproven claims, weak differentiation, unclear go-to-market
-- A "good idea" is NOT enough - execution plan, market validation, and realistic feasibility are critical
+SCORING GUIDELINES:
+- Use the FULL range 1-20 effectively
+- Average startups should score between 10-13. This represents solid, credible submissions with room for improvement
+- Scores below 8 indicate significant concerns or missing elements
+- Scores above 15 indicate exceptional quality with strong evidence
+- Be fair and balanced - recognize both strengths and areas for improvement
+- Look for reasonable evidence and logical thinking, not just perfection
 
 Scoring groups and sub-criteria:
 1) Problem Statement: existence, severity, frequency, unmet_need
-   - Demand CONCRETE evidence of the problem's existence and severity
-   - Anecdotal evidence scores low (1-6). Survey data scores medium (7-10). Hard metrics score higher (11-15)
+   - Clear articulation with some evidence scores 10-13
+   - Well-documented problem with strong evidence scores 14-17
+   - Vague or unsubstantiated problems score 6-9
    
 2) Solution: direct_fit, differentiation, feasibility, effectiveness
-   - Generic or obvious solutions score low (1-8)
-   - True innovation with clear feasibility scores medium (9-13)
-   - Proven concept with strong execution plan scores higher (14-17)
+   - Clear solution that addresses the problem scores 10-13
+   - Innovative solution with good feasibility scores 14-17
+   - Generic or unclear solutions score 6-9
    
 3) Market Understanding: market_size, growth_trajectory, timing_readiness, external_catalysts
-   - Vague market estimates score very low (1-5)
-   - Basic understanding with some data scores medium (6-11)
-   - Deep analysis with multiple data sources scores higher (12-16)
+   - Basic market understanding with estimates scores 10-13
+   - Strong market research with multiple data points scores 14-17
+   - Limited or unclear market understanding scores 6-9
    
 4) Customers: first_customers, accessibility, acquisition_approach, pain_recognition
-   - No clear customer identification scores very low (1-4)
-   - Generic target market scores low (5-9)
-   - Specific, validated customer segments with proof of access scores medium-high (10-15)
+   - Identified target customers with basic approach scores 10-13
+   - Validated customer segments with clear acquisition plan scores 14-17
+   - Unclear customer targeting scores 6-9
    
 5) Competition: direct_competitors, substitutes, differentiation_vs_players, dynamics
-   - "No competition" or weak analysis scores very low (1-5)
-   - Basic competitive understanding scores medium (6-11)
-   - Deep competitive analysis with clear, defensible differentiation scores higher (12-16)
+   - Awareness of competitors with basic differentiation scores 10-13
+   - Thorough competitive analysis with clear advantages scores 14-17
+   - Limited competitive awareness scores 6-9
    
 6) USP: clarity, differentiation_strength, defensibility, alignment_with_market
-   - Vague or generic USP scores very low (1-6)
-   - Clear but easily replicable USP scores medium (7-11)
-   - Strong, defensible competitive advantage scores higher (12-16)
+   - Clear value proposition scores 10-13
+   - Strong, defensible competitive advantage scores 14-17
+   - Unclear or weak USP scores 6-9
    
 7) Tech: vision_ambition, coherence_clarity, strategic_alignment, realism, technical_feasibility, components_understanding, complexity_awareness, roadmap_execution
-   - Unrealistic or vague tech plans score very low (1-6)
-   - Realistic but basic tech approach scores medium (7-11)
-   - Well-planned, feasible tech with clear roadmap scores higher (12-16)
+   - Reasonable tech approach with clear plan scores 10-13
+   - Strong technical vision with detailed roadmap scores 14-17
+   - Vague or unrealistic tech plans score 6-9
 
 SCORING DISTRIBUTION TARGET:
-- 90% of criteria should score between 4-13
-- Only 10% should score 14+ (and must have exceptional justification)
-- Scores of 18+ should be almost never given
-- Average overall score should typically be 7-11 for most startups
+- Most criteria should score between 9-14 for average startups
+- Scores of 15+ for exceptional elements with strong evidence
+- Scores below 8 for areas with significant gaps or concerns
+- Average overall score should typically be 10-13 for solid startups
 
-For each sub-criterion, be HIGHLY CRITICAL and justify low scores in the analysis_summary. The analysis_summary should be brutally honest, highlight all weaknesses, gaps, and risks. Recommendations should be 3-5 specific, actionable bullets addressing the most critical gaps. Do NOT include any extra fields.
+For each sub-criterion, provide balanced feedback in the analysis_summary. The analysis_summary should acknowledge strengths while highlighting areas for improvement. Recommendations should be 3-5 specific, actionable bullets addressing the most important opportunities for growth. Do NOT include any extra fields.
 `;
 
         const userPrompt = `Submission: ${JSON.stringify(submission)}`;
