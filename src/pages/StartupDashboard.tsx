@@ -400,15 +400,9 @@ const StartupDashboard = () => {
                             <td className="py-3 px-4 text-gray-300">{new Date(submission.created_at).toLocaleDateString('en-US')}</td>
                             <td className="py-3 px-4 text-white font-medium">{submission.startup_name}</td>
                             <td className="py-3 px-4 text-white">
-                              <button
-                                className="text-blue-400 hover:text-blue-300 underline cursor-pointer transition"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigate(`/startup-company/${submission.id}`);
-                                }}
-                              >
+                              <span className="text-gray-300">
                                 EU{submission.id.slice(-7).toUpperCase()}
-                              </button>
+                              </span>
                             </td>
                             <td className="py-3 px-4">
                               {displayScore !== null ? (
