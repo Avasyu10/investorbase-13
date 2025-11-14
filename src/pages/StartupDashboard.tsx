@@ -392,13 +392,18 @@ const StartupDashboard = () => {
                           }
                         }
                         return (
-                          <tr key={submission.id} className="border-b border-[#23262F] hover:bg-[#20222A] transition">
+                          <tr 
+                            key={submission.id} 
+                            className="border-b border-[#23262F] hover:bg-[#20222A] transition cursor-pointer"
+                            onClick={() => navigate(`/startup-company/${submission.id}`)}
+                          >
                             <td className="py-3 px-4 text-gray-300">{new Date(submission.created_at).toLocaleDateString('en-US')}</td>
                             <td className="py-3 px-4 text-white font-medium">{submission.startup_name}</td>
                             <td className="py-3 px-4 text-white">
                               <button
                                 className="text-blue-400 hover:text-blue-300 underline cursor-pointer transition"
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   navigate(`/startup-company/${submission.id}`);
                                 }}
                               >
@@ -419,7 +424,8 @@ const StartupDashboard = () => {
                             <td className="py-3 px-4">
                               <Button
                                 variant="ghost"
-                                onClick={async () => {
+                                onClick={async (e) => {
+                                  e.stopPropagation();
                                   try {
                                     const { data: { session } } = await supabase.auth.getSession();
                                     if (!session) throw new Error('You must be logged in to delete submissions');
