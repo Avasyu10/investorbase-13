@@ -127,7 +127,7 @@ const StartupCompanyPage = () => {
             <MarketResearch 
               submissionId={company.id}
               assessmentPoints={company.assessment_points || []}
-              isStartup={true}
+              isStartup={false}
             />
           )}
 
