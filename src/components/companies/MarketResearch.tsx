@@ -54,13 +54,10 @@ export function MarketResearch({ companyId, submissionId, assessmentPoints, isSt
             console.error('Error checking existing startup research:', error);
           } else if (data) {
             setResearchData(data);
+            if (data.status === 'completed') {
+              setShowDetailView(true);
+            }
             console.log('Found existing startup research data:', data);
-          } else if (assessmentPoints && assessmentPoints.length > 0) {
-            // No existing research found, start analysis automatically
-            console.log('No existing startup research found, starting analysis automatically');
-            setIsCheckingExisting(false); // Stop loading state before starting research
-            await handleRequestResearch();
-            return; // Early return to avoid setting isCheckingExisting again
           }
         } else if (companyId) {
           // Handle company research
@@ -86,13 +83,10 @@ export function MarketResearch({ companyId, submissionId, assessmentPoints, isSt
             console.error('Error checking existing research:', error);
           } else if (data) {
             setResearchData(data);
+            if (data.status === 'completed') {
+              setShowDetailView(true);
+            }
             console.log('Found existing research data:', data);
-          } else if (assessmentPoints && assessmentPoints.length > 0) {
-            // No existing research found, start analysis automatically
-            console.log('No existing research found, starting analysis automatically');
-            setIsCheckingExisting(false); // Stop loading state before starting research
-            await handleRequestResearch();
-            return; // Early return to avoid setting isCheckingExisting again
           }
         }
       } catch (error) {
@@ -106,7 +100,7 @@ export function MarketResearch({ companyId, submissionId, assessmentPoints, isSt
     };
     
     checkExistingResearch();
-  }, [companyId, submissionId, isStartup, assessmentPoints]);
+  }, [companyId, submissionId, isStartup]);
 
   const handleRequestResearch = async () => {
     if ((!companyId && !submissionId) || !assessmentPoints || assessmentPoints.length === 0) {
