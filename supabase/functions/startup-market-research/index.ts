@@ -21,10 +21,10 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const perplexityApiKey = Deno.env.get('PERPLEXITY_API_KEY');
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
 
-    if (!perplexityApiKey) {
-      throw new Error('PERPLEXITY_API_KEY not configured');
+    if (!geminiApiKey) {
+      throw new Error('GEMINI_API_KEY not configured');
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -34,11 +34,13 @@ serve(async (req) => {
       .from('startup_submissions')
       .select('startup_name, user_id')
       .eq('id', submissionId)
-      .single();
+      .maybeSingle();
 
     if (fetchError || !submission) {
       throw new Error('Submission not found');
     }
+
+    const startupName = submission.startup_name;
 
     // Check if research already exists and is recent (within last 7 days)
     const { data: existingResearch } = await supabase
@@ -47,7 +49,7 @@ serve(async (req) => {
       .eq('startup_submission_id', submissionId)
       .order('created_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (existingResearch && existingResearch.status === 'completed') {
       const daysSinceResearch = (Date.now() - new Date(existingResearch.created_at).getTime()) / (1000 * 60 * 60 * 24);
@@ -64,107 +66,139 @@ serve(async (req) => {
       }
     }
 
-    // Create or update research record
-    const { data: researchRecord, error: upsertError } = await supabase
+    // Build comprehensive prompt
+    const systemInstruction = 'You are a financial analyst specializing in market research. Provide factual, recent information with specific data points. Always include source URLs.';
+    
+    const userPrompt = `You are a top-tier venture capital (VC) analyst providing comprehensive research about ${startupName}. Based on the following assessment of the startup, I need you to conduct deep market research and provide detailed analysis focusing on the LATEST and MOST RELEVANT market information.
+
+Company Assessment Points:
+${assessmentText || 'No specific assessment points provided'}
+
+YOUR RESEARCH SHOULD BE IN THIS FORMAT ONLY, THIS IS THE MOST IMPORTANT PART IN FORMATTING YOUR RESPONSE. ALSO STRICTLY ADHERE TO THE FORMAT INSIDE EACH SECTION:
+
+# Market Research: ${startupName}
+
+## 1. LATEST NEWS (2023-2024)
+Provide 6-8 recent news articles that focus ONLY on breaking industry news, recent events, and current developments directly relevant to this startup's market. Each article MUST:
+- Have a compelling headline that highlights a RECENT EVENT (not general market facts)
+- Include publication name and specific date (month/year) from 2023-2024
+- Focus on NEWSWORTHY EVENTS that have happened recently (acquisitions, regulatory changes, new market entrants)
+- Include URLs to actual news sources
+- NEVER repeat information across different news items
+- DONT USE THE SAME NEWS ARTICLE ACROSS THE TWO SECTIONS
+- Focus on FACTS, not analysis
+
+Format each news item as:
+### [HEADLINE ABOUT A SPECIFIC NEWS EVENT OR DEVELOPMENT]
+**Source:** [PUBLICATION NAME], [SPECIFIC DATE]
+**Summary:** [2-3 SENTENCES WITH ACTUAL NEWS DETAILS AND IMPACT]
+**URL:** [ACTUAL NEWS SOURCE URL]
+
+## 2. MARKET INSIGHTS
+Provide 5-7 analytical market insights that are COMPLETELY DIFFERENT from the news section. Each insight MUST:
+- Focus on deeper ANALYSIS, TRENDS and MARKET DATA (not news events)
+- Include specific market statistics, growth projections, or competitive analysis
+- Present data-driven insights about market dynamics, NOT breaking news
+- Be based on industry reports, market research, and expert analysis
+- Include URLs to credible sources (market reports, analyst blogs, research papers)
+- Analyze market opportunities, challenges, or strategic implications
+
+Format each insight as:
+### [ANALYTICAL INSIGHT TITLE - MUST BE DIFFERENT FROM NEWS]
+**Content:** [3-4 SENTENCES WITH MARKET ANALYSIS, SPECIFIC DATA, AND TRENDS]
+**Source:** [SOURCE NAME], [DATE]
+**URL:** [SOURCE URL]
+
+## 3. RESEARCH SUMMARY
+Create a comprehensive strategic summary (4-6 paragraphs) that synthesizes all findings:
+- Market positioning and competitive landscape
+- Key opportunities and risks
+- Growth drivers and market dynamics
+- Investment considerations and outlook
+
+CRITICAL FORMATTING RULES:
+1. Each news item and insight MUST have a valid URL
+2. Each section must have unique, non-overlapping content
+3. Use markdown formatting exactly as shown
+4. Focus on 2023-2024 information only
+5. Be specific with dates, numbers, and sources
+6. News section = EVENTS, Insights section = ANALYSIS`;
+
+    const fullPrompt = `${systemInstruction}\n\n${userPrompt}`;
+
+    console.log('Calling Gemini API...');
+    const geminiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiApiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            role: 'user',
+            parts: [{ text: fullPrompt }],
+          }],
+          generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 8000,
+          },
+        }),
+      }
+    );
+
+    if (!geminiResponse.ok) {
+      const errorText = await geminiResponse.text();
+      throw new Error(`Gemini API error: ${geminiResponse.status} - ${errorText}`);
+    }
+
+    const responseData = await geminiResponse.json();
+    
+    if (!responseData.candidates?.[0]?.content?.parts?.[0]) {
+      throw new Error('Invalid response format from Gemini API');
+    }
+
+    const researchText = responseData.candidates[0].content.parts[0].text;
+    console.log('Research text length:', researchText.length);
+
+    // Extract structured data
+    const researchSummary = extractResearchSummary(researchText);
+    const sources = extractSources(researchText);
+    const newsHighlights = extractNewsHighlights(researchText);
+    const marketInsights = extractMarketInsights(researchText);
+
+    console.log('Extracted data:', {
+      summaryLength: researchSummary.length,
+      sourcesCount: sources.length,
+      newsCount: newsHighlights.length,
+      insightsCount: marketInsights.length,
+    });
+
+    // Store research in database
+    const timestamp = new Date().toISOString();
+    
+    const { data: researchData, error: insertError } = await supabase
       .from('startup_market_research')
       .upsert({
         startup_submission_id: submissionId,
-        status: 'processing',
-        requested_at: new Date().toISOString()
+        research_text: researchText,
+        research_summary: researchSummary,
+        sources: sources,
+        news_highlights: newsHighlights,
+        market_insights: marketInsights,
+        prompt: fullPrompt,
+        status: 'completed',
+        completed_at: timestamp,
+        requested_at: timestamp,
       }, {
         onConflict: 'startup_submission_id'
       })
       .select()
       .single();
 
-    if (upsertError) {
-      console.error('Error creating research record:', upsertError);
-    }
-
-    // Build comprehensive prompt
-    const prompt = `Conduct comprehensive market research for this startup:
-
-Company: ${submission.startup_name}
-${assessmentText ? `\nKey Assessment Points:\n${assessmentText}` : ''}
-
-Provide a detailed analysis covering:
-
-## MARKET SUMMARY
-- Current market size and growth trajectory
-- Key market drivers and trends
-- Target customer segments and needs
-
-## NEWS HIGHLIGHTS
-- Recent industry developments (last 6 months)
-- Major announcements or events affecting this space
-- Relevant policy changes or regulatory updates
-
-## MARKET INSIGHTS
-- Competitive landscape and key players
-- Market opportunities and white spaces
-- Technology trends and innovations
-- Potential risks and challenges
-- Investment activity and funding trends
-
-Format the response with clear markdown headers (##) and bullet points. Be specific, data-driven, and actionable. Focus on recent (2024-2025) information.`;
-
-    console.log('Calling Perplexity API...');
-    const response = await fetch('https://api.perplexity.ai/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${perplexityApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'llama-3.1-sonar-large-128k-online',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a market research analyst providing detailed, data-driven analysis for venture capital evaluation. Focus on recent information and cite sources when possible.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.2,
-        top_p: 0.9,
-        max_tokens: 2000,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Perplexity API error: ${response.status} - ${errorText}`);
-    }
-
-    const data = await response.json();
-    const researchText = data.choices[0].message.content;
-
-    // Extract structured sections
-    const sections = {
-      summary: extractSection(researchText, 'MARKET SUMMARY'),
-      news: extractSection(researchText, 'NEWS HIGHLIGHTS'),
-      insights: extractSection(researchText, 'MARKET INSIGHTS')
-    };
-
-    // Store the research results
-    const { error: updateError } = await supabase
-      .from('startup_market_research')
-      .update({
-        research_text: researchText,
-        research_summary: sections.summary,
-        news_highlights: parseListItems(sections.news),
-        market_insights: parseListItems(sections.insights),
-        prompt: prompt,
-        status: 'completed',
-        completed_at: new Date().toISOString()
-      })
-      .eq('startup_submission_id', submissionId);
-
-    if (updateError) {
-      console.error('Error updating research:', updateError);
-      throw updateError;
+    if (insertError) {
+      console.error('Error storing research:', insertError);
+      throw insertError;
     }
 
     console.log('Research completed successfully');
@@ -172,43 +206,173 @@ Format the response with clear markdown headers (##) and bullet points. Be speci
     return new Response(
       JSON.stringify({
         research: researchText,
-        summary: sections.summary,
-        cached: false
+        summary: researchSummary,
+        sources: sources,
+        newsHighlights: newsHighlights,
+        marketInsights: marketInsights,
+        cached: false,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in startup market research:', error);
-    
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message || 'Internal server error',
+        details: error.toString()
+      }),
       { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500
       }
     );
   }
 });
 
-function extractSection(text: string, sectionName: string): string {
-  const regex = new RegExp(`##\\s*${sectionName}([\\s\\S]*?)(?=##|$)`, 'i');
-  const match = text.match(regex);
-  return match ? match[1].trim() : '';
+// Helper functions to extract structured data from research text
+
+function extractResearchSummary(text: string): string {
+  try {
+    const researchSummaryRegex = /## 3\.\s*RESEARCH SUMMARY\s*([\s\S]*?)(?=(##|$))/i;
+    const match = text.match(researchSummaryRegex);
+    
+    if (match && match[1]) {
+      console.log('Successfully extracted research summary section');
+      return match[1].trim();
+    }
+
+    const altResearchSummaryRegex = /(?:RESEARCH SUMMARY|Research Summary)[\s\S]*?((?:###[^#]+)+)/i;
+    const altMatch = text.match(altResearchSummaryRegex);
+    
+    if (altMatch && altMatch[1]) {
+      console.log('Extracted research summary using alternative pattern');
+      return altMatch[1].trim();
+    }
+
+    console.log('Could not extract research summary section');
+    return '';
+  } catch (error) {
+    console.error('Error extracting research summary:', error);
+    return '';
+  }
 }
 
-function parseListItems(text: string): any[] {
-  if (!text) return [];
+function extractSources(text: string): Array<{ name: string; url: string }> {
+  const sources: Array<{ name: string; url: string }> = [];
+  const urlRegex = /\*\*URL:\*\* (https?:\/\/[^\s]+)/g;
   
-  const items = text.split('\n')
-    .filter(line => line.trim().startsWith('-') || line.trim().startsWith('•'))
-    .map(line => {
-      const content = line.replace(/^[-•]\s*/, '').trim();
-      return {
-        headline: content.substring(0, 100),
-        content: content
-      };
-    });
+  let match;
+  while ((match = urlRegex.exec(text)) !== null) {
+    const url = match[1].trim();
+    if (url && !sources.some(s => s.url === url)) {
+      sources.push({ name: 'Source', url });
+    }
+  }
 
-  return items.slice(0, 5);
+  const sourceLines = text.match(/\*\*Source:\*\*.*$/gm) || [];
+  for (const line of sourceLines) {
+    const sourceName = line.match(/\*\*Source:\*\* ([^(]+)/) || [];
+    const urlMatch = line.match(/(https?:\/\/[^\s)]+)(?:\))?$/);
+    
+    if (urlMatch && urlMatch[1]) {
+      const url = urlMatch[1].replace(/\)$/, '');
+      if (url && !sources.some(s => s.url === url)) {
+        sources.push({
+          name: sourceName[1] ? sourceName[1].trim() : 'Source',
+          url
+        });
+      }
+    }
+  }
+
+  return sources;
+}
+
+function extractNewsHighlights(text: string): Array<{
+  headline: string;
+  content: string;
+  source: string;
+  url: string;
+}> {
+  const newsHighlights: Array<{ headline: string; content: string; source: string; url: string }> = [];
+  
+  const newsRegex = /## 1\. LATEST NEWS[\s\S]*?(?=## 2\.|$)/i;
+  const newsSection = text.match(newsRegex);
+  
+  if (!newsSection) {
+    console.log('No LATEST NEWS section found');
+    return newsHighlights;
+  }
+
+  const newsContent = newsSection[0];
+  const newsItemRegex = /### (.*?)(?=### |## 2\.|$)/gs;
+  const newsMatches = [...newsContent.matchAll(newsItemRegex)];
+
+  for (const match of newsMatches) {
+    if (!match[1] || match[1].trim() === '') continue;
+
+    const newsItem = match[1].trim();
+    const headlineMatch = newsItem.match(/^(.*?)(?=\n|$)/);
+    const headline = headlineMatch ? headlineMatch[1].trim() : '';
+    
+    const sourceMatch = newsItem.match(/\*\*Source:\*\* (.*?)(?=\n|$)/);
+    const source = sourceMatch ? sourceMatch[1].trim() : '';
+    
+    const summaryMatch = newsItem.match(/\*\*Summary:\*\* (.*?)(?=\n\*\*URL|$)/s);
+    const content = summaryMatch ? summaryMatch[1].trim() : '';
+    
+    const urlMatch = newsItem.match(/\*\*URL:\*\* (https?:\/\/[^\s]+)/);
+    const url = urlMatch ? urlMatch[1].trim() : '';
+
+    if (headline) {
+      newsHighlights.push({ headline, content, source, url });
+    }
+  }
+
+  return newsHighlights;
+}
+
+function extractMarketInsights(text: string): Array<{
+  headline: string;
+  content: string;
+  source: string;
+  url: string;
+}> {
+  const marketInsights: Array<{ headline: string; content: string; source: string; url: string }> = [];
+  
+  const insightsRegex = /## 2\. MARKET INSIGHTS[\s\S]*?(?=## 3\.|$)/i;
+  const insightsSection = text.match(insightsRegex);
+  
+  if (!insightsSection) {
+    console.log('No MARKET INSIGHTS section found');
+    return marketInsights;
+  }
+
+  const insightsContent = insightsSection[0];
+  const insightItemRegex = /### (.*?)(?=### |## 3\.|$)/gs;
+  const insightMatches = [...insightsContent.matchAll(insightItemRegex)];
+
+  for (const match of insightMatches) {
+    if (!match[1] || match[1].trim() === '') continue;
+
+    const insightItem = match[1].trim();
+    const headlineMatch = insightItem.match(/^(.*?)(?=\n|$)/);
+    const headline = headlineMatch ? headlineMatch[1].trim() : '';
+    
+    const contentMatch = insightItem.match(/\*\*Content:\*\* (.*?)(?=\n\*\*Source|$)/s);
+    const content = contentMatch ? contentMatch[1].trim() : '';
+    
+    const sourceMatch = insightItem.match(/\*\*Source:\*\* (.*?)(?=\n|$)/);
+    const source = sourceMatch ? sourceMatch[1].trim() : '';
+    
+    const urlMatch = insightItem.match(/\*\*URL:\*\* (https?:\/\/[^\s]+)/);
+    const url = urlMatch ? urlMatch[1].trim() : '';
+
+    if (headline) {
+      marketInsights.push({ headline, content, source, url });
+    }
+  }
+
+  return marketInsights;
 }
