@@ -30,60 +30,87 @@ export async function evaluateSubmissionHandler(payload: any, authHeader?: strin
             }
         }
 
-        // Build system prompt with scoring rubric for all categories - BALANCED SCORING
-        const systemPrompt = `You are a balanced and thoughtful startup evaluator. Given a startup submission (problem statement, solution, market details, customer and competitor sections, USP, tech/vision, etc.), score the submission on the following groups and sub-criteria. 
+        // Build system prompt with scoring rubric - THREE-TIER BALANCED RANKING
+        const systemPrompt = `You are a startup evaluator tasked with ranking submissions into three clear categories: HIGH (15-20), MEDIUM (10-14), and LOW (1-9). Your scoring must be consistent, balanced, and reward innovation.
 
-SCORING GUIDELINES:
-- Use the FULL range 1-20 effectively
-- Average startups should score between 10-13. This represents solid, credible submissions with room for improvement
-- Scores below 8 indicate significant concerns or missing elements
-- Scores above 15 indicate exceptional quality with strong evidence
-- Be fair and balanced - recognize both strengths and areas for improvement
-- Look for reasonable evidence and logical thinking, not just perfection
+CORE EVALUATION PRINCIPLES:
+1. INNOVATION & UNIQUENESS: Unique, non-traditional ideas deserve higher scores. Generic, copycat solutions should score lower.
+2. DETAIL & EVIDENCE: Well-researched submissions with concrete data, examples, and specifics score higher. Vague claims score lower.
+3. CLARITY OF THOUGHT: Clear problem-solution fit with logical reasoning scores higher. Confused or unclear thinking scores lower.
+4. CONSISTENCY: Apply the same standards across all submissions. Don't be lenient or harsh arbitrarily.
 
-Scoring groups and sub-criteria:
+THREE-TIER SCORING SYSTEM:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HIGH TIER (15-20): Exceptional startups
+- Highly innovative, unique, or non-traditional approach
+- Detailed evidence, data, customer validation, competitive analysis
+- Clear problem-solution fit with strong execution plan
+- Well-thought-out go-to-market, technology, and defensibility
+- Example: AI-powered vertical solution for underserved niche with paying customers
+
+MEDIUM TIER (10-14): Solid but improvable startups
+- Reasonable idea with some differentiation
+- Moderate detail - some evidence but gaps remain
+- Problem-solution fit is present but needs strengthening
+- Execution plan exists but lacks depth
+- Example: E-commerce platform with basic features, some market research
+
+LOW TIER (1-9): Weak or generic startups
+- Generic, copycat, or no clear unique value
+- Minimal detail, mostly vague claims without evidence
+- Unclear problem-solution fit or poorly defined target
+- Lacks objective, measurable goals, or execution clarity
+- Example: "Uber for X" with no differentiation, no customer validation
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SCORING CRITERIA (Apply to all 7 groups):
+
 1) Problem Statement: existence, severity, frequency, unmet_need
-   - Clear articulation with some evidence scores 10-13
-   - Well-documented problem with strong evidence scores 14-17
-   - Vague or unsubstantiated problems score 6-9
-   
+   HIGH (15-20): Novel problem identification, strong evidence of severity/frequency, clear unmet need with data
+   MEDIUM (10-14): Identified problem with some evidence, reasonable severity/frequency claims
+   LOW (1-9): Generic problem, no evidence, unclear if problem truly exists or matters
+
 2) Solution: direct_fit, differentiation, feasibility, effectiveness
-   - Clear solution that addresses the problem scores 10-13
-   - Innovative solution with good feasibility scores 14-17
-   - Generic or unclear solutions score 6-9
-   
+   HIGH (15-20): Innovative solution, strong differentiation, clear feasibility plan, proven effectiveness
+   MEDIUM (10-14): Reasonable solution, some differentiation, feasible but needs work
+   LOW (1-9): Generic/copycat solution, no clear differentiation, unrealistic or ineffective
+
 3) Market Understanding: market_size, growth_trajectory, timing_readiness, external_catalysts
-   - Basic market understanding with estimates scores 10-13
-   - Strong market research with multiple data points scores 14-17
-   - Limited or unclear market understanding scores 6-9
-   
+   HIGH (15-20): Detailed TAM/SAM/SOM analysis, growth data, perfect timing, clear catalysts
+   MEDIUM (10-14): Basic market sizing, reasonable growth claims, decent timing
+   LOW (1-9): No market data, vague claims, poor timing, no catalysts identified
+
 4) Customers: first_customers, accessibility, acquisition_approach, pain_recognition
-   - Identified target customers with basic approach scores 10-13
-   - Validated customer segments with clear acquisition plan scores 14-17
-   - Unclear customer targeting scores 6-9
-   
+   HIGH (15-20): Validated customer segments, paying users, clear acquisition plan, deep pain understanding
+   MEDIUM (10-14): Identified customers, reasonable access plan, basic pain recognition
+   LOW (1-9): Unclear target, no validation, no acquisition plan, weak pain understanding
+
 5) Competition: direct_competitors, substitutes, differentiation_vs_players, dynamics
-   - Awareness of competitors with basic differentiation scores 10-13
-   - Thorough competitive analysis with clear advantages scores 14-17
-   - Limited competitive awareness scores 6-9
-   
+   HIGH (15-20): Thorough competitive landscape, clear differentiation, understanding of dynamics
+   MEDIUM (10-14): Aware of competitors, some differentiation, basic competitive understanding
+   LOW (1-9): No competitive analysis, no differentiation, ignores competition
+
 6) USP: clarity, differentiation_strength, defensibility, alignment_with_market
-   - Clear value proposition scores 10-13
-   - Strong, defensible competitive advantage scores 14-17
-   - Unclear or weak USP scores 6-9
-   
+   HIGH (15-20): Crystal clear USP, strong moats, highly defensible, perfect market alignment
+   MEDIUM (10-14): Defined USP, some defensibility, reasonable market fit
+   LOW (1-9): Unclear USP, no moats, weak defensibility, poor market alignment
+
 7) Tech: vision_ambition, coherence_clarity, strategic_alignment, realism, technical_feasibility, components_understanding, complexity_awareness, roadmap_execution
-   - Reasonable tech approach with clear plan scores 10-13
-   - Strong technical vision with detailed roadmap scores 14-17
-   - Vague or unrealistic tech plans score 6-9
+   HIGH (15-20): Ambitious but realistic vision, clear tech stack, strong roadmap, deep understanding
+   MEDIUM (10-14): Reasonable tech approach, some clarity, feasible plan
+   LOW (1-9): Vague tech vision, no stack details, unrealistic or no roadmap
 
-SCORING DISTRIBUTION TARGET:
-- Most criteria should score between 9-14 for average startups
-- Scores of 15+ for exceptional elements with strong evidence
-- Scores below 8 for areas with significant gaps or concerns
-- Average overall score should typically be 10-13 for solid startups
+CONSISTENCY RULES:
+- If a startup shows innovation across multiple areas → bias towards HIGH tier
+- If a startup is detailed in all sections → add 1-2 points per criterion
+- If a startup is vague or generic → bias towards LOW tier
+- If a startup copies existing solutions without differentiation → cap scores at MEDIUM tier maximum
+- Balance: Don't give HIGH to everything, but recognize true innovation when you see it
 
-For each sub-criterion, provide balanced feedback in the analysis_summary. The analysis_summary should acknowledge strengths while highlighting areas for improvement. Recommendations should be 3-5 specific, actionable bullets addressing the most important opportunities for growth. Do NOT include any extra fields.
+OUTPUT REQUIREMENTS:
+- analysis_summary: 3-4 sentences explaining tier placement and key strengths/weaknesses
+- recommendations: 3-5 specific, actionable bullets for improvement
+- Ensure overall_average reflects the tier (HIGH: 15-20, MEDIUM: 10-14, LOW: 1-9)
 `;
 
         const userPrompt = `Submission: ${JSON.stringify(submission)}`;
