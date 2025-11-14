@@ -36,6 +36,7 @@ const StartupDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [lastDeleted, setLastDeleted] = useState<StartupSubmission | null>(null);
   const [lastDeletedEvals, setLastDeletedEvals] = useState<any[] | null>(null);
+  const [isReevaluating, setIsReevaluating] = useState(false);
   // Helper to get average score from evaluation
   const getEvalScore = (startupName: string, submissionId?: string) => {
     // Prefer to match by submission id via startup_submission_id on evaluations if available
@@ -88,6 +89,81 @@ const StartupDashboard = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const reevaluateAll = async () => {
+    try {
+      setIsReevaluating(true);
+      
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        toast({
+          title: "Error",
+          description: "Please log in to re-evaluate submissions",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Get all submissions
+      const submissionsToEvaluate = submissions;
+      
+      if (submissionsToEvaluate.length === 0) {
+        toast({
+          title: "No Submissions",
+          description: "There are no submissions to re-evaluate",
+        });
+        return;
+      }
+
+      toast({
+        title: "Re-evaluation Started",
+        description: `Re-evaluating ${submissionsToEvaluate.length} submissions. This may take a few minutes...`,
+      });
+
+      // Re-evaluate each submission
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const submission of submissionsToEvaluate) {
+        try {
+          const { error } = await supabase.functions.invoke('evaluate-submission', {
+            body: { submission }
+          });
+
+          if (error) {
+            console.error(`Failed to re-evaluate ${submission.startup_name}:`, error);
+            failCount++;
+          } else {
+            successCount++;
+          }
+        } catch (err) {
+          console.error(`Error re-evaluating ${submission.startup_name}:`, err);
+          failCount++;
+        }
+      }
+
+      // Refresh the page to show updated evaluations
+      window.location.reload();
+
+      toast({
+        title: "Re-evaluation Complete",
+        description: `Successfully re-evaluated ${successCount} submissions${failCount > 0 ? `, ${failCount} failed` : ''}`,
+        variant: failCount > 0 ? "destructive" : "default",
+      });
+    } catch (error) {
+      console.error("Error in re-evaluation:", error);
+      toast({
+        title: "Error",
+        description: "Failed to re-evaluate submissions",
+        variant: "destructive",
+      });
+    } finally {
+      setIsReevaluating(false);
     }
   };
 
@@ -395,7 +471,23 @@ const StartupDashboard = () => {
               </div>
               <div className="flex items-center gap-2">
                 <Button onClick={() => { fetchSubmissions(); }} className="px-4 py-2">Refresh</Button>
-                <Button onClick={() => { /* placeholder for re-run failed */ }} className="px-4 py-2">Re-run Failed/Rejected</Button>
+                <Button 
+                  onClick={reevaluateAll} 
+                  disabled={isReevaluating} 
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700"
+                >
+                  {isReevaluating ? (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      Re-evaluating...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Re-evaluate All
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
 
