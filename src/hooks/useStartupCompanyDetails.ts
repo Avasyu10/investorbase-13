@@ -25,7 +25,7 @@ export function useStartupCompanyDetails(submissionId: string) {
         .from("startup_submissions")
         .select("*")
         .eq("id", submissionId)
-        .single();
+        .maybeSingle();
 
       if (submissionError) {
         console.error("Error fetching startup submission:", submissionError);
@@ -36,19 +36,20 @@ export function useStartupCompanyDetails(submissionId: string) {
         throw new Error("Submission not found");
       }
 
-      // Fetch evaluation data for this submission
+      // Fetch evaluation data for this submission - prioritize by submission_id first
       const { data: evaluations, error: evalError } = await supabase
         .from("submission_evaluations")
         .select("*")
-        .or(`startup_submission_id.eq.${submissionId},startup_name.eq.${submission.startup_name}`);
+        .or(`startup_submission_id.eq.${submissionId},startup_name.eq.${submission.startup_name}`)
+        .order('created_at', { ascending: false });
 
       if (evalError) {
         console.error("Error fetching evaluations:", evalError);
       }
 
-      // Find the best matching evaluation
+      // Find the best matching evaluation - prefer exact submission_id match
       const evaluation: any = evaluations?.find((e: any) => e.startup_submission_id === submissionId) 
-        || evaluations?.find((e: any) => e.startup_name === submission.startup_name);
+        || evaluations?.[0]; // Use most recent if no exact match
 
       // Calculate overall score from evaluation
       let overallScore = null;
