@@ -51,10 +51,28 @@ const Dashboard = () => {
         }
       });
     } else if (user && !profileLoading) {
-      // Always redirect to startup-dashboard
-      console.log("Redirecting to startup-dashboard");
-      navigate('/startup-dashboard');
-      return;
+      // Eximius users now get their own dashboard view (no redirect)
+
+      // Check if this is a general user (not any special user type)
+      const isGeneralUser = !isIITBombay && !isVC && !isVCAndBits && !isViewOnly && !isBitsQuestion && !isEximius;
+      // Remove the redirect for general users so they can see the dashboard with chat
+      // if (isGeneralUser) {
+      //   console.log("General user detected, redirecting to upload page");
+      //   navigate('/upload');
+      //   return;
+      // }
+
+      // Redirect view-only users to the view-only dashboard
+      if (isViewOnly) {
+        console.log("User has view-only access, redirecting to view dashboard");
+        navigate('/view-dashboard');
+        return;
+      }
+      console.log("Dashboard loaded for user:", user.id);
+      console.log("Profile data:", profile);
+      console.log("Is IIT Bombay user:", isIITBombay);
+      console.log("Is VC user:", isVC);
+      checkAdminStatus();
     }
 
     // Scroll to top when dashboard loads

@@ -139,13 +139,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Access denied. Founders cannot use institutional signin. Please use the founder signin option.');
       }
 
+      // Navigate to startup-dashboard if the user is from startupstudio
+      if (profileData && profileData.signup_source === 'startupstudio') {
+        navigate('/startup-dashboard');
+        return;
+      }
+
+      // Explicitly check for startupstudio@investorbase.io email
+      if (email === 'startupstudio@investorbase.io') {
+        navigate('/startup-dashboard');
+        return;
+      }
+
       toast({
         title: "Successfully signed in",
         description: "Welcome back!",
       });
 
-      // Navigate to startup-dashboard for all users
-      navigate('/startup-dashboard');
+      navigate('/dashboard');
     } catch (error: any) {
       console.error('Sign in error:', error);
       toast({
