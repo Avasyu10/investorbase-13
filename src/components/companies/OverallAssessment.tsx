@@ -28,13 +28,13 @@ export function OverallAssessment({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { isVCAndBits, isEximius } = useProfile();
   
-  // Scale 0-20 score to 0-100 for display
-  const displayScore = score * 5;
-  const displayMaxScore = 100;
-  const progressPercentage = displayScore;
+  // Display raw 0-20 score to match dashboard
+  const displayScore = score;
+  const displayMaxScore = 20;
+  const progressPercentage = (score / 20) * 100;
   
-  // Format score to integer
-  const formattedScore = Math.round(displayScore);
+  // Format score to one decimal place
+  const formattedScore = score.toFixed(1);
 
   // Default assessment points if none provided (6-7 points)
   const defaultAssessmentPoints = [
@@ -51,19 +51,19 @@ export function OverallAssessment({
     ? assessmentPoints 
     : defaultAssessmentPoints;
 
-  // Comprehensive section breakdown data - all on 100-point scale
+  // Comprehensive section breakdown data - all on 20-point scale
   const sectionBreakdownData = [
-    { name: "Problem", score: 82, color: "hsl(var(--chart-1))" },
-    { name: "Market", score: 78, color: "hsl(var(--chart-2))" },
-    { name: "Solution", score: 85, color: "hsl(var(--chart-3))" },
-    { name: "Product", score: 75, color: "hsl(var(--chart-4))" },
-    { name: "Competition", score: 70, color: "hsl(var(--chart-5))" },
-    { name: "Traction", score: 88, color: "hsl(var(--chart-1))" },
-    { name: "Business Model", score: 80, color: "hsl(var(--chart-2))" },
-    { name: "GTM Strategy", score: 73, color: "hsl(var(--chart-3))" },
-    { name: "Team", score: 90, color: "hsl(var(--chart-4))" },
-    { name: "Financials", score: 77, color: "hsl(var(--chart-5))" },
-    { name: "Ask & Use", score: 81, color: "hsl(var(--chart-1))" }
+    { name: "Problem", score: 16.4, color: "hsl(var(--chart-1))" },
+    { name: "Market", score: 15.6, color: "hsl(var(--chart-2))" },
+    { name: "Solution", score: 17.0, color: "hsl(var(--chart-3))" },
+    { name: "Product", score: 15.0, color: "hsl(var(--chart-4))" },
+    { name: "Competition", score: 14.0, color: "hsl(var(--chart-5))" },
+    { name: "Traction", score: 17.6, color: "hsl(var(--chart-1))" },
+    { name: "Business Model", score: 16.0, color: "hsl(var(--chart-2))" },
+    { name: "GTM Strategy", score: 14.6, color: "hsl(var(--chart-3))" },
+    { name: "Team", score: 18.0, color: "hsl(var(--chart-4))" },
+    { name: "Financials", score: 15.4, color: "hsl(var(--chart-5))" },
+    { name: "Ask & Use", score: 16.2, color: "hsl(var(--chart-1))" }
   ];
 
   const chartConfig = {
@@ -74,18 +74,18 @@ export function OverallAssessment({
   };
 
   const getScoreColor = (score: number) => {
-    // 100-point scale colors
-    if (score >= 80) return "text-green-500";
-    if (score >= 60) return "text-yellow-500";
-    if (score >= 40) return "text-orange-500";
+    // 20-point scale colors
+    if (score >= 15) return "text-green-500";
+    if (score >= 10) return "text-yellow-500";
+    if (score >= 5) return "text-orange-500";
     return "text-red-500";
   };
 
   const getScoreLabel = (score: number) => {
-    // 100-point scale labels
-    if (score >= 80) return "Excellent";
-    if (score >= 60) return "Good";
-    if (score >= 40) return "Average";
+    // 20-point scale labels
+    if (score >= 15) return "High Potential";
+    if (score >= 10) return "Medium Potential";
+    if (score >= 5) return "Low Potential";
     return "Needs Improvement";
   };
 
@@ -181,10 +181,10 @@ export function OverallAssessment({
                               height={80}
                               fontSize={12}
                             />
-                            <YAxis domain={[0, 100]} />
+                            <YAxis domain={[0, 20]} />
               <ChartTooltip 
                 content={<ChartTooltipContent />}
-                formatter={(value) => [`${value}/100`, "Score"]}
+                formatter={(value) => [`${value}/20`, "Score"]}
               />
                             <Bar 
                               dataKey="score" 
@@ -231,14 +231,14 @@ export function OverallAssessment({
                           <div className="flex justify-between items-center mb-2">
                             <span className="text-sm font-medium">{section.name}</span>
                             <span className="text-sm text-muted-foreground">
-                              {section.score}/100
+                              {section.score}/20
                             </span>
                           </div>
-                          <Progress value={section.score} className="h-2" />
+                          <Progress value={(section.score / 20) * 100} className="h-2" />
                           <div className="mt-2 text-xs text-muted-foreground">
-                            {section.score >= 80 ? "Excellent" : 
-                             section.score >= 60 ? "Good" : 
-                             section.score >= 40 ? "Average" : "Needs Improvement"}
+                            {section.score >= 15 ? "High Potential" : 
+                             section.score >= 10 ? "Medium Potential" : 
+                             section.score >= 5 ? "Low Potential" : "Needs Improvement"}
                           </div>
                         </div>
                       ))}
