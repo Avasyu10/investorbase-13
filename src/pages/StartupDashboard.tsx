@@ -474,7 +474,7 @@ const StartupDashboard = () => {
                 <Button 
                   onClick={reevaluateAll} 
                   disabled={isReevaluating} 
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700"
+                  className="px-4 py-2"
                 >
                   {isReevaluating ? (
                     <>
