@@ -76,12 +76,19 @@ export function useStartupCompanyDetails(submissionId: string) {
         user_id: submission.user_id,
         overall_score: overallScore || 0,
         assessment_points: evaluation ? [
-          (evaluation as any).problem_clarity_score ? `Problem Clarity: ${(evaluation as any).problem_clarity_score}/20` : null,
-          (evaluation as any).market_understanding_score ? `Market Understanding: ${(evaluation as any).market_understanding_score}/20` : null,
-          (evaluation as any).solution_quality_score ? `Solution Quality: ${(evaluation as any).solution_quality_score}/20` : null,
-          (evaluation as any).team_capability_score ? `Team Capability: ${(evaluation as any).team_capability_score}/20` : null,
-          (evaluation as any).traction_score ? `Traction: ${(evaluation as any).traction_score}/20` : null,
-        ].filter(Boolean) : [],
+          evaluation.problem_clarity_score ? `Problem Clarity: ${evaluation.problem_clarity_score}/20` : null,
+          evaluation.market_understanding_score ? `Market Understanding: ${evaluation.market_understanding_score}/20` : null,
+          evaluation.solution_quality_score ? `Solution Quality: ${evaluation.solution_quality_score}/20` : null,
+          evaluation.team_capability_score ? `Team Capability: ${evaluation.team_capability_score}/20` : null,
+          evaluation.traction_score ? `Traction: ${evaluation.traction_score}/20` : null,
+        ].filter(Boolean) : [
+          // Fallback assessment points if no evaluation exists
+          `Startup: ${submission.startup_name}`,
+          submission.problem_statement ? `Problem: ${submission.problem_statement}` : null,
+          submission.vision ? `Vision: ${submission.vision}` : null,
+          submission.market_understanding ? `Market: ${submission.market_understanding}` : null,
+          submission.competitive_understanding ? `Competition: ${submission.competitive_understanding}` : null,
+        ].filter(Boolean),
         source: 'startup_submission',
         // Additional details
         website: (submission as any).website || '',

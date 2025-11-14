@@ -64,13 +64,9 @@ export function MarketResearch({ companyId, submissionId, assessmentPoints, isSt
           } else {
             // No research exists, trigger auto-generation
             console.log('[MarketResearch] No research found, triggering auto-generation');
-            if (assessmentPoints && assessmentPoints.length > 0) {
-              setIsCheckingExisting(false);
-              await handleRequestResearch();
-              return;
-            } else {
-              console.log('[MarketResearch] No assessment points available for research');
-            }
+            setIsCheckingExisting(false);
+            await handleRequestResearch();
+            return;
           }
         } else if (companyId) {
           // Handle company research
@@ -103,11 +99,9 @@ export function MarketResearch({ companyId, submissionId, assessmentPoints, isSt
           } else {
             // No research exists, trigger auto-generation
             console.log('[MarketResearch] No research found, triggering auto-generation');
-            if (assessmentPoints && assessmentPoints.length > 0) {
-              setIsCheckingExisting(false);
-              await handleRequestResearch();
-              return;
-            }
+            setIsCheckingExisting(false);
+            await handleRequestResearch();
+            return;
           }
         }
       } catch (error) {
@@ -124,25 +118,30 @@ export function MarketResearch({ companyId, submissionId, assessmentPoints, isSt
   }, [companyId, submissionId, isStartup, assessmentPoints]);
 
   const handleRequestResearch = async () => {
-    if ((!companyId && !submissionId) || !assessmentPoints || assessmentPoints.length === 0) {
-      console.error('[MarketResearch] Missing required data:', { companyId, submissionId, assessmentPoints });
+    if (!companyId && !submissionId) {
+      console.error('[MarketResearch] Missing IDs:', { companyId, submissionId });
       toast.error("Missing information", {
-        description: "Cannot request market research without assessment data"
+        description: "Cannot request market research without company or submission ID"
       });
       return;
     }
+
+    // Allow research even without assessment points - we'll use company/submission data
+    const assessmentToUse = assessmentPoints && assessmentPoints.length > 0 
+      ? assessmentPoints.join('\n')
+      : 'Comprehensive market research and competitive analysis requested';
 
     try {
       setIsLoading(true);
       
       if (isStartup && submissionId) {
         console.log('[MarketResearch] Starting market research for startup:', submissionId);
-        console.log('[MarketResearch] Assessment points:', assessmentPoints);
+        console.log('[MarketResearch] Assessment data:', assessmentToUse);
         
         const { data, error } = await supabase.functions.invoke('startup-market-research', {
           body: { 
             submissionId,
-            assessmentText: assessmentPoints.join('\n')
+            assessmentText: assessmentToUse
           }
         });
         
