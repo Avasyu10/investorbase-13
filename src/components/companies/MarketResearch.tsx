@@ -31,6 +31,8 @@ export function MarketResearch({ companyId, submissionId, assessmentPoints, isSt
         setIsCheckingExisting(true);
         
         if (isStartup && submissionId) {
+          console.log('[MarketResearch] Checking existing research for startup submission:', submissionId);
+          
           // Handle startup submission research
           const { data: submissionData, error: submissionError } = await supabase
             .from('startup_submissions')
@@ -40,6 +42,7 @@ export function MarketResearch({ companyId, submissionId, assessmentPoints, isSt
             
           if (!submissionError && submissionData) {
             setCompanyName(submissionData.startup_name);
+            console.log('[MarketResearch] Found startup name:', submissionData.startup_name);
           }
           
           const { data, error } = await supabase
@@ -51,13 +54,23 @@ export function MarketResearch({ companyId, submissionId, assessmentPoints, isSt
             .maybeSingle();
             
           if (error) {
-            console.error('Error checking existing startup research:', error);
+            console.error('[MarketResearch] Error checking existing startup research:', error);
           } else if (data) {
+            console.log('[MarketResearch] Found existing startup research:', data.status);
             setResearchData(data);
             if (data.status === 'completed') {
               setShowDetailView(true);
             }
-            console.log('Found existing startup research data:', data);
+          } else {
+            // No research exists, trigger auto-generation
+            console.log('[MarketResearch] No research found, triggering auto-generation');
+            if (assessmentPoints && assessmentPoints.length > 0) {
+              setIsCheckingExisting(false);
+              await handleRequestResearch();
+              return;
+            } else {
+              console.log('[MarketResearch] No assessment points available for research');
+            }
           }
         } else if (companyId) {
           // Handle company research
@@ -87,10 +100,18 @@ export function MarketResearch({ companyId, submissionId, assessmentPoints, isSt
               setShowDetailView(true);
             }
             console.log('Found existing research data:', data);
+          } else {
+            // No research exists, trigger auto-generation
+            console.log('[MarketResearch] No research found, triggering auto-generation');
+            if (assessmentPoints && assessmentPoints.length > 0) {
+              setIsCheckingExisting(false);
+              await handleRequestResearch();
+              return;
+            }
           }
         }
       } catch (error) {
-        console.error('Error in checkExistingResearch:', error);
+        console.error('[MarketResearch] Error in checkExistingResearch:', error);
         toast.error("Failed to check existing research", {
           description: error.message
         });
@@ -100,12 +121,13 @@ export function MarketResearch({ companyId, submissionId, assessmentPoints, isSt
     };
     
     checkExistingResearch();
-  }, [companyId, submissionId, isStartup]);
+  }, [companyId, submissionId, isStartup, assessmentPoints]);
 
   const handleRequestResearch = async () => {
     if ((!companyId && !submissionId) || !assessmentPoints || assessmentPoints.length === 0) {
+      console.error('[MarketResearch] Missing required data:', { companyId, submissionId, assessmentPoints });
       toast.error("Missing information", {
-        description: "Cannot request market research without data"
+        description: "Cannot request market research without assessment data"
       });
       return;
     }
@@ -114,7 +136,8 @@ export function MarketResearch({ companyId, submissionId, assessmentPoints, isSt
       setIsLoading(true);
       
       if (isStartup && submissionId) {
-        console.log('Starting market research for startup submission:', submissionId);
+        console.log('[MarketResearch] Starting market research for startup:', submissionId);
+        console.log('[MarketResearch] Assessment points:', assessmentPoints);
         
         const { data, error } = await supabase.functions.invoke('startup-market-research', {
           body: { 
@@ -124,21 +147,25 @@ export function MarketResearch({ companyId, submissionId, assessmentPoints, isSt
         });
         
         if (error) {
-          console.error('Error invoking startup research function:', error);
+          console.error('[MarketResearch] Error invoking function:', error);
           toast.error("Research failed", {
-            description: "There was a problem with the market research. Please try again."
+            description: error.message || "Failed to start market research"
           });
           return;
         }
         
-        console.log('Startup research function response:', data);
+        console.log('[MarketResearch] Function response:', data);
         
-        if (data.error) {
+        if (data?.error) {
+          console.error('[MarketResearch] Function returned error:', data.error);
           toast.error("Research failed", {
             description: data.error
           });
           return;
         }
+        
+        // Wait a bit before refreshing to allow the data to be written
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
         // Refresh the data from the database
         const { data: refreshedData, error: refreshError } = await supabase
@@ -150,13 +177,14 @@ export function MarketResearch({ companyId, submissionId, assessmentPoints, isSt
           .single();
           
         if (!refreshError && refreshedData) {
+          console.log('[MarketResearch] Research data refreshed:', refreshedData.status);
           setResearchData(refreshedData);
           setShowDetailView(true);
           toast.success("Research complete", {
             description: "Market research has been completed successfully"
           });
         } else {
-          console.error('Error refreshing startup research data:', refreshError);
+          console.error('[MarketResearch] Error refreshing data:', refreshError);
           toast.error("Research completed but failed to load", {
             description: "Please refresh the page to see the results"
           });

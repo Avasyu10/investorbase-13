@@ -12,10 +12,17 @@ serve(async (req) => {
   }
 
   try {
-    const { submissionId, assessmentText } = await req.json();
-    console.log('Processing startup market research for submission:', submissionId);
+    const body = await req.json();
+    const { submissionId, assessmentText } = body;
+    
+    console.log('[startup-market-research] Request received:', {
+      submissionId,
+      hasAssessment: !!assessmentText,
+      assessmentLength: assessmentText?.length
+    });
 
     if (!submissionId) {
+      console.error('[startup-market-research] Missing submission ID');
       throw new Error('Submission ID is required');
     }
 
@@ -23,27 +30,43 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
 
+    console.log('[startup-market-research] Environment check:', {
+      hasSupabaseUrl: !!supabaseUrl,
+      hasServiceKey: !!supabaseServiceKey,
+      hasGeminiKey: !!geminiApiKey
+    });
+
     if (!geminiApiKey) {
+      console.error('[startup-market-research] GEMINI_API_KEY not configured');
       throw new Error('GEMINI_API_KEY not configured');
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Fetch submission details
+    console.log('[startup-market-research] Fetching submission details...');
     const { data: submission, error: fetchError } = await supabase
       .from('startup_submissions')
       .select('startup_name, user_id')
       .eq('id', submissionId)
       .maybeSingle();
 
-    if (fetchError || !submission) {
+    if (fetchError) {
+      console.error('[startup-market-research] Error fetching submission:', fetchError);
+      throw new Error(`Failed to fetch submission: ${fetchError.message}`);
+    }
+
+    if (!submission) {
+      console.error('[startup-market-research] Submission not found:', submissionId);
       throw new Error('Submission not found');
     }
 
     const startupName = submission.startup_name;
+    console.log('[startup-market-research] Found startup:', startupName);
 
     // Check if research already exists and is recent (within last 7 days)
-    const { data: existingResearch } = await supabase
+    console.log('[startup-market-research] Checking for existing research...');
+    const { data: existingResearch, error: checkError } = await supabase
       .from('startup_market_research')
       .select('*')
       .eq('startup_submission_id', submissionId)
@@ -51,10 +74,15 @@ serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
+    if (checkError) {
+      console.error('[startup-market-research] Error checking existing research:', checkError);
+    }
+
     if (existingResearch && existingResearch.status === 'completed') {
       const daysSinceResearch = (Date.now() - new Date(existingResearch.created_at).getTime()) / (1000 * 60 * 60 * 24);
+      console.log('[startup-market-research] Found existing research, age:', daysSinceResearch, 'days');
       if (daysSinceResearch < 7) {
-        console.log('Recent research exists, returning cached data');
+        console.log('[startup-market-research] Returning cached research');
         return new Response(
           JSON.stringify({
             research: existingResearch.research_text,
@@ -65,6 +93,8 @@ serve(async (req) => {
         );
       }
     }
+    
+    console.log('[startup-market-research] Generating new research...');
 
     // Build comprehensive prompt
     const systemInstruction = 'You are a financial analyst specializing in market research. Provide factual, recent information with specific data points. Always include source URLs.';
@@ -197,11 +227,11 @@ CRITICAL FORMATTING RULES:
       .single();
 
     if (insertError) {
-      console.error('Error storing research:', insertError);
+      console.error('[startup-market-research] Error storing research:', insertError);
       throw insertError;
     }
 
-    console.log('Research completed successfully');
+    console.log('[startup-market-research] Research completed and stored successfully');
 
     return new Response(
       JSON.stringify({
@@ -216,7 +246,8 @@ CRITICAL FORMATTING RULES:
     );
 
   } catch (error: any) {
-    console.error('Error in startup market research:', error);
+    console.error('[startup-market-research] Error:', error);
+    console.error('[startup-market-research] Error stack:', error.stack);
     return new Response(
       JSON.stringify({ 
         error: error.message || 'Internal server error',
