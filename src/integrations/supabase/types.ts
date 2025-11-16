@@ -1482,7 +1482,7 @@ export type Database = {
           {
             foreignKeyName: "startup_market_research_startup_submission_id_fkey"
             columns: ["startup_submission_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "startup_submissions"
             referencedColumns: ["id"]
           },
