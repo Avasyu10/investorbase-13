@@ -141,7 +141,8 @@ export function MarketResearch({ companyId, submissionId, assessmentPoints, isSt
         const { data, error } = await supabase.functions.invoke('startup-market-research', {
           body: { 
             submissionId,
-            assessmentText: assessmentToUse
+            assessmentText: assessmentToUse,
+            forceRefresh: true
           }
         });
         

@@ -13,7 +13,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { submissionId, assessmentText } = body;
+    const { submissionId, assessmentText, forceRefresh } = body;
     
     console.log('[startup-market-research] Request received:', {
       submissionId,
@@ -78,7 +78,7 @@ serve(async (req) => {
       console.error('[startup-market-research] Error checking existing research:', checkError);
     }
 
-    if (existingResearch && existingResearch.status === 'completed') {
+    if (existingResearch && existingResearch.status === 'completed' && !forceRefresh) {
       const daysSinceResearch = (Date.now() - new Date(existingResearch.created_at).getTime()) / (1000 * 60 * 60 * 24);
       console.log('[startup-market-research] Found existing research, age:', daysSinceResearch, 'days');
       if (daysSinceResearch < 7) {
