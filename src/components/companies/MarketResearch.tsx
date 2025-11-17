@@ -130,33 +130,41 @@ export function MarketResearch({ companyId, submissionId, assessmentPoints, isSt
     // Build comprehensive assessment text for startups
     let assessmentToUse = "";
     if (isStartup && startupData) {
+      const rawSubmission = startupData._rawSubmission || startupData;
       assessmentToUse = `
-STARTUP: ${startupData.name || startupData.startup_name}
+STARTUP: ${rawSubmission.startup_name || startupData.name}
 
 PROBLEM STATEMENT:
-${startupData.problem_statement || 'Not provided'}
+${rawSubmission.problem_statement || 'Not provided'}
 
 SOLUTION:
-${startupData.solution || 'Not provided'}
+${rawSubmission.solution || 'Not provided'}
 
 VISION:
-${startupData.vision || 'Not provided'}
+${rawSubmission.vision || 'Not provided'}
 
 MARKET UNDERSTANDING:
-${startupData.market_understanding || 'Not provided'}
+${rawSubmission.market_understanding || 'Not provided'}
 
 CUSTOMER UNDERSTANDING:
-${startupData.customer_understanding || 'Not provided'}
+${rawSubmission.customer_understanding || 'Not provided'}
 
 COMPETITIVE UNDERSTANDING:
-${startupData.competitive_understanding || 'Not provided'}
+${rawSubmission.competitive_understanding || 'Not provided'}
 
 UNIQUE SELLING PROPOSITION:
-${startupData.unique_selling_proposition || 'Not provided'}
+${rawSubmission.unique_selling_proposition || 'Not provided'}
 
 TECHNICAL UNDERSTANDING:
-${startupData.technical_understanding || 'Not provided'}
+${rawSubmission.technical_understanding || 'Not provided'}
       `.trim();
+      
+      console.log('[MarketResearch] Built assessment text with length:', assessmentToUse.length);
+      console.log('[MarketResearch] Raw submission check:', {
+        hasRawSubmission: !!rawSubmission,
+        hasProblem: !!rawSubmission.problem_statement,
+        hasSolution: !!rawSubmission.solution
+      });
     } else {
       assessmentToUse = assessmentPoints && assessmentPoints.length > 0 
         ? assessmentPoints.join('\n')
