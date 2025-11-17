@@ -97,62 +97,63 @@ serve(async (req) => {
     console.log('[startup-market-research] Generating new research...');
 
     // Build comprehensive prompt
-    const systemInstruction = 'You are a financial analyst specializing in market research. Provide factual, recent information with specific data points. Always include source URLs.';
+    const systemInstruction = 'You are a VC analyst conducting market research. Provide factual, data-driven insights with specific sources. Focus on information directly relevant to the startup being evaluated.';
     
-    const userPrompt = `You are a top-tier venture capital (VC) analyst providing comprehensive research about ${startupName}. Based on the following assessment of the startup, I need you to conduct deep market research and provide detailed analysis focusing on the LATEST and MOST RELEVANT market information.
+    const userPrompt = `Conduct comprehensive market research for ${startupName} based on their evaluation context below.
 
-Company Assessment Points:
+STARTUP EVALUATION CONTEXT:
 ${assessmentText || 'No specific assessment points provided'}
 
-YOUR RESEARCH SHOULD BE IN THIS FORMAT ONLY, THIS IS THE MOST IMPORTANT PART IN FORMATTING YOUR RESPONSE. ALSO STRICTLY ADHERE TO THE FORMAT INSIDE EACH SECTION:
+YOUR TASK:
+Using the evaluation points above as your guide, research and analyze:
+1. How the market validates or challenges the startup's approach
+2. Competitive dynamics in their specific space
+3. Recent developments that impact their opportunity
+4. Market data that supports or questions their strategy
+
+OUTPUT FORMAT (STRICT):
 
 # Market Research: ${startupName}
 
 ## 1. LATEST NEWS (2023-2024)
-Provide 6-8 recent news articles that focus ONLY on breaking industry news, recent events, and current developments directly relevant to this startup's market. Each article MUST:
-- Have a compelling headline that highlights a RECENT EVENT (not general market facts)
-- Include publication name and specific date (month/year) from 2023-2024
-- Focus on NEWSWORTHY EVENTS that have happened recently (acquisitions, regulatory changes, new market entrants)
-- Include URLs to actual news sources
-- NEVER repeat information across different news items
-- DONT USE THE SAME NEWS ARTICLE ACROSS THE TWO SECTIONS
-- Focus on FACTS, not analysis
+Provide 5-7 recent news items directly relevant to this startup's market space and evaluation context. Each must:
+- Address specific concerns or opportunities mentioned in the evaluation
+- Be a concrete, recent event (not general market facts)
+- Include publication, specific date, and URL
+- Focus on competitor moves, market shifts, regulatory changes, or funding events
 
-Format each news item as:
-### [HEADLINE ABOUT A SPECIFIC NEWS EVENT OR DEVELOPMENT]
-**Source:** [PUBLICATION NAME], [SPECIFIC DATE]
-**Summary:** [2-3 SENTENCES WITH ACTUAL NEWS DETAILS AND IMPACT]
-**URL:** [ACTUAL NEWS SOURCE URL]
+Format:
+### [Specific News Event Headline]
+**Source:** [Publication Name], [Month Year]
+**Summary:** [2-3 sentences on the news and its implications for this startup's space]
+**URL:** [actual source URL]
 
 ## 2. MARKET INSIGHTS
-Provide 5-7 analytical market insights that are COMPLETELY DIFFERENT from the news section. Each insight MUST:
-- Focus on deeper ANALYSIS, TRENDS and MARKET DATA (not news events)
-- Include specific market statistics, growth projections, or competitive analysis
-- Present data-driven insights about market dynamics, NOT breaking news
-- Be based on industry reports, market research, and expert analysis
-- Include URLs to credible sources (market reports, analyst blogs, research papers)
-- Analyze market opportunities, challenges, or strategic implications
+Provide 5-7 analytical insights that directly address the evaluation points. Each must:
+- Connect to specific strengths, weaknesses, or questions from the evaluation
+- Include hard data (market size, growth rates, adoption metrics)
+- Cite specific market reports, research papers, or analyst opinions
+- Provide strategic context for investment decision-making
 
-Format each insight as:
-### [ANALYTICAL INSIGHT TITLE - MUST BE DIFFERENT FROM NEWS]
-**Content:** [3-4 SENTENCES WITH MARKET ANALYSIS, SPECIFIC DATA, AND TRENDS]
-**Source:** [SOURCE NAME], [DATE]
-**URL:** [SOURCE URL]
+Format:
+### [Insight Title - Tied to Evaluation Point]
+**Content:** [3-4 sentences with data, trends, and analysis directly relevant to the startup's strategy]
+**Source:** [Report/Research Name], [Date]
+**URL:** [source URL]
 
 ## 3. RESEARCH SUMMARY
-Create a comprehensive strategic summary (4-6 paragraphs) that synthesizes all findings:
-- Market positioning and competitive landscape
-- Key opportunities and risks
-- Growth drivers and market dynamics
-- Investment considerations and outlook
+Write 3-4 focused paragraphs that:
+- Synthesize how market data validates or challenges the startup's approach
+- Highlight key opportunities based on current market dynamics
+- Identify risks or competitive threats revealed by the research
+- Provide clear investment considerations based on findings
 
-CRITICAL FORMATTING RULES:
-1. Each news item and insight MUST have a valid URL
-2. Each section must have unique, non-overlapping content
-3. Use markdown formatting exactly as shown
-4. Focus on 2023-2024 information only
-5. Be specific with dates, numbers, and sources
-6. News section = EVENTS, Insights section = ANALYSIS`;
+CRITICAL RULES:
+1. Every insight must tie back to the evaluation context
+2. Use specific numbers, dates, and credible sources
+3. Differentiate news (events) from insights (analysis)
+4. Focus on 2023-2024 information
+5. Be concise and actionable for investment decisions`;
 
     const fullPrompt = `${systemInstruction}\n\n${userPrompt}`;
 
