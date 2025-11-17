@@ -124,11 +124,12 @@ const StartupCompanyPage = () => {
 
           {/* Real-Time Market Research */}
           {company.id && (
-            <MarketResearch 
-              submissionId={company.id}
-              assessmentPoints={company.assessment_points || []}
-              isStartup={true}
-            />
+              <MarketResearch 
+                submissionId={company.id}
+                assessmentPoints={company.assessment_points || []}
+                isStartup={true}
+                startupData={company}
+              />
           )}
 
           {/* Section Metrics */}
