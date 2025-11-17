@@ -97,30 +97,34 @@ serve(async (req) => {
     console.log('[startup-market-research] Generating new research...');
 
     // Build comprehensive prompt
-    const systemInstruction = 'You are a VC analyst conducting market research. Provide factual, data-driven insights with specific sources. Focus on information directly relevant to the startup being evaluated.';
+    const systemInstruction = 'You are a VC analyst conducting market research. Provide factual, data-driven insights with specific sources. Focus on information directly relevant to the startup being evaluated. Base ALL research on the actual problem, solution, and market described in the startup details below.';
     
-    const userPrompt = `Conduct comprehensive market research for ${startupName} based on their evaluation context below.
+    const userPrompt = `Conduct comprehensive market research for ${startupName} based on their detailed submission below.
 
-STARTUP EVALUATION CONTEXT:
-${assessmentText || 'No specific assessment points provided'}
+IMPORTANT: This startup's actual focus is described in detail below. Research ONLY topics related to their stated problem, solution, target market, and industry. DO NOT research unrelated topics.
+
+STARTUP DETAILS:
+${assessmentText || 'No specific information provided'}
 
 YOUR TASK:
-Using the evaluation points above as your guide, research and analyze:
-1. How the market validates or challenges the startup's approach
-2. Competitive dynamics in their specific space
-3. Recent developments that impact their opportunity
-4. Market data that supports or questions their strategy
+Based STRICTLY on the startup information above:
+1. Research the specific market and industry they described
+2. Find competitors in their exact stated space
+3. Identify recent developments in their specific problem domain
+4. Validate market size and growth for their target customers
+5. DO NOT research unrelated markets or industries
 
 OUTPUT FORMAT (STRICT):
 
 # Market Research: ${startupName}
 
 ## 1. LATEST NEWS (2023-2024)
-Provide 5-7 recent news items directly relevant to this startup's market space and evaluation context. Each must:
-- Address specific concerns or opportunities mentioned in the evaluation
+Provide 5-7 recent news items ONLY about this startup's specific market space as described in their submission. Each must:
+- Be directly related to their stated problem, solution, target customers, or industry
 - Be a concrete, recent event (not general market facts)
 - Include publication, specific date, and URL
-- Focus on competitor moves, market shifts, regulatory changes, or funding events
+- Focus on competitor moves, market shifts in THEIR space, regulatory changes affecting THEIR market, or relevant funding events
+- IGNORE news from unrelated markets or industries
 
 Format:
 ### [Specific News Event Headline]
@@ -129,11 +133,12 @@ Format:
 **URL:** [actual source URL]
 
 ## 2. MARKET INSIGHTS
-Provide 5-7 analytical insights that directly address the evaluation points. Each must:
-- Connect to specific strengths, weaknesses, or questions from the evaluation
-- Include hard data (market size, growth rates, adoption metrics)
-- Cite specific market reports, research papers, or analyst opinions
-- Provide strategic context for investment decision-making
+Provide 5-7 analytical insights ONLY about the market the startup actually operates in based on their submission. Each must:
+- Connect to their specific problem, solution, target customers, and stated competitive landscape
+- Include hard data (market size, growth rates, adoption metrics) for THEIR specific market
+- Cite specific market reports, research papers, or analyst opinions about THEIR industry
+- Provide strategic context for investment decision-making in THEIR space
+- DO NOT include insights from unrelated markets
 
 Format:
 ### [Insight Title - Tied to Evaluation Point]
@@ -149,11 +154,14 @@ Write 3-4 focused paragraphs that:
 - Provide clear investment considerations based on findings
 
 CRITICAL RULES:
-1. Every insight must tie back to the evaluation context
-2. Use specific numbers, dates, and credible sources
-3. Differentiate news (events) from insights (analysis)
-4. Focus on 2023-2024 information
-5. Be concise and actionable for investment decisions`;
+1. Research ONLY the market, industry, and problem space described in the startup details
+2. If the startup is about "AI for children education", research ONLY that space - NOT drug research, NOT healthcare, NOT unrelated industries
+3. Every insight must directly relate to their stated problem, solution, and target market
+4. Use specific numbers, dates, and credible sources from THEIR industry
+5. Differentiate news (events) from insights (analysis)
+6. Focus on 2023-2024 information
+7. Be concise and actionable for investment decisions
+8. DO NOT include information from unrelated markets or industries`;
 
     const fullPrompt = `${systemInstruction}\n\n${userPrompt}`;
 

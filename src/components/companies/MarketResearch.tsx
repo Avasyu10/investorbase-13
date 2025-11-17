@@ -13,9 +13,10 @@ interface MarketResearchProps {
   submissionId?: string;
   assessmentPoints: string[];
   isStartup?: boolean;
+  startupData?: any; // Full startup submission data for better context
 }
 
-export function MarketResearch({ companyId, submissionId, assessmentPoints, isStartup = false }: MarketResearchProps) {
+export function MarketResearch({ companyId, submissionId, assessmentPoints, isStartup = false, startupData }: MarketResearchProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [researchData, setResearchData] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<string>("summary");
@@ -117,7 +118,7 @@ export function MarketResearch({ companyId, submissionId, assessmentPoints, isSt
     checkExistingResearch();
   }, [companyId, submissionId, isStartup, assessmentPoints]);
 
-  const handleRequestResearch = async () => {
+  const handleRequestResearch = async (forceRefresh = false) => {
     if (!companyId && !submissionId) {
       console.error('[MarketResearch] Missing IDs:', { companyId, submissionId });
       toast.error("Missing information", {
@@ -126,23 +127,54 @@ export function MarketResearch({ companyId, submissionId, assessmentPoints, isSt
       return;
     }
 
-    // Allow research even without assessment points - we'll use company/submission data
-    const assessmentToUse = assessmentPoints && assessmentPoints.length > 0 
-      ? assessmentPoints.join('\n')
-      : 'Comprehensive market research and competitive analysis requested';
+    // Build comprehensive assessment text for startups
+    let assessmentToUse = "";
+    if (isStartup && startupData) {
+      assessmentToUse = `
+STARTUP: ${startupData.name || startupData.startup_name}
+
+PROBLEM STATEMENT:
+${startupData.problem_statement || 'Not provided'}
+
+SOLUTION:
+${startupData.solution || 'Not provided'}
+
+VISION:
+${startupData.vision || 'Not provided'}
+
+MARKET UNDERSTANDING:
+${startupData.market_understanding || 'Not provided'}
+
+CUSTOMER UNDERSTANDING:
+${startupData.customer_understanding || 'Not provided'}
+
+COMPETITIVE UNDERSTANDING:
+${startupData.competitive_understanding || 'Not provided'}
+
+UNIQUE SELLING PROPOSITION:
+${startupData.unique_selling_proposition || 'Not provided'}
+
+TECHNICAL UNDERSTANDING:
+${startupData.technical_understanding || 'Not provided'}
+      `.trim();
+    } else {
+      assessmentToUse = assessmentPoints && assessmentPoints.length > 0 
+        ? assessmentPoints.join('\n')
+        : 'Comprehensive market research and competitive analysis requested';
+    }
 
     try {
       setIsLoading(true);
       
       if (isStartup && submissionId) {
         console.log('[MarketResearch] Starting market research for startup:', submissionId);
-        console.log('[MarketResearch] Assessment data:', assessmentToUse);
+        console.log('[MarketResearch] Assessment data length:', assessmentToUse.length);
         
         const { data, error } = await supabase.functions.invoke('startup-market-research', {
           body: { 
             submissionId,
             assessmentText: assessmentToUse,
-            forceRefresh: true
+            forceRefresh: forceRefresh
           }
         });
         
@@ -358,7 +390,7 @@ export function MarketResearch({ companyId, submissionId, assessmentPoints, isSt
           
           <Button 
             variant="outline"
-            onClick={handleRequestResearch}
+            onClick={() => handleRequestResearch(true)}
             disabled={isLoading || isCheckingExisting}
             className=""
           >
