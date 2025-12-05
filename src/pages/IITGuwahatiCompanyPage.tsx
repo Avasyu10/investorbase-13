@@ -43,10 +43,10 @@ const IITGuwahatiCompanyPage = () => {
   const submission = company._rawSubmission;
 
   return (
-    <div className="min-h-screen">
-      <div className="w-full px-4 pt-0 pb-6 animate-fade-in">
+    <div className="min-h-screen w-full">
+      <div className="w-full px-6 pt-0 pb-6 animate-fade-in">
         {/* Back Button and Form Responses Button */}
-        <div className="container mx-auto mb-6 flex items-center justify-between">
+        <div className="mb-6 flex items-center justify-between">
           <Button 
             variant="outline" 
             size="sm" 
@@ -75,10 +75,9 @@ const IITGuwahatiCompanyPage = () => {
 
         {/* Company Overview */}
         <div className="w-full mb-8">
-          <div className="container mx-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold">{company.name}</h3>
-            </div>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-semibold">{company.name}</h3>
+          </div>
             
             <Card className="mb-6">
               <CardContent className="pt-6">
@@ -162,10 +161,9 @@ const IITGuwahatiCompanyPage = () => {
                 </div>
               </CardContent>
             </Card>
-          </div>
         </div>
 
-        <div className="container mx-auto">
+        <div className="w-full">
           {/* Overall Assessment with AI Evaluation */}
           <IITGuwahatiOverallAssessment 
             submissionId={company.id}
