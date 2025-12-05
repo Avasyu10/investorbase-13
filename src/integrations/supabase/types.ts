@@ -739,6 +739,86 @@ export type Database = {
           },
         ]
       }
+      iitguwahati_evaluations: {
+        Row: {
+          business_model_feedback: string | null
+          business_model_score: number | null
+          created_at: string
+          finances_feedback: string | null
+          finances_score: number | null
+          future_goals_feedback: string | null
+          future_goals_score: number | null
+          id: string
+          overall_score: number | null
+          overall_summary: string | null
+          patents_legalities_feedback: string | null
+          patents_legalities_score: number | null
+          problem_feedback: string | null
+          problem_score: number | null
+          product_feedback: string | null
+          product_score: number | null
+          solution_feedback: string | null
+          solution_score: number | null
+          startup_name: string | null
+          submission_id: string
+          updated_at: string
+        }
+        Insert: {
+          business_model_feedback?: string | null
+          business_model_score?: number | null
+          created_at?: string
+          finances_feedback?: string | null
+          finances_score?: number | null
+          future_goals_feedback?: string | null
+          future_goals_score?: number | null
+          id?: string
+          overall_score?: number | null
+          overall_summary?: string | null
+          patents_legalities_feedback?: string | null
+          patents_legalities_score?: number | null
+          problem_feedback?: string | null
+          problem_score?: number | null
+          product_feedback?: string | null
+          product_score?: number | null
+          solution_feedback?: string | null
+          solution_score?: number | null
+          startup_name?: string | null
+          submission_id: string
+          updated_at?: string
+        }
+        Update: {
+          business_model_feedback?: string | null
+          business_model_score?: number | null
+          created_at?: string
+          finances_feedback?: string | null
+          finances_score?: number | null
+          future_goals_feedback?: string | null
+          future_goals_score?: number | null
+          id?: string
+          overall_score?: number | null
+          overall_summary?: string | null
+          patents_legalities_feedback?: string | null
+          patents_legalities_score?: number | null
+          problem_feedback?: string | null
+          problem_score?: number | null
+          product_feedback?: string | null
+          product_score?: number | null
+          solution_feedback?: string | null
+          solution_score?: number | null
+          startup_name?: string | null
+          submission_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "iitguwahati_evaluations_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "iitguwahati_form_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       iitguwahati_form_submissions: {
         Row: {
           analysis_error: string | null
