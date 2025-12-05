@@ -57,11 +57,7 @@ const IITGuwahatiCompanyPage = () => {
             <ChevronLeft className="mr-1" /> Back to Dashboard
           </Button>
           
-          <div className="flex items-center gap-2">
-            <IITGuwahatiCompanyInfoDialog 
-              companyName={company.name} 
-              submissionId={company.id} 
-            />
+          <div className="flex flex-col items-end gap-2">
             <Button 
               variant="outline" 
               size="sm" 
@@ -71,6 +67,10 @@ const IITGuwahatiCompanyPage = () => {
               <FileText className="mr-2 h-4 w-4" />
               View Form Responses
             </Button>
+            <IITGuwahatiCompanyInfoDialog 
+              companyName={company.name} 
+              submissionId={company.id} 
+            />
           </div>
         </div>
 
@@ -79,9 +79,6 @@ const IITGuwahatiCompanyPage = () => {
           <div className="container mx-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold">{company.name}</h3>
-              {company.stage && (
-                <Badge variant="secondary">{company.stage}</Badge>
-              )}
             </div>
             
             <Card className="mb-6">
