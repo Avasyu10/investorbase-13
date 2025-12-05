@@ -906,6 +906,65 @@ export type Database = {
         }
         Relationships: []
       }
+      iitguwahati_market_research: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          market_insights: Json | null
+          news_highlights: Json | null
+          prompt: string | null
+          requested_at: string
+          research_summary: string | null
+          research_text: string | null
+          sources: Json | null
+          status: string
+          submission_id: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          market_insights?: Json | null
+          news_highlights?: Json | null
+          prompt?: string | null
+          requested_at?: string
+          research_summary?: string | null
+          research_text?: string | null
+          sources?: Json | null
+          status?: string
+          submission_id: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          market_insights?: Json | null
+          news_highlights?: Json | null
+          prompt?: string | null
+          requested_at?: string
+          research_summary?: string | null
+          research_text?: string | null
+          sources?: Json | null
+          status?: string
+          submission_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "iitguwahati_market_research_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: true
+            referencedRelation: "iitguwahati_form_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       investor_pitch_emails: {
         Row: {
           approved_at: string | null
