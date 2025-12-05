@@ -157,6 +157,22 @@ export function IITGuwahatiSectionMetrics({ submissionId }: IITGuwahatiSectionMe
     return "bg-red-500";
   };
 
+  const formatFeedback = (feedback: string): string => {
+    if (!feedback) return '';
+    
+    // Try to parse as JSON array
+    try {
+      const parsed = JSON.parse(feedback);
+      if (Array.isArray(parsed)) {
+        return parsed.map(item => `• ${item}`).join('\n\n');
+      }
+    } catch {
+      // Not JSON, return as-is
+    }
+    
+    return feedback;
+  };
+
   if (isLoading) {
     return (
       <div className="mb-8">
@@ -274,7 +290,7 @@ export function IITGuwahatiSectionMetrics({ submissionId }: IITGuwahatiSectionMe
                     ),
                   }}
                 >
-                  {section.feedback}
+                  {formatFeedback(section.feedback)}
                 </ReactMarkdown>
               ) : (
                 <p className="text-sm text-muted-foreground italic">No feedback available</p>

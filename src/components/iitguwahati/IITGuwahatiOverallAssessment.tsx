@@ -108,6 +108,18 @@ export function IITGuwahatiOverallAssessment({
   const displayScore = evaluation?.overall_score || 0;
   const progressPercentage = displayScore;
 
+  // Parse JSON array if needed
+  const parseJsonArray = (value: string | null): string[] => {
+    if (!value) return [];
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {
+      // Not JSON, return as single item
+    }
+    return [value];
+  };
+
   // Generate assessment points from evaluation sections
   const generateAssessmentPoints = (): string[] => {
     if (!evaluation) return [];
@@ -115,7 +127,9 @@ export function IITGuwahatiOverallAssessment({
     const points: string[] = [];
     
     if (evaluation.overall_summary) {
-      points.push(evaluation.overall_summary);
+      // Try to parse as JSON array first
+      const summaryPoints = parseJsonArray(evaluation.overall_summary);
+      points.push(...summaryPoints);
     }
     
     // Add insights based on scores
