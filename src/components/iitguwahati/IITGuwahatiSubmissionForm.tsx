@@ -43,13 +43,34 @@ export const IITGuwahatiSubmissionForm = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
-      const { error } = await supabase
+      const insertData = {
+        startup_name: formData.startup_name,
+        submitter_email: formData.submitter_email,
+        founder_name: formData.founder_name || null,
+        linkedin_url: formData.linkedin_url || null,
+        phone_number: formData.phone_number || null,
+        domain_and_problem: formData.domain_and_problem || null,
+        target_market_size: formData.target_market_size || null,
+        unique_proposition: formData.unique_proposition || null,
+        product_type_and_stage: formData.product_type_and_stage || null,
+        primary_revenue_model: formData.primary_revenue_model || null,
+        ltv_cac_ratio: formData.ltv_cac_ratio || null,
+        total_funding_sought: formData.total_funding_sought || null,
+        key_traction_metric: formData.key_traction_metric || null,
+        ip_moat_status: formData.ip_moat_status || null,
+        twelve_month_roadmap: formData.twelve_month_roadmap || null,
+        user_id: user?.id || null,
+        form_slug: "iitguwahati-incubator",
+      };
+
+      console.log("Submitting data:", insertData);
+
+      const { data, error } = await supabase
         .from("iitguwahati_form_submissions")
-        .insert({
-          ...formData,
-          user_id: user?.id || null,
-          form_slug: "iitguwahati-incubator",
-        });
+        .insert(insertData)
+        .select();
+
+      console.log("Insert response:", { data, error });
 
       if (error) throw error;
 
@@ -59,11 +80,11 @@ export const IITGuwahatiSubmissionForm = () => {
       });
 
       navigate("/iitguwahati-dashboard");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting:", error);
       toast({
         title: "Error",
-        description: "Failed to submit application. Please try again.",
+        description: error?.message || "Failed to submit application. Please try again.",
         variant: "destructive",
       });
     } finally {
