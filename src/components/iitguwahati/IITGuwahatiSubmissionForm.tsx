@@ -41,9 +41,9 @@ export const IITGuwahatiSubmissionForm = () => {
     setIsSubmitting(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
 
-      if (!user) {
+      if (!session?.user) {
         toast({
           title: "Error",
           description: "You must be logged in to submit an application.",
@@ -53,31 +53,33 @@ export const IITGuwahatiSubmissionForm = () => {
         return;
       }
 
+      const insertPayload = {
+        startup_name: formData.startup_name.trim(),
+        submitter_email: formData.submitter_email.trim(),
+        founder_name: formData.founder_name?.trim() || null,
+        linkedin_url: formData.linkedin_url?.trim() || null,
+        phone_number: formData.phone_number?.trim() || null,
+        domain_and_problem: formData.domain_and_problem?.trim() || null,
+        target_market_size: formData.target_market_size?.trim() || null,
+        unique_proposition: formData.unique_proposition?.trim() || null,
+        product_type_and_stage: formData.product_type_and_stage?.trim() || null,
+        primary_revenue_model: formData.primary_revenue_model?.trim() || null,
+        ltv_cac_ratio: formData.ltv_cac_ratio?.trim() || null,
+        total_funding_sought: formData.total_funding_sought?.trim() || null,
+        key_traction_metric: formData.key_traction_metric?.trim() || null,
+        ip_moat_status: formData.ip_moat_status?.trim() || null,
+        twelve_month_roadmap: formData.twelve_month_roadmap?.trim() || null,
+        user_id: session.user.id,
+        form_slug: "iitguwahati-incubator",
+      };
+
       const { error } = await supabase
         .from("iitguwahati_form_submissions")
-        .insert({
-          startup_name: formData.startup_name,
-          submitter_email: formData.submitter_email,
-          founder_name: formData.founder_name || null,
-          linkedin_url: formData.linkedin_url || null,
-          phone_number: formData.phone_number || null,
-          domain_and_problem: formData.domain_and_problem || null,
-          target_market_size: formData.target_market_size || null,
-          unique_proposition: formData.unique_proposition || null,
-          product_type_and_stage: formData.product_type_and_stage || null,
-          primary_revenue_model: formData.primary_revenue_model || null,
-          ltv_cac_ratio: formData.ltv_cac_ratio || null,
-          total_funding_sought: formData.total_funding_sought || null,
-          key_traction_metric: formData.key_traction_metric || null,
-          ip_moat_status: formData.ip_moat_status || null,
-          twelve_month_roadmap: formData.twelve_month_roadmap || null,
-          user_id: user.id,
-          form_slug: "iitguwahati-incubator",
-        });
+        .insert(insertPayload);
 
       if (error) {
-        console.error("Supabase error:", error);
-        throw error;
+        console.error("Supabase insert error:", error);
+        throw new Error(error.message || "Database error");
       }
 
       toast({
@@ -87,10 +89,15 @@ export const IITGuwahatiSubmissionForm = () => {
 
       navigate("/iitguwahati-dashboard");
     } catch (error: any) {
-      console.error("Error submitting:", error);
+      console.error("Submission error:", error);
+      
+      const errorMessage = error?.message?.includes("fetch") 
+        ? "Network error. Please check your connection and try again."
+        : error?.message || "Failed to submit application. Please try again.";
+      
       toast({
         title: "Error",
-        description: error?.message || "Failed to submit application. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
