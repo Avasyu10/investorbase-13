@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, Loader2, FileText, Mail, Phone, Linkedin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useIITGuwahatiCompanyDetails } from "@/hooks/useIITGuwahatiCompanyDetails";
-import { OverallAssessment } from "@/components/companies/OverallAssessment";
+import { IITGuwahatiOverallAssessment } from "@/components/iitguwahati/IITGuwahatiOverallAssessment";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { IITGuwahatiSectionMetrics } from "@/components/iitguwahati/IITGuwahatiSectionMetrics";
@@ -126,11 +126,9 @@ const IITGuwahatiCompanyPage = () => {
         </div>
 
         <div className="container mx-auto">
-          {/* Overall Assessment */}
-          <OverallAssessment 
-            score={company.overall_score} 
-            assessmentPoints={company.assessment_points || []} 
-            companyId={company.id} 
+          {/* Overall Assessment with AI Evaluation */}
+          <IITGuwahatiOverallAssessment 
+            submissionId={company.id}
             companyName={company.name} 
           />
 
