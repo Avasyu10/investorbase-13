@@ -17,6 +17,7 @@ interface Profile {
   is_view: boolean;
   is_bits_question: boolean;
   is_eximius?: boolean;
+  is_iitguwahati_incubator?: boolean;
   signup_source: string | null;
   created_at: string;
   updated_at: string;
@@ -75,6 +76,7 @@ export function useProfile() {
     isViewOnly: profile?.is_view || false,
     isVCAndBits: (profile?.is_vc && profile?.is_bits) || false,
     isBitsQuestion: profile?.is_bits_question || false,
-    isEximius: profile?.is_eximius || false
+    isEximius: profile?.is_eximius || false,
+    isIITGuwahatiIncubator: profile?.is_iitguwahati_incubator || false
   };
 }

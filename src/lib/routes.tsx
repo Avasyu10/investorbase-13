@@ -35,6 +35,9 @@ import StartupDashboard from "@/pages/StartupDashboard";
 import SubmissionDetail from "@/pages/SubmissionDetail";
 import StartupCompanyPage from "@/pages/StartupCompanyPage";
 import StartupSectionDetail from "@/pages/StartupSectionDetail";
+import IITGuwahatiDashboard from "@/pages/IITGuwahatiDashboard";
+import IITGuwahatiSubmit from "@/pages/IITGuwahatiSubmit";
+import IITGuwahatiCompanyPage from "@/pages/IITGuwahatiCompanyPage";
 
 export const routes = [
   { path: "/", element: <Index /> },
@@ -248,6 +251,26 @@ export const routes = [
     element: (
       <ProtectedRoute>
         <SupplementaryMaterials />
+      </ProtectedRoute>
+    )
+  },
+  {
+    path: "/iitguwahati-dashboard",
+    element: (
+      <ProtectedRoute>
+        <IITGuwahatiDashboard />
+      </ProtectedRoute>
+    )
+  },
+  {
+    path: "/iitguwahati-submit",
+    element: <IITGuwahatiSubmit />
+  },
+  {
+    path: "/iitguwahati-company/:id",
+    element: (
+      <ProtectedRoute>
+        <IITGuwahatiCompanyPage />
       </ProtectedRoute>
     )
   },
