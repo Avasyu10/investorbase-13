@@ -38,6 +38,7 @@ import StartupSectionDetail from "@/pages/StartupSectionDetail";
 import IITGuwahatiDashboard from "@/pages/IITGuwahatiDashboard";
 import IITGuwahatiSubmit from "@/pages/IITGuwahatiSubmit";
 import IITGuwahatiCompanyPage from "@/pages/IITGuwahatiCompanyPage";
+import IITGuwahatiSectionDetail from "@/pages/IITGuwahatiSectionDetail";
 
 export const routes = [
   { path: "/", element: <Index /> },
@@ -271,6 +272,14 @@ export const routes = [
     element: (
       <ProtectedRoute>
         <IITGuwahatiCompanyPage />
+      </ProtectedRoute>
+    )
+  },
+  {
+    path: "/iitguwahati-section/:submissionId/:sectionType",
+    element: (
+      <ProtectedRoute>
+        <IITGuwahatiSectionDetail />
       </ProtectedRoute>
     )
   },

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, BarChart2, Sparkles, RefreshCw } from "lucide-react";
+import { Loader2, BarChart2, Sparkles, RefreshCw, ChevronRight } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +21,7 @@ interface SectionGroup {
 
 export function IITGuwahatiSectionMetrics({ submissionId }: IITGuwahatiSectionMetricsProps) {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [sectionGroups, setSectionGroups] = useState<SectionGroup[]>([]);
@@ -255,11 +257,15 @@ export function IITGuwahatiSectionMetrics({ submissionId }: IITGuwahatiSectionMe
         {sectionGroups.map((section) => (
           <Card
             key={section.type}
-            className="hover:shadow-lg transition-all duration-200 border-0 shadow-md hover:shadow-xl h-full flex flex-col bg-card"
+            className="hover:shadow-lg transition-all duration-200 border-0 shadow-md hover:shadow-xl h-full flex flex-col bg-card cursor-pointer group"
+            onClick={() => navigate(`/iitguwahati-section/${submissionId}/${section.type}`)}
           >
             <CardHeader className="pb-2 flex-shrink-0">
               <div className="flex items-start justify-between mb-2">
-                <CardTitle className="text-base font-semibold">{section.title}</CardTitle>
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-base font-semibold group-hover:text-primary transition-colors">{section.title}</CardTitle>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors opacity-0 group-hover:opacity-100" />
+                </div>
                 <Badge 
                   variant={getScoreBadgeVariant(section.score)} 
                   className="text-xs font-bold px-2.5 py-0.5 rounded-full"
