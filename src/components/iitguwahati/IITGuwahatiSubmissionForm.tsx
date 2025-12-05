@@ -73,18 +73,31 @@ export const IITGuwahatiSubmissionForm = () => {
         form_slug: "iitguwahati-incubator",
       };
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("iitguwahati_form_submissions")
-        .insert(insertPayload);
+        .insert(insertPayload)
+        .select('id')
+        .single();
 
       if (error) {
         console.error("Supabase insert error:", error);
         throw new Error(error.message || "Database error");
       }
 
+      // Trigger auto-evaluation in the background
+      if (data?.id) {
+        supabase.functions.invoke('auto-evaluate-iitguwahati', {
+          body: { submissionId: data.id }
+        }).then(response => {
+          console.log('Auto-evaluation triggered:', response);
+        }).catch(err => {
+          console.error('Auto-evaluation error:', err);
+        });
+      }
+
       toast({
         title: "Success",
-        description: "Application submitted successfully!",
+        description: "Application submitted successfully! AI evaluation is running...",
       });
 
       navigate("/iitguwahati-dashboard");
