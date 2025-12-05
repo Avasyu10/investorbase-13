@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Loader2, FileText, Mail, Phone, Linkedin } from "lucide-react";
+import { ChevronLeft, Loader2, FileText, Mail, Phone, Linkedin, Globe, TrendingUp, Briefcase } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useIITGuwahatiCompanyDetails } from "@/hooks/useIITGuwahatiCompanyDetails";
 import { IITGuwahatiOverallAssessment } from "@/components/iitguwahati/IITGuwahatiOverallAssessment";
@@ -9,7 +9,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { IITGuwahatiSectionMetrics } from "@/components/iitguwahati/IITGuwahatiSectionMetrics";
 import { IITGuwahatiCompanyInfoDialog } from "@/components/iitguwahati/IITGuwahatiCompanyInfoDialog";
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
 
 const IITGuwahatiCompanyPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -124,6 +123,43 @@ const IITGuwahatiCompanyPage = () => {
                     <p className="text-foreground">{company.introduction}</p>
                   </div>
                 )}
+                
+                {/* Website, Stage, Industry row */}
+                <div className="mt-4 pt-4 border-t flex flex-wrap gap-8">
+                  <div className="flex items-center gap-2">
+                    <Globe className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="text-sm font-medium">Website/Link</p>
+                      <p className="text-sm text-muted-foreground">
+                        {company.website ? (
+                          <a href={company.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                            {company.website}
+                          </a>
+                        ) : 'Not available'}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="text-sm font-medium">Stage</p>
+                      <p className="text-sm text-muted-foreground">
+                        {submission?.product_type_and_stage || 'Early Stage'}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Briefcase className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="text-sm font-medium">Industry</p>
+                      <p className="text-sm text-muted-foreground">
+                        {submission?.domain_and_problem?.split(' ')[0] || 'Not specified'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
