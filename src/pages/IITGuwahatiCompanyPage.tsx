@@ -125,7 +125,7 @@ const IITGuwahatiCompanyPage = () => {
                 )}
                 
                 {/* Website, Stage, Industry row */}
-                <div className="mt-4 pt-4 border-t flex flex-wrap gap-8">
+                <div className="mt-4 pt-4 border-t flex flex-col gap-4">
                   <div className="flex items-center gap-2">
                     <Globe className="h-5 w-5 text-primary" />
                     <div>
