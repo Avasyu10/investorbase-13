@@ -30,6 +30,7 @@ const Dashboard = () => {
     isViewOnly,
     isBitsQuestion,
     isEximius,
+    isIITGuwahatiIncubator,
     isLoading: profileLoading
   } = useProfile();
   const navigate = useNavigate();
@@ -68,6 +69,13 @@ const Dashboard = () => {
         navigate('/view-dashboard');
         return;
       }
+
+      // Redirect IIT Guwahati Incubator users to their dashboard
+      if (isIITGuwahatiIncubator) {
+        console.log("IIT Guwahati Incubator user, redirecting to IIT Guwahati dashboard");
+        navigate('/iitguwahati-dashboard');
+        return;
+      }
       console.log("Dashboard loaded for user:", user.id);
       console.log("Profile data:", profile);
       console.log("Is IIT Bombay user:", isIITBombay);
@@ -77,7 +85,7 @@ const Dashboard = () => {
 
     // Scroll to top when dashboard loads
     window.scrollTo(0, 0);
-  }, [user, isLoading, navigate, profile, isIITBombay, isVC, isViewOnly, profileLoading, isVCAndBits, isBitsQuestion, isEximius]);
+  }, [user, isLoading, navigate, profile, isIITBombay, isVC, isViewOnly, profileLoading, isVCAndBits, isBitsQuestion, isEximius, isIITGuwahatiIncubator]);
 
   const checkAdminStatus = async () => {
     if (!user) return;

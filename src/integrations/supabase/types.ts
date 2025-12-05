@@ -739,6 +739,93 @@ export type Database = {
           },
         ]
       }
+      iitguwahati_form_submissions: {
+        Row: {
+          analysis_error: string | null
+          analysis_result: Json | null
+          analysis_status: string | null
+          analyzed_at: string | null
+          company_id: string | null
+          created_at: string
+          domain_and_problem: string | null
+          form_slug: string
+          founder_name: string | null
+          id: string
+          ip_moat_status: string | null
+          key_traction_metric: string | null
+          linkedin_url: string | null
+          ltv_cac_ratio: string | null
+          phone_number: string | null
+          primary_revenue_model: string | null
+          product_type_and_stage: string | null
+          report_id: string | null
+          startup_name: string
+          submitter_email: string
+          target_market_size: string | null
+          total_funding_sought: string | null
+          twelve_month_roadmap: string | null
+          unique_proposition: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          analysis_error?: string | null
+          analysis_result?: Json | null
+          analysis_status?: string | null
+          analyzed_at?: string | null
+          company_id?: string | null
+          created_at?: string
+          domain_and_problem?: string | null
+          form_slug: string
+          founder_name?: string | null
+          id?: string
+          ip_moat_status?: string | null
+          key_traction_metric?: string | null
+          linkedin_url?: string | null
+          ltv_cac_ratio?: string | null
+          phone_number?: string | null
+          primary_revenue_model?: string | null
+          product_type_and_stage?: string | null
+          report_id?: string | null
+          startup_name: string
+          submitter_email: string
+          target_market_size?: string | null
+          total_funding_sought?: string | null
+          twelve_month_roadmap?: string | null
+          unique_proposition?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          analysis_error?: string | null
+          analysis_result?: Json | null
+          analysis_status?: string | null
+          analyzed_at?: string | null
+          company_id?: string | null
+          created_at?: string
+          domain_and_problem?: string | null
+          form_slug?: string
+          founder_name?: string | null
+          id?: string
+          ip_moat_status?: string | null
+          key_traction_metric?: string | null
+          linkedin_url?: string | null
+          ltv_cac_ratio?: string | null
+          phone_number?: string | null
+          primary_revenue_model?: string | null
+          product_type_and_stage?: string | null
+          report_id?: string | null
+          startup_name?: string
+          submitter_email?: string
+          target_market_size?: string | null
+          total_funding_sought?: string | null
+          twelve_month_roadmap?: string | null
+          unique_proposition?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       investor_pitch_emails: {
         Row: {
           approved_at: string | null
@@ -998,6 +1085,7 @@ export type Database = {
           is_bits_question: boolean | null
           is_eximius: boolean | null
           is_iitbombay: boolean
+          is_iitguwahati_incubator: boolean | null
           is_manager: boolean
           is_vc: boolean
           is_view: boolean | null
@@ -1016,6 +1104,7 @@ export type Database = {
           is_bits_question?: boolean | null
           is_eximius?: boolean | null
           is_iitbombay?: boolean
+          is_iitguwahati_incubator?: boolean | null
           is_manager?: boolean
           is_vc?: boolean
           is_view?: boolean | null
@@ -1034,6 +1123,7 @@ export type Database = {
           is_bits_question?: boolean | null
           is_eximius?: boolean | null
           is_iitbombay?: boolean
+          is_iitguwahati_incubator?: boolean | null
           is_manager?: boolean
           is_vc?: boolean
           is_view?: boolean | null
