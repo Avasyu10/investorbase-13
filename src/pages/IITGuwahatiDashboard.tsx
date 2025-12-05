@@ -295,66 +295,58 @@ const IITGuwahatiDashboard = () => {
                 <table className="min-w-full rounded-lg bg-[#111422]">
                   <thead>
                     <tr className="text-gray-400 text-left border-b border-[#23262F]">
-                      <th className="py-3 px-4">Date</th>
-                      <th className="py-3 px-4">Startup Name</th>
-                      <th className="py-3 px-4">Founder</th>
-                      <th className="py-3 px-4">Domain</th>
-                      <th className="py-3 px-4">Stage</th>
-                      <th className="py-3 px-4">Funding Sought</th>
-                      <th className="py-3 px-4">Status</th>
-                      <th className="py-3 px-4">Actions</th>
+                      <th className="py-4 px-6">Date</th>
+                      <th className="py-4 px-6">Startup Name</th>
+                      <th className="py-4 px-6">ID</th>
+                      <th className="py-4 px-6">Score</th>
+                      <th className="py-4 px-6 text-center">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {submissions.map((submission) => (
-                      <tr
-                        key={submission.id}
-                        className="border-b border-[#23262F] hover:bg-[#181c2a] transition-colors cursor-pointer"
-                        onClick={() => navigate(`/iitguwahati-company/${submission.id}`)}
-                      >
-                        <td className="py-3 px-4 text-gray-300">
-                          {new Date(submission.created_at).toLocaleDateString()}
-                        </td>
-                        <td className="py-3 px-4 font-medium text-white">
-                          {submission.startup_name}
-                        </td>
-                        <td className="py-3 px-4 text-gray-300">
-                          {submission.founder_name || '-'}
-                        </td>
-                        <td className="py-3 px-4 text-gray-300 max-w-[200px] truncate">
-                          {submission.domain_and_problem?.slice(0, 50) || '-'}
-                        </td>
-                        <td className="py-3 px-4 text-gray-300">
-                          {submission.product_type_and_stage || '-'}
-                        </td>
-                        <td className="py-3 px-4 text-gray-300">
-                          {submission.total_funding_sought || '-'}
-                        </td>
-                        <td className="py-3 px-4">
-                          {getStatusBadge(submission.analysis_status)}
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                    {submissions.map((submission) => {
+                      const score = submission.analysis_result?.overall_score;
+                      const shortId = `EU${submission.id.slice(0, 8).toUpperCase()}`;
+                      return (
+                        <tr
+                          key={submission.id}
+                          className="border-b border-[#23262F] hover:bg-[#181c2a] transition-colors cursor-pointer"
+                          onClick={() => navigate(`/iitguwahati-company/${submission.id}`)}
+                        >
+                          <td className="py-4 px-6 text-gray-300">
+                            {new Date(submission.created_at).toLocaleDateString()}
+                          </td>
+                          <td className="py-4 px-6 font-medium text-white">
+                            {submission.startup_name}
+                          </td>
+                          <td className="py-4 px-6 text-gray-400">
+                            {shortId}
+                          </td>
+                          <td className="py-4 px-6">
+                            {score !== undefined ? (
+                              <Badge className={`${
+                                score >= 75 ? 'bg-green-900/50 text-green-400 border border-green-700/50' :
+                                score >= 50 ? 'bg-yellow-900/50 text-yellow-400 border border-yellow-700/50' :
+                                'bg-red-900/50 text-red-400 border border-red-700/50'
+                              }`}>
+                                {Math.round(score)}/100
+                              </Badge>
+                            ) : (
+                              <span className="text-gray-500">-</span>
+                            )}
+                          </td>
+                          <td className="py-4 px-6 text-center">
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => navigate(`/iitguwahati-company/${submission.id}`)}
-                              className="text-gray-400 hover:text-white"
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => deleteSubmission(submission.id)}
-                              className="text-gray-400 hover:text-red-500"
+                              onClick={(e) => { e.stopPropagation(); deleteSubmission(submission.id); }}
+                              className="text-red-400 hover:text-red-500 hover:bg-red-500/10"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
