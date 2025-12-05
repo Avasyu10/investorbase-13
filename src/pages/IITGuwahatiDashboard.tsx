@@ -245,18 +245,31 @@ const IITGuwahatiDashboard = () => {
                 <div className="text-gray-400 mt-2">Total Applications</div>
               </div>
               <div className="rounded-xl p-6 text-center border bg-[#111422] border-[#111422] shadow-[0_4px_24px_rgba(0,0,0,0.2)]">
-                <div className="text-3xl font-bold text-green-400">{submissions.filter(s => s.analysis_status === 'completed').length}</div>
-                <div className="text-gray-400 mt-2">Analyzed</div>
-              </div>
-              <div className="rounded-xl p-6 text-center border bg-[#111422] border-[#111422] shadow-[0_4px_24px_rgba(0,0,0,0.2)]">
-                <div className="text-3xl font-bold text-yellow-400">{submissions.filter(s => s.analysis_status === 'pending' || !s.analysis_status).length}</div>
-                <div className="text-gray-400 mt-2">Pending</div>
-              </div>
-              <div className="rounded-xl p-6 text-center border bg-[#111422] border-[#111422] shadow-[0_4px_24px_rgba(0,0,0,0.2)]">
-                <div className="text-3xl font-bold text-blue-400">
-                  {submissions.filter(s => s.total_funding_sought).length}
+                <div className="text-3xl font-bold text-green-400">
+                  {submissions.filter(s => {
+                    const score = s.analysis_result?.overall_score;
+                    return score !== undefined && score >= 75;
+                  }).length}
                 </div>
-                <div className="text-gray-400 mt-2">Seeking Funding</div>
+                <div className="text-gray-400 mt-2">High Potential</div>
+              </div>
+              <div className="rounded-xl p-6 text-center border bg-[#111422] border-[#111422] shadow-[0_4px_24px_rgba(0,0,0,0.2)]">
+                <div className="text-3xl font-bold text-yellow-400">
+                  {submissions.filter(s => {
+                    const score = s.analysis_result?.overall_score;
+                    return score !== undefined && score >= 50 && score < 75;
+                  }).length}
+                </div>
+                <div className="text-gray-400 mt-2">Medium Potential</div>
+              </div>
+              <div className="rounded-xl p-6 text-center border bg-[#111422] border-[#111422] shadow-[0_4px_24px_rgba(0,0,0,0.2)]">
+                <div className="text-3xl font-bold text-red-400">
+                  {submissions.filter(s => {
+                    const score = s.analysis_result?.overall_score;
+                    return score !== undefined && score < 50;
+                  }).length}
+                </div>
+                <div className="text-gray-400 mt-2">Low Potential</div>
               </div>
             </div>
 
