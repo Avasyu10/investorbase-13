@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { IITGuwahatiSectionMetrics } from "@/components/iitguwahati/IITGuwahatiSectionMetrics";
 import { IITGuwahatiCompanyInfoDialog } from "@/components/iitguwahati/IITGuwahatiCompanyInfoDialog";
+import { IITGuwahatiMarketResearch } from "@/components/iitguwahati/IITGuwahatiMarketResearch";
 import { useState } from "react";
 
 const IITGuwahatiCompanyPage = () => {
@@ -169,6 +170,14 @@ const IITGuwahatiCompanyPage = () => {
             submissionId={company.id}
             companyName={company.name} 
           />
+
+          {/* Real-Time Market Research */}
+          {company.id && (
+            <IITGuwahatiMarketResearch 
+              submissionId={company.id}
+              submissionData={submission}
+            />
+          )}
 
           {/* Section Metrics with AI Evaluation */}
           <IITGuwahatiSectionMetrics submissionId={company.id} />
