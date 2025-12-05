@@ -7,6 +7,7 @@ import { IITGuwahatiOverallAssessment } from "@/components/iitguwahati/IITGuwaha
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { IITGuwahatiSectionMetrics } from "@/components/iitguwahati/IITGuwahatiSectionMetrics";
+import { IITGuwahatiCompanyInfoDialog } from "@/components/iitguwahati/IITGuwahatiCompanyInfoDialog";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 
@@ -56,15 +57,21 @@ const IITGuwahatiCompanyPage = () => {
             <ChevronLeft className="mr-1" /> Back to Dashboard
           </Button>
           
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => setFormResponsesOpen(true)}
-            className="flex items-center bg-amber-400 hover:bg-amber-300 text-slate-950 border-amber-600"
-          >
-            <FileText className="mr-2 h-4 w-4" />
-            View Form Responses
-          </Button>
+          <div className="flex items-center gap-2">
+            <IITGuwahatiCompanyInfoDialog 
+              companyName={company.name} 
+              submissionId={company.id} 
+            />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setFormResponsesOpen(true)}
+              className="flex items-center bg-amber-400 hover:bg-amber-300 text-slate-950 border-amber-600"
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              View Form Responses
+            </Button>
+          </div>
         </div>
 
         {/* Company Overview */}
